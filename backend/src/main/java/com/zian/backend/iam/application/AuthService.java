@@ -1,0 +1,116 @@
+package com.zian.backend.iam.application;
+
+import com.zian.backend.audit.application.AuditRecorder;
+import com.zian.backend.iam.domain.model.User;
+import com.zian.backend.iam.domain.model.UserRole;
+import com.zian.backend.iam.domain.repository.PermissionRepository;
+import com.zian.backend.iam.domain.repository.UserRepository;
+import com.zian.backend.iam.interfaces.dto.AuthDtos;
+import com.zian.backend.shared.common.ErrorCode;
+import com.zian.backend.shared.exception.BusinessException;
+import com.zian.backend.shared.security.JwtService;
+import com.zian.backend.shared.security.LoginUser;
+import com.zian.backend.shared.security.UserContext;
+import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 认证应用服务：登录 / 当前用户 / 登出。
+ */
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PermissionRepository permissionRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuditRecorder auditRecorder;
+
+    @Transactional
+    public AuthDtos.LoginResult login(AuthDtos.LoginRequest request) {
+        String userNo = request.userNo().trim();
+        User user = userRepository
+                .findByUserNo(userNo)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号或密码错误"));
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号或密码错误");
+        }
+        user.touchLogin(LocalDateTime.now());
+        userRepository.update(user);
+
+        Set<String> permissions = effectivePermissions(user.getRole());
+        LoginUser principal =
+                new LoginUser(user.getId(), user.getUserNo(), user.getName(), user.getRole().name(), permissions);
+        JwtService.IssuedToken issued = jwtService.issue(principal);
+        auditRecorder.recordAs(principal, "AUTH_LOGIN", "USER", user.getId(), "登录系统", Map.of());
+        return new AuthDtos.LoginResult(issued.token(), issued.expiresIn(), toView(user, permissions));
+    }
+
+    @Transactional(readOnly = true)
+    public AuthDtos.SessionUser me() {
+        LoginUser current = UserContext.require();
+        User user = userRepository
+                .findById(current.id())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        return toView(user, effectivePermissions(user.getRole()));
+    }
+
+    @Transactional(readOnly = true)
+    public void logout(String token) {
+        if (token != null && !token.isBlank()) {
+            jwtService.revoke(token);
+        }
+    }
+
+    /**
+     * 库内权限码 + 前端别名：前端权限码表与后端权限表并不完全一致，这里补齐别名，
+     * 保证 /me 返回的 permissions 能直接驱动前端菜单与按钮。
+     */
+    /**
+     * 按用户 ID 重新装载权威主体：角色与权限全部取自数据库，不信任 token 内声明。
+     *
+     * <p>鉴权链路每请求走这里，因此拉黑 / 改角色 / 改权限立即生效，没有 2 小时快照窗口。
+     */
+    @Transactional(readOnly = true)
+    public LoginUser principalOf(Long userId) {
+        User user = userRepository
+                .findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        return new LoginUser(
+                user.getId(),
+                user.getUserNo(),
+                user.getName(),
+                user.getRole().name(),
+                effectivePermissions(user.getRole()));
+    }
+    private Set<String> effectivePermissions(UserRole role) {
+        Set<String> codes = new LinkedHashSet<>(permissionRepository.permissionsOf(role));
+        if (codes.contains("overdue:board")) {
+            codes.add("overdue:read");
+        }
+        if (codes.contains("user:blacklist")) {
+            codes.add("user:manage");
+        }
+        return codes;
+    }
+
+    private AuthDtos.SessionUser toView(User user, Set<String> permissions) {
+        return new AuthDtos.SessionUser(
+                user.getId(),
+                user.getName(),
+                user.getRole().name(),
+                user.getUserNo(),
+                null,
+                List.copyOf(permissions));
+    }
+}
+
+

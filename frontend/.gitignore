@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*.local
+src/lib/api/openapi.json
+src/lib/api/schema.d.ts
+
+# 视觉自查截图
+shots/

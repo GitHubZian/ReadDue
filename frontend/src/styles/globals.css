@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * 阅有期 · 设计 token
+ * 纸白底 + 纯白卡片 + 墨色文字 + 薄荷状态色 + 深绿主操作。
+ * 组件里禁止出现十六进制色值，统一走这里的变量或 Tailwind 语义类。
+ */
+@layer base {
+  :root {
+    /* shadcn 基础语义（HSL 分量，供 hsl(var(--x)) 使用） */
+    --background: 75 40% 98%; /* #FBFCF8 纸白 */
+    --foreground: 215 25% 27%; /* #334155 墨色 */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 215 25% 27%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+    --primary: 160 46% 30%; /* #2A7159 主操作 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 154 41% 93%; /* #E7F5EF 浅薄荷 */
+    --secondary-foreground: 160 46% 30%;
+    --muted: 90 12% 96%; /* #F6F8F3 */
+    --muted-foreground: 219 12% 47%; /* #6A7486 */
+    --accent: 154 41% 93%;
+    --accent-foreground: 160 46% 30%;
+    --destructive: 12 65% 39%; /* #A33A22 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 90 12% 90%; /* #E6E9E3 */
+    --input: 90 12% 90%;
+    --ring: 160 46% 30%;
+    --radius: 0.75rem; /* 12px */
+
+    /* 项目扩展 token（HSL 分量，供 hsl(var(--x) / alpha) 使用） */
+    --ink: 215 25% 27%; /* #334155 */
+    --ink-2: 216 16% 38%; /* #515D6F */
+    --ink-3: 219 12% 47%; /* #6A7486 */
+    --mint: 162 44% 58%; /* #64C2A6 */
+    --mint-deep: 160 46% 30%; /* #2A7159 */
+    --mint-soft: 154 41% 93%; /* #E7F5EF */
+    --line: 90 12% 90%; /* #E6E9E3 */
+    --line-2: 84 15% 94%; /* #EFF1EC */
+    --wash: 84 26% 96%; /* #F6F8F3 */
+    --sunken: 80 19% 94%; /* #F0F2EC */
+    --warn: 36 77% 31%; /* #8B5A12 */
+    --warn-soft: 40 80% 92%; /* #FBF0DA */
+    --gold: 38 61% 47%; /* #C08A2E */
+    --danger: 11 65% 39%; /* #A33A22 */
+    --danger-soft: 15 75% 94%; /* #FBE9E3 */
+    --deep: 216 25% 20%; /* #26303F */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei",
+      system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #cfede2;
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--mint-deep));
+    outline-offset: 2px;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-family: Inter, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* 3px 微进度条与卡片描边分层是锚点里的固定做法 */
+  .hairline {
+    border-color: hsl(var(--line));
+  }
+
+  .scrollbar-slim::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background: hsl(var(--line));
+    border-radius: 99px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
