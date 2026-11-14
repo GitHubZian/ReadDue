@@ -9,9 +9,21 @@ import java.util.Optional;
  */
 public interface NotifyTemplateRepository {
 
+    /**
+     * 按 ID 查模板。
+     */
+
     Optional<NotifyTemplate> findById(Long id);
 
+    /**
+     * 列出全部未删除模板。
+     */
+
     List<NotifyTemplate> findAll();
+
+    /**
+     * 更新模板正文与启停状态。
+     */
 
     int updateContent(Long id, String titleTpl, String bodyTpl, Boolean enabled);
 }

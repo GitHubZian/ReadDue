@@ -51,16 +51,22 @@ public class User {
         this.createdAt = createdAt;
     }
 
+    /**
+     * 是否处于拉黑状态。
+     */
     public boolean isBlacklisted() {
         return status == UserStatus.BLACKLISTED;
     }
 
+    /**
+     * 是否管理员。
+     */
     public boolean isAdmin() {
         return role == UserRole.ADMIN;
     }
 
     /**
-     * 借出 / 续借 / 预约 / 申请宽限的准入闸。
+     * 校验账号可执行借阅类操作，拉黑时抛 422。
      */
     public void assertCanBorrow(String action) {
         if (isBlacklisted()) {
@@ -70,7 +76,7 @@ public class User {
     }
 
     /**
-     * 拉黑：必须写原因；到期时间可为空表示需人工恢复。
+     * 拉黑账号：校验原因与操作人，记录到期时间。
      */
     public void blacklist(String reason, Long operatorId, LocalDateTime expiresAt) {
         if (reason == null || reason.isBlank()) {
@@ -86,6 +92,9 @@ public class User {
         this.blacklistExpiresAt = expiresAt;
     }
 
+    /**
+     * 解除拉黑并清空原因与到期时间。
+     */
     public void restore() {
         if (!isBlacklisted()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "账号当前不是限制状态");
@@ -97,6 +106,9 @@ public class User {
         this.blacklistExpiresAt = null;
     }
 
+    /**
+     * 记录最近登录时间。
+     */
     public void touchLogin(LocalDateTime at) {
         this.lastLoginAt = at;
     }

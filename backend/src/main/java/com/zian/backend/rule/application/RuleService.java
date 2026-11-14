@@ -23,31 +23,68 @@ public class RuleService {
     private final RuleParamRepository repository;
     private final AuditRecorder auditRecorder;
 
+    /**
+     * 读取全部生效规则参数。
+     *
+     * @return 参数键到值的映射
+     */
     @Transactional(readOnly = true)
     public Map<String, String> all() {
         return repository.all();
     }
 
+    /**
+     * 当前全局规则版本。
+     *
+     * @return 版本号，如 v12
+     */
     @Transactional(readOnly = true)
     public String version() {
         return repository.currentVersion();
     }
 
+    /**
+     * 读取字符串参数，缺失时返回默认值。
+     *
+     * @param key          参数键
+     * @param defaultValue 默认值
+     * @return 参数值
+     */
     @Transactional(readOnly = true)
     public String text(String key, String defaultValue) {
         return repository.find(key).orElse(defaultValue);
     }
 
+    /**
+     * 读取整型参数，缺失或非数字时返回默认值。
+     *
+     * @param key          参数键
+     * @param defaultValue 默认值
+     * @return 参数值
+     */
     @Transactional(readOnly = true)
     public int intValue(String key, int defaultValue) {
         return repository.find(key).map(raw -> parseInt(raw, key)).orElse(defaultValue);
     }
 
+    /**
+     * 读取小数参数，缺失或非法时返回默认值。
+     *
+     * @param key          参数键
+     * @param defaultValue 默认值（字符串形式）
+     * @return 参数值
+     */
     @Transactional(readOnly = true)
     public BigDecimal decimal(String key, String defaultValue) {
         return repository.find(key).map(raw -> parseDecimal(raw, key)).orElse(new BigDecimal(defaultValue));
     }
 
+    /**
+     * 保存规则参数：校验值域，按 expectedVersion 做乐观锁并整体推进版本。
+     *
+     * @param request 规则分组与期望版本
+     * @return 新版本号
+     */
     @Transactional
     public String update(RuleDtos.RuleUpdateRequest request) {
         String current = repository.currentVersion();

@@ -37,21 +37,25 @@ public class OutboxEvent {
         this.publishedAt = publishedAt;
     }
 
+    /**
+     * 构造一条待投递事件。
+     */
     public static OutboxEvent pending(String aggregateType, Long aggregateId, String eventType,
                                       Map<String, Object> payload) {
         return new OutboxEvent(null, aggregateType, aggregateId, eventType, payload,
                 OutboxStatus.NEW, 0, LocalDateTime.now(), null);
     }
 
+    /**
+     * 标记已投递。
+     */
     public void markPublished() {
         this.status = OutboxStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
     }
 
     /**
-     * 投递失败：重试次数耗尽则进入 DEAD，等待人工重放，绝不静默丢弃。
-     *
-     * @return true 表示已进入死信（DEAD）
+     * 记录失败并按上限判定是否转 DEAD。
      */
     public boolean markFailed(int maxRetry) {
         this.retryCount++;
@@ -63,6 +67,9 @@ public class OutboxEvent {
         return false;
     }
 
+    /**
+     * 把失败事件重置为待投递，供人工重放。
+     */
     public void resetToNew() {
         this.status = OutboxStatus.NEW;
     }

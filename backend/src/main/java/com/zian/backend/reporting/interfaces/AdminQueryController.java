@@ -33,12 +33,28 @@ public class AdminQueryController {
 
     private final AdminQueryService queryService;
 
+    /**
+     * 工作台汇总：待办数量、7 日借还趋势、规则命中、通知与今日到期清单。
+     *
+     * @return 工作台视图
+     */
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('workbench:read')")
     public BaseResponse<AdminViews.DashboardData> dashboard() {
         return ResultUtils.success(queryService.dashboard());
     }
 
+    /**
+     * 用户列表：包含学院、在借数量、累计罚金与最近活跃时间。
+     *
+     * @param role    角色过滤（READER/LIBRARIAN/ADMIN）
+     * @param status  状态过滤（ACTIVE/BLACKLISTED/MUTED）
+     * @param keyword 姓名或学号关键字
+     * @param page    页码，从 1 开始
+     * @param size    每页条数，上限 200
+     * @param sort    排序参数，当前仅接收不参与排序
+     * @return 分页后的用户视图
+     */
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('user:blacklist')")
     public BaseResponse<PageResult<AdminViews.AdminUserView>> users(
@@ -51,6 +67,16 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.users(role, status, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 宽限申请列表，含申请场景、计算天数、审批历史与 SLA 截止时间。
+     *
+     * @param status  审批状态（PENDING/APPROVED/REJECTED/EXPIRED）
+     * @param keyword 姓名、学号或申请单号关键字
+     * @param page    页码
+     * @param size    每页条数
+     * @param sort    排序参数，当前仅接收不参与排序
+     * @return 分页后的宽限单
+     */
     @GetMapping("/graces")
     @PreAuthorize("hasAuthority('grace:approve')")
     public BaseResponse<PageResult<AdminViews.GraceRecordView>> graces(
@@ -61,7 +87,17 @@ public class AdminQueryController {
             @RequestParam(required = false) String sort) {
         return ResultUtils.success(queryService.graces(status, keyword, PageQuery.of(page, size, sort)));
     }
-
+    /**
+     * 申诉工单列表，含分类、SLA、时间线与结论。
+     *
+     * @param status   处理状态（PENDING/PROCESSING/RESOLVED/REJECTED）
+     * @param category 分类（OVERDUE_DISPUTE/FINE_DISPUTE/BLACKLIST/OTHER）
+     * @param keyword  姓名、学号或工单号关键字
+     * @param page     页码
+     * @param size     每页条数
+     * @param sort     排序参数，当前仅接收不参与排序
+     * @return 分页后的工单
+     */
     @GetMapping("/appeals")
     @PreAuthorize("hasAuthority('appeal:handle')")
     public BaseResponse<PageResult<AdminViews.AppealTicketView>> appeals(
@@ -74,6 +110,16 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.appeals(status, category, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 预约列表，含排队序号、到书时间与取书截止时间。
+     *
+     * @param status  预约状态（WAITING/READY/FULFILLED/EXPIRED/CANCELLED）
+     * @param keyword 姓名、学号或书名关键字
+     * @param page    页码
+     * @param size    每页条数
+     * @param sort    排序参数，当前仅接收不参与排序
+     * @return 分页后的预约
+     */
     @GetMapping("/reservations")
     @PreAuthorize("hasAuthority('reservation:manage')")
     public BaseResponse<PageResult<AdminViews.ReservationView>> reservations(
@@ -85,6 +131,16 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.reservations(status, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 逾期看板：逾期天数、罚金、催还次数与最近提醒时间。
+     *
+     * @param status  状态过滤（OVERDUE/LOST）
+     * @param keyword 姓名、学号或书名关键字
+     * @param page    页码
+     * @param size    每页条数
+     * @param sort    排序参数，当前仅接收不参与排序
+     * @return 分页后的逾期条目
+     */
     @GetMapping("/overdue")
     @PreAuthorize("hasAuthority('overdue:read')")
     public BaseResponse<PageResult<AdminViews.OverdueItemView>> overdue(
@@ -96,6 +152,16 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.overdue(status, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 通知任务列表：展示渠道、目标数、成功/失败数与状态。
+     *
+     * @param status  状态过滤（PENDING/SENDING/SENT/PARTIAL/FAILED）
+     * @param keyword 读者姓名或去重键关键字
+     * @param page    页码
+     * @param size    每页条数
+     * @param sort    排序参数，当前仅接收不参与排序
+     * @return 分页后的通知任务
+     */
     @GetMapping("/notify-tasks")
     @PreAuthorize("hasAuthority('notify:manage')")
     public BaseResponse<PageResult<AdminViews.NotifyTaskView>> notifyTasks(
@@ -107,30 +173,60 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.notifyTasks(status, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 通知模板全量列表（非分页），供管理端编辑。
+     *
+     * @return 模板视图列表
+     */
     @GetMapping("/templates")
     @PreAuthorize("hasAuthority('notify:manage')")
     public BaseResponse<List<NotifyDtos.TemplateView>> templates() {
         return ResultUtils.success(queryService.templates());
     }
 
+    /**
+     * 规则参数集：按业务分组返回当前值与版本号，供管理端整组保存。
+     *
+     * @return 规则分组与版本
+     */
     @GetMapping("/rules")
     @PreAuthorize("hasAuthority('rule:update')")
     public BaseResponse<AdminViews.RuleSetView> rules() {
         return ResultUtils.success(queryService.rules());
     }
 
+    /**
+     * 逾期分档表（T1–T4），用于解释逾期处置与罚金门槛。
+     *
+     * @return 分档列表
+     */
     @GetMapping("/tiers")
     @PreAuthorize("hasAuthority('rule:update')")
     public BaseResponse<List<Map<String, Object>>> tiers() {
         return ResultUtils.success(queryService.tiers());
     }
 
+    /**
+     * 校历区间：按学期与场景返回可命中宽限加成的日期范围，可能为空。
+     *
+     * @return 校历条目列表
+     */
     @GetMapping("/calendar")
     @PreAuthorize("hasAuthority('rule:update')")
     public BaseResponse<List<Map<String, Object>>> calendar() {
         return ResultUtils.success(queryService.calendar());
     }
 
+    /**
+     * 审计日志分页查询。
+     *
+     * @param category 分类过滤（APPROVAL/RULE/USER/SYSTEM/EXCEPTION）
+     * @param keyword  操作人、动作或对象关键字
+     * @param page     页码
+     * @param size     每页条数
+     * @param sort     排序参数，当前仅接收不参与排序
+     * @return 分页后的审计日志
+     */
     @GetMapping("/audit-logs")
     @PreAuthorize("hasAuthority('audit:read')")
     public BaseResponse<PageResult<AdminViews.AuditLogView>> auditLogs(
@@ -142,6 +238,12 @@ public class AdminQueryController {
         return ResultUtils.success(queryService.auditLogs(category, keyword, PageQuery.of(page, size, sort)));
     }
 
+    /**
+     * 审计日志详情，包含变更前后快照。
+     *
+     * @param id 日志 ID
+     * @return 审计日志视图；不存在时抛 404
+     */
     @GetMapping("/audit-logs/{id}")
     @PreAuthorize("hasAuthority('audit:read')")
     public BaseResponse<AdminViews.AuditLogView> auditLog(@PathVariable Long id) {
@@ -152,6 +254,13 @@ public class AdminQueryController {
         return ResultUtils.success(view);
     }
 
+    /**
+     * 导出审计日志为 CSV（UTF-8，最多 200 条）。
+     *
+     * @param category 分类过滤
+     * @param keyword  关键字过滤
+     * @return CSV 字节流，带 attachment 文件名
+     */
     @GetMapping("/audit-logs/export")
     @PreAuthorize("hasAuthority('audit:read')")
     public ResponseEntity<byte[]> exportAuditLogs(
@@ -179,6 +288,11 @@ public class AdminQueryController {
                 .body(bytes);
     }
 
+    /**
+     * 今日借还台流水与借出/归还计数。
+     *
+     * @return 今日流通视图
+     */
     @GetMapping("/circulation/today")
     @PreAuthorize("hasAuthority('borrow:read:all')")
     public BaseResponse<AdminViews.CirculationTodayView> circulationToday() {

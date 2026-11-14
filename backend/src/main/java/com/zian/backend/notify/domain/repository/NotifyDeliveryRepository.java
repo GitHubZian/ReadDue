@@ -6,7 +6,7 @@ package com.zian.backend.notify.domain.repository;
 public interface NotifyDeliveryRepository {
 
     /**
-     * 追加一条投递记录（站内信/邮件）。
+     * 写入一条投递记录，成功时补充发送时间。
      */
     void append(Long taskId, String channel, String status, int attempt, String errorCode, String errorMsg);
 }

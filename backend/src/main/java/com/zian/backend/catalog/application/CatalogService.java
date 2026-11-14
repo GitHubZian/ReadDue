@@ -25,6 +25,12 @@ public class CatalogService {
     private final BookRepository bookRepository;
     private final BookCopyRepository copyRepository;
 
+    /**
+     * 按条码取副本，不存在时抛 404。
+     *
+     * @param barcode 副本条码
+     * @return 副本聚合
+     */
     @Transactional(readOnly = true)
     public BookCopy requireCopyByBarcode(String barcode) {
         if (barcode == null || barcode.isBlank()) {
@@ -35,6 +41,12 @@ public class CatalogService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到条码为 " + barcode + " 的馆藏"));
     }
 
+    /**
+     * 按 ID 取书目，不存在时抛 404。
+     *
+     * @param bookId 书目 ID
+     * @return 书目
+     */
     @Transactional(readOnly = true)
     public Book requireBook(Long bookId) {
         return bookRepository
@@ -42,18 +54,46 @@ public class CatalogService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "书目不存在"));
     }
 
+    /**
+     * 批量取书目并按下标建立映射，避免 N+1。
+     *
+     * @param ids 书目 ID 集合
+     * @return ID 到书目的映射
+     */
     @Transactional(readOnly = true)
     public Map<Long, Book> booksByIds(Collection<Long> ids) {
         return bookRepository.findByIds(ids).stream()
                 .collect(Collectors.toMap(Book::id, Function.identity(), (a, b) -> a));
     }
 
+    /**
+     * 批量取书目。
+     *
+     * @param ids 书目 ID 集合
+     * @return 书目列表
+     */
     @Transactional(readOnly = true)
     public List<Book> books(Collection<Long> ids) {
         return bookRepository.findByIds(ids);
     }
 
-    /** 借出：副本置为在借。 */
+    /**
+     * 判断书目是否有可借副本，用于预约前的拦截。
+     *
+     * @param bookId 书目 ID
+     * @return 存在可借副本时为 true
+     */
+    @Transactional(readOnly = true)
+    public boolean hasAvailable(Long bookId) {
+        return copyRepository.findFirstAvailable(bookId).isPresent();
+    }
+
+    /**
+     * 借出副本：AVAILABLE 置为 ON_LOAN 并递增版本。
+     *
+     * @param copyId 副本 ID
+     * @return 更新后的副本
+     */
     @Transactional
     public BookCopy lend(Long copyId) {
         BookCopy copy = copyRepository
@@ -66,7 +106,13 @@ public class CatalogService {
         return copy;
     }
 
-    /** 归还：正常回架 / 损坏转维修。 */
+    /**
+     * 归还副本：ON_LOAN 置为 AVAILABLE 或 DAMAGED。
+     *
+     * @param copyId  副本 ID
+     * @param damaged 是否损坏
+     * @return 更新后的副本
+     */
     @Transactional
     public BookCopy receive(Long copyId, boolean damaged) {
         BookCopy copy = copyRepository
@@ -79,7 +125,12 @@ public class CatalogService {
         return copy;
     }
 
-    /** 预约到书：把某本可借副本预留在架。 */
+    /**
+     * 为预约锁定一本可借副本（置为 READY_SHELF）。
+     *
+     * @param bookId 书目 ID
+     * @return 被锁定的副本
+     */
     @Transactional
     public BookCopy holdForReservation(Long bookId) {
         BookCopy copy = copyRepository
@@ -92,7 +143,11 @@ public class CatalogService {
         return copy;
     }
 
-    /** 释放预留在架副本。 */
+    /**
+     * 释放预约占位，副本回到可借状态。
+     *
+     * @param copyId 副本 ID
+     */
     @Transactional
     public void releaseHold(Long copyId) {
         copyRepository.findById(copyId).ifPresent(copy -> {

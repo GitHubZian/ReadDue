@@ -21,6 +21,12 @@ public record LoginUser(Long id, String userNo, String name, String role, Set<St
         return "ADMIN".equals(role);
     }
 
+    /**
+     * 判断当前登录用户是否拥有指定权限码。
+     *
+     * @param code 权限码
+     * @return 拥有时为 true
+     */
     public boolean hasPermission(String code) {
         return permissions != null && permissions.contains(code);
     }

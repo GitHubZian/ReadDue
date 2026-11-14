@@ -63,12 +63,20 @@ public class JwtService {
         this.redis = redis;
     }
 
+    /**
+     * 令牌有效期（秒）。
+     *
+     * @return 有效期
+     */
     public long ttlSeconds() {
         return ttlSeconds;
     }
 
     /**
-     * 签发 token 并登记 jti。
+     * 签发令牌，并在 Redis 记录 jti → 用户 ID 的登录态。
+     *
+     * @param user 登录主体
+     * @return 令牌与有效期
      */
     public IssuedToken issue(LoginUser user) {
         String jti = IdUtil.fastSimpleUUID();
@@ -91,7 +99,10 @@ public class JwtService {
     }
 
     /**
-     * 校验 token 并还原登录主体；任何异常一律转 401，不向调用方泄露细节。
+     * 解析并校验令牌：签名、签发方与 Redis 登录态缺一不可。
+     *
+     * @param token 原始令牌
+     * @return 登录主体
      */
     @SuppressWarnings("unchecked")
     public LoginUser parse(String token) {
@@ -127,7 +138,9 @@ public class JwtService {
     }
 
     /**
-     * 登出：删除 jti 登记，token 立即失效。
+     * 吊销令牌：删除对应的 Redis 登录态。
+     *
+     * @param token 原始令牌
      */
     public void revoke(String token) {
         try {

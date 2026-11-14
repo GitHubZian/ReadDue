@@ -10,7 +10,15 @@ import java.util.Optional;
  */
 public interface BookRepository {
 
+    /**
+     * 按 ID 查书目。
+     */
+
     Optional<Book> findById(Long id);
+
+    /**
+     * 批量查书目。
+     */
 
     List<Book> findByIds(Collection<Long> ids);
 }

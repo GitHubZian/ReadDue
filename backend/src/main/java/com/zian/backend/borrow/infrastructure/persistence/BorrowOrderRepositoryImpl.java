@@ -60,6 +60,32 @@ public class BorrowOrderRepositoryImpl implements BorrowOrderRepository {
 
 
     @Override
+    public List<BorrowOrder> findByReader(Long readerId, String status, int offset, int limit) {
+        return mapper
+                .selectPage(
+                        new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
+                                offset / Math.max(1, limit) + 1, limit, false),
+                        Wrappers.<BorrowOrderPO>lambdaQuery()
+                                .eq(BorrowOrderPO::getReaderId, readerId)
+                                .in(status != null && "ACTIVE".equalsIgnoreCase(status), BorrowOrderPO::getStatus, ACTIVE)
+                                .eq(status != null && !"ACTIVE".equalsIgnoreCase(status), BorrowOrderPO::getStatus, status)
+                                .orderByDesc(BorrowOrderPO::getCreatedAt)
+                                .orderByDesc(BorrowOrderPO::getId))
+                .getRecords()
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByReader(Long readerId, String status) {
+        return mapper.selectCount(Wrappers.<BorrowOrderPO>lambdaQuery()
+                .eq(BorrowOrderPO::getReaderId, readerId)
+                .in(status != null && "ACTIVE".equalsIgnoreCase(status), BorrowOrderPO::getStatus, ACTIVE)
+                .eq(status != null && !"ACTIVE".equalsIgnoreCase(status), BorrowOrderPO::getStatus, status));
+    }
+
+    @Override
     public Long insert(BorrowOrder order) {
         BorrowOrderPO po = new BorrowOrderPO();
         po.setOrderNo(order.getOrderNo());

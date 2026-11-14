@@ -43,6 +43,9 @@ public class OutboxPublisher {
         this.maxRetry = maxRetry;
     }
 
+    /**
+     * 定时扫描待投递事件并发送到 RabbitMQ，成功标记 PUBLISHED，失败按次数重试或置 DEAD。
+     */
     @Scheduled(fixedDelayString = "${app.outbox.poll-interval-ms:2000}")
     public void publishPending() {
         List<OutboxEvent> pending;
@@ -92,6 +95,7 @@ public class OutboxPublisher {
         return switch (eventType) {
             case MqConstant.EVENT_BORROW_RETURNED -> MqConstant.RK_BORROW_RETURNED;
             case MqConstant.EVENT_BORROW_CREATED -> MqConstant.RK_BORROW_CREATED;
+            case MqConstant.EVENT_BORROW_RENEWED -> MqConstant.RK_BORROW_RENEWED;
             case MqConstant.EVENT_GRACE_APPROVED -> MqConstant.RK_GRACE_APPROVED;
             case MqConstant.EVENT_OVERDUE_MARKED -> MqConstant.RK_OVERDUE_MARKED;
             case MqConstant.EVENT_RESERVATION_READY -> MqConstant.RK_RESERVATION_READY;

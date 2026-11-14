@@ -8,11 +8,21 @@ import java.util.Optional;
  */
 public interface UserRepository {
 
+    /**
+     * 按 ID 查用户。
+     */
+
     Optional<User> findById(Long id);
+
+    /**
+     * 按学号/工号查用户。
+     */
 
     Optional<User> findByUserNo(String userNo);
 
-    /** 乐观锁更新；返回受影响行数，0 表示并发冲突 */
+    /**
+     * 回写账号状态与登录时间，返回影响行数。
+     */
     int update(User user);
 
 }

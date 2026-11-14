@@ -148,6 +148,56 @@ mybatis-plus:
     datacenter-id: ${DATACENTER_ID:0}
 ```
 
+### 6.2 数据访问：一律 MyBatis-Plus / MyBatis，禁止 JdbcTemplate
+
+**主代码（`src/main`）里不得出现 `JdbcTemplate`、`NamedParameterJdbcTemplate` 或拼接 SQL 字符串。** 项目已有 `mybatis-plus-spring-boot3-starter`，所有读写都走它；grep 到即视为不合规。
+
+按场景选型：
+
+| 场景 | 写法 | 位置 |
+| --- | --- | --- |
+| 单表增删改查 | `BaseMapper` + `LambdaQueryWrapper` / `LambdaUpdateWrapper` | 业务上下文 `infrastructure/persistence` |
+| 单表分页 | `selectPage(new Page<>(pageNo, size, false), wrapper)` | 同上 |
+| 多表只读联查（管理端读模型） | 独立 `@Mapper` 接口 + `@Select`（动态条件用 `<script>`） | `reporting/infrastructure/persistence/mapper` |
+| 角色权限等基础只读查询 | 独立 `@Mapper` 接口 + `@Select` | 对应上下文 `infrastructure/persistence/mapper` |
+| 健康检查等元数据探针 | 独立 `@Mapper` 接口 + `@Select` | `bootstrap/web` |
+
+硬规则：
+
+- Mapper 由 MyBatis-Spring-Boot 自动配置注册：**启动类不加 `@MapperScan`**，新增接口只加 `@Mapper`。`@MapperScan(basePackages = "com.zian.backend")` 会把 `domain/repository` 里没有 SQL 的端口接口也注册成 Bean，和 `XxxRepositoryImpl` 撞成「同类型多个 Bean」。**不要**再建 `DataSource`/`JdbcTemplate` Bean。
+- 读模型的端口与实现分开：`domain/repository/XxxReadRepository` 定义方法，`infrastructure/persistence/XxxReadRepositoryImpl`（`@Repository`）委托 `@Mapper`；不要让 `@Mapper` 接口直接 `extends` 端口，否则同一端口会出现两个 Bean。
+- SQL 只允许出现在 `infrastructure` 或只读 `mapper` 接口里；`application`/`interfaces` 不得出现 SQL 片段。
+- 动态 SQL 写在 `<script>` 中，`<`、`>` 必须转义为 `&lt;`、`&gt;`；字符串比较写 `status == 'PENDING'`（OGNL），不要写 `status == "PENDING"`。
+- 统一用 `LIMIT #{limit} OFFSET #{offset}` 分页，禁止 `last("limit " + n)` 这类字符串拼接；`${}` 只允许接白名单常量（如本地重建脚本的固定表名），且必须来自代码内 `List.of(...)` 常量而非外部入参。
+- 返回 `Map<String, Object>` 的读模型必须在服务层显式转换：MySQL 驱动可能把 `DATETIME` 给成 `LocalDateTime`，`TINYINT(1)` 给成 `Boolean`，`DECIMAL` 给成 `BigDecimal`；统一走 `reporting/application/AdminQueryService` 里的 `str/integer/truthy/decimal/date/dateTime/iso` 工具，不要假设单一类型。
+- 跨上下文只读聚合集中在 `reporting`，禁止为了写 SQL 去注入别的上下文的 `XxxMapper`（分层与上下文边界仍然有效）。
+- 事务：写操作在 `application` 上加 `@Transactional`；只读查询加 `@Transactional(readOnly = true)`。
+
+```java
+// 单表：LambdaQueryWrapper
+BookCopyPO po = copyMapper.selectOne(Wrappers.<BookCopyPO>lambdaQuery()
+        .eq(BookCopyPO::getBarcode, barcode)
+        .eq(BookCopyPO::getDeleted, 0));
+
+// 只读联表：@Mapper + <script>
+@Select("""
+        <script>
+        SELECT o.id, o.effective_due_at, u.name AS reader_name
+          FROM borrow_order o
+          JOIN sys_user u ON u.id = o.reader_id
+         WHERE o.status IN ('BORROWED','OVERDUE')
+         <if test="keyword != null and keyword != ''">
+           AND (u.name LIKE CONCAT('%', #{keyword}, '%'))
+         </if>
+         ORDER BY o.effective_due_at
+         LIMIT #{limit} OFFSET #{offset}
+        </script>
+        """)
+List<Map<String, Object>> overdue(@Param("keyword") String keyword,
+                                  @Param("limit") int limit,
+                                  @Param("offset") long offset);
+```
+
 ## 7. 接口规范
 
 - 前缀 `/api/v1`，资源用复数，动作用子资源：`POST /borrow-orders/{id}/return`。
@@ -229,8 +279,16 @@ STORAGE_ENDPOINT / STORAGE_BUCKET / STORAGE_KEY / STORAGE_SECRET  # 课表原图
 - Google Java Format（或 Spotless 默认配置），行宽 120；`final` 用在不可变字段与参数。
 - 命名：`XxxRepository`（接口）、`XxxRepositoryImpl`、`XxxMapper`、`XxxPO`、`XxxService`（application）、`XxxController`。
 - 异常：业务异常继承 `DomainException`，带 `code`；不要用 `RuntimeException` 兜底。
-- 注释只写「为什么」，不写「是什么」；公开 API 用 Javadoc 一句话。
-- 提交：Conventional Commits（`feat(borrow): ...`），一次提交一件事；不提交 `target/`、`.env`、IDE 文件。
+- **Javadoc 是交付物的一部分**（同事要靠它对接），规则如下：
+  - 类、接口、record、枚举：必须有类级 Javadoc，一句话说明「它是什么、负责哪一段业务」；聚合再补一段不变量的说明。
+  - `public` / `protected` 方法、仓储端口方法、Controller 端点：必须有 Javadoc；除了说明做什么，参数用 `@param`、返回值用 `@return`、抛出的业务异常用 `@throws`。
+  - 领域方法要写清「前置状态 → 结果状态」和校验规则，例如「仅 BORROWED 可续借，成功则顺延 dueAt 并 renewCount+1」。
+  - DTO / record 的字段用 `@param` 描述业务含义与单位（金额两位小数、时间为 +08:00 ISO 字符串）。
+  - 注释位置：**Javadoc 在注解之上**（`/** … */` 紧接 `@Transactional` / `@PreAuthorize`），与声明之间不留空行。
+  - 实现类的 `@Override`、Lombok 生成的 getter/setter、`main` 方法可以省略 Javadoc。
+  - 注释只写「为什么 / 业务约束」，不写「给变量赋值」这类复述代码的句子。
+- 分节注释统一用 `// region 名称` … `// endregion`，不要用 `// ---------- 名称 ----------` 划线风格。
+- **Git 不属于后端 Agent 的职责**：不要执行 `git add/commit/push/branch/checkout/stash/reset` 等任何写操作，也不要改 `.gitignore`。版本管理由产品经理 Agent 负责；后端只改 `project/backend` 下的源码、配置与文档，需要提交时在回复里说明改了什么即可。
 
 ## 15. 完成定义（DoD）
 

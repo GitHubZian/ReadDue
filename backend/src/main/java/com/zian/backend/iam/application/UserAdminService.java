@@ -24,6 +24,13 @@ public class UserAdminService {
     private final UserRepository userRepository;
     private final AuditRecorder auditRecorder;
 
+    /**
+     * 拉黑账号并记录原因与到期时间。
+     *
+     * @param id      用户 ID
+     * @param request 原因与到期时间
+     * @return 用户状态
+     */
     @Transactional
     public AuthDtos.UserStatusView blacklist(Long id, AuthDtos.BlacklistRequest request) {
         Long operatorId = UserContext.requireId();
@@ -46,6 +53,12 @@ public class UserAdminService {
         return new AuthDtos.UserStatusView(id, user.getStatus().name(), user.getBlacklistReason());
     }
 
+    /**
+     * 解除拉黑。
+     *
+     * @param id 用户 ID
+     * @return 用户状态
+     */
     @Transactional
     public AuthDtos.UserStatusView restore(Long id) {
         User user = userRepository

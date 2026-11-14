@@ -126,6 +126,9 @@ app:
     # 免打扰时段默认值（rule_param 缺失时兜底）
     quiet-start: "22:00"
     quiet-end: "08:00"
+  mail:
+    # 本地 SMTP 见 application-local.yml；账号与授权码只走环境变量 MAIL_USERNAME / MAIL_PASSWORD
+    from: ${MAIL_USERNAME:no-reply@readdue.local}
   demo:
     # 仅在 local profile 且该开关为 true 时装载演示数据；非 local 环境务必保持 false
     enabled: false

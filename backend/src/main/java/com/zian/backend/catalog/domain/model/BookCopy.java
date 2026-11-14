@@ -48,11 +48,16 @@ public class BookCopy {
         return version;
     }
 
+    /**
+     * 副本是否可借（仅 AVAILABLE）。
+     */
     public boolean isLendable() {
         return status == CopyStatus.AVAILABLE;
     }
 
-    /** 借出：仅在架可借副本才能出借。 */
+    /**
+     * 借出：AVAILABLE → ON_LOAN，其他状态抛 422。
+     */
     public void lend() {
         if (status != CopyStatus.AVAILABLE) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该副本当前状态为「" + status + "」，不可借出");
@@ -60,7 +65,9 @@ public class BookCopy {
         this.status = CopyStatus.ON_LOAN;
     }
 
-    /** 归还：正常回架，损坏转 DAMAGED 等修复。 */
+    /**
+     * 归还：ON_LOAN → AVAILABLE（损坏则 DAMAGED）。
+     */
     public void receive(boolean damaged) {
         if (status != CopyStatus.ON_LOAN) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该副本不在借出状态，无法归还");
@@ -68,7 +75,9 @@ public class BookCopy {
         this.status = damaged ? CopyStatus.DAMAGED : CopyStatus.AVAILABLE;
     }
 
-    /** 预约到书：预留在架，等待读者取书。 */
+    /**
+     * 为预约锁定副本：AVAILABLE → READY_SHELF。
+     */
     public void holdForReservation() {
         if (status != CopyStatus.AVAILABLE) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该副本当前不可预留在架");
@@ -76,7 +85,9 @@ public class BookCopy {
         this.status = CopyStatus.READY_SHELF;
     }
 
-    /** 释放预留在架（读者取走或预约过期）。 */
+    /**
+     * 释放预约占位，回到 AVAILABLE。
+     */
     public void releaseHold() {
         if (status == CopyStatus.READY_SHELF) {
             this.status = CopyStatus.AVAILABLE;

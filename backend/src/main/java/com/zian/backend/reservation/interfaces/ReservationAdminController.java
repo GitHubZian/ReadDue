@@ -21,12 +21,24 @@ public class ReservationAdminController {
 
     private final ReservationService reservationService;
 
+    /**
+     * 手动将预约置为「到书待取」，同时锁定一本副本并发出到书通知。
+     *
+     * @param id 预约 ID
+     * @return 预约状态与取书截止时间
+     */
     @PostMapping("/{id}/promote")
     @PreAuthorize("hasAuthority('reservation:manage')")
     public BaseResponse<ReservationActionView> promote(@PathVariable Long id) {
         return ResultUtils.success(ReservationActionView.of(reservationService.promote(id)));
     }
 
+    /**
+     * 使预约过期（到书 48 小时未取），释放占位。
+     *
+     * @param id 预约 ID
+     * @return 预约状态
+     */
     @PostMapping("/{id}/expire")
     @PreAuthorize("hasAuthority('reservation:manage')")
     public BaseResponse<ReservationActionView> expire(@PathVariable Long id) {

@@ -10,10 +10,38 @@ import java.util.Optional;
  */
 public interface AppealTicketRepository {
 
+    /**
+     * 按 ID 查工单，不存在返回空。
+     */
+
     Optional<AppealTicket> findById(Long id);
 
-    /** 已到期但尚未补偿的进行中工单 */
+    /**
+     * 查询已超 SLA 且尚未补偿的开放工单，按截止时间升序。
+     */
     List<AppealTicket> findSlaDue(LocalDateTime now, int limit);
 
+    /**
+     * 回写状态、处理人、补偿与结论，返回影响行数。
+     */
+
     int update(AppealTicket ticket);
+
+    /**
+     * 新建工单，返回生成的主键。
+     */
+
+    Long insert(AppealTicket ticket);
+
+    /**
+     * 按读者分页查询工单。
+     */
+
+    List<AppealTicket> findByReader(Long readerId, String status, int offset, int limit);
+
+    /**
+     * 统计读者的工单数。
+     */
+
+    long countByReader(Long readerId, String status);
 }

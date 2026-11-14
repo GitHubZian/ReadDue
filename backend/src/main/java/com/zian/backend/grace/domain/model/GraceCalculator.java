@@ -13,6 +13,9 @@ public final class GraceCalculator {
     private GraceCalculator() {
     }
 
+    /**
+     * 按 Bs×Kt×Kq 计算宽限天数：先按步长四舍五入再乘步长，最后以 Dmax 封顶。
+     */
     public static BigDecimal compute(
             BigDecimal baseDays, BigDecimal kt, BigDecimal kq, int dmax, BigDecimal roundStep) {
         if (baseDays == null || kt == null || kq == null) {
@@ -26,7 +29,9 @@ public final class GraceCalculator {
         return capped.max(BigDecimal.ZERO).stripTrailingZeros();
     }
 
-    /** 规则要求的最小可批天数（用于 UI 与校验）。 */
+    /**
+     * 把计算天数向上取整为整数天。
+     */
     public static int asDays(BigDecimal value) {
         return value.setScale(0, RoundingMode.CEILING).intValue();
     }

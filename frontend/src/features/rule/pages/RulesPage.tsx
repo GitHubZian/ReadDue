@@ -14,6 +14,7 @@ import {
 import { PageHeader } from "@/app/layout/PageHeader";
 import { SectionCard } from "@/components/common/SectionCard";
 import { useRules, useSaveRules } from "@/features/rule/queries";
+import { AcademicCalendarCard, OverdueTiersCard } from "@/features/rule/components/StrategyPanels";
 import type { RuleGroup, RuleItem } from "@/lib/api/models";
 
 interface Change {
@@ -158,6 +159,11 @@ export function RulesPage() {
           ))}
         </div>
       )}
+
+      <div className="grid grid-cols-1 gap-4">
+        <OverdueTiersCard />
+        <AcademicCalendarCard />
+      </div>
 
       {changes.length ? (
         <div className="sticky bottom-0 z-10">

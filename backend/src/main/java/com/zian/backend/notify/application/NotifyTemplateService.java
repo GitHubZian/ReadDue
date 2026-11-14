@@ -36,6 +36,13 @@ public class NotifyTemplateService {
     private final NotifyTemplateRepository repository;
     private final AuditRecorder auditRecorder;
 
+    /**
+     * 更新模板正文与启停状态。
+     *
+     * @param id    模板 ID
+     * @param patch 模板补丁
+     * @return 更新后的模板视图
+     */
     @Transactional
     public NotifyDtos.TemplateView update(Long id, NotifyDtos.TemplatePatch patch) {
         NotifyTemplate current =
@@ -50,6 +57,12 @@ public class NotifyTemplateService {
         return view(repository.findById(id).orElseThrow());
     }
 
+    /**
+     * 把模板实体转换为前端视图（渠道与场景做枚举映射）。
+     *
+     * @param template 模板实体
+     * @return 模板视图
+     */
     public NotifyDtos.TemplateView view(NotifyTemplate template) {
         return new NotifyDtos.TemplateView(
                 String.valueOf(template.id()),
@@ -62,6 +75,12 @@ public class NotifyTemplateService {
                 template.updatedAt() == null ? null : template.updatedAt().atZone(ZONE).toOffsetDateTime().toString());
     }
 
+    /**
+     * 库内渠道码转前端渠道（INBOX→INAPP、APP_PUSH→WECHAT）。
+     *
+     * @param dbChannel 库内渠道
+     * @return 前端渠道码
+     */
     public static String channel(String dbChannel) {
         return switch (dbChannel) {
             case "INBOX" -> "INAPP";
@@ -70,6 +89,12 @@ public class NotifyTemplateService {
         };
     }
 
+    /**
+     * 由模板编码推导场景（RETURN/GRACE/APPEAL/RESERVATION/SYSTEM）。
+     *
+     * @param templateCode 模板编码
+     * @return 场景码
+     */
     public static String scene(String templateCode) {
         if (templateCode.startsWith("DUE_")) {
             return "RETURN";

@@ -10,26 +10,42 @@ import java.util.Optional;
  */
 public interface NotifyTaskRepository {
 
+    /**
+     * 新建通知任务，返回主键。
+     */
+
     Long insert(NotifyTask task);
+
+    /**
+     * 按 ID 查任务。
+     */
 
     Optional<NotifyTask> findById(Long id);
 
+    /**
+     * 按去重键查任务，用于幂等。
+     */
+
     Optional<NotifyTask> findByDedupKey(String dedupKey);
+
+    /**
+     * 回写任务状态与投递信息。
+     */
 
     int update(NotifyTask task);
 
     /**
-     * 到点待投递任务。
+     * 取出到期待投递的任务。
      */
     List<NotifyTask> findDue(LocalDateTime now, int limit);
 
     /**
-     * 取消某借阅单下所有尚未投递的提醒。
+     * 取消该借阅单所有未发任务。
      */
     int cancelPlannedByOrder(Long borrowOrderId);
 
     /**
-     * 取消某借阅单下指定级别的尚未投递提醒。
+     * 按级别取消未发任务。
      */
     int cancelPlannedByOrderAndLevels(Long borrowOrderId, List<String> levels);
 }

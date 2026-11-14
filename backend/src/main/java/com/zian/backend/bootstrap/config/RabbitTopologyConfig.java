@@ -57,6 +57,7 @@ public class RabbitTopologyConfig {
                 // 提醒编排：借出、归还、逾期升级都要重排
                 BindingBuilder.bind(notifyPlan).to(eventExchange).with(MqConstant.RK_BORROW_CREATED),
                 BindingBuilder.bind(notifyPlan).to(eventExchange).with(MqConstant.RK_BORROW_RETURNED),
+                BindingBuilder.bind(notifyPlan).to(eventExchange).with(MqConstant.RK_BORROW_RENEWED),
                 BindingBuilder.bind(notifyPlan).to(eventExchange).with(MqConstant.RK_OVERDUE_MARKED),
                 BindingBuilder.bind(notifyPlan).to(eventExchange).with(MqConstant.RK_RESERVATION_READY),
                 // 宽限通过后重排提醒（有效应还日变化）

@@ -23,6 +23,12 @@ public class NotifyAdminController {
 
     private final NotifyService notifyService;
 
+    /**
+     * 重试失败的通知任务。
+     *
+     * @param id 通知任务 ID
+     * @return 空响应
+     */
     @PostMapping("/notify-tasks/{id}/retry")
     @PreAuthorize("hasAuthority('notify:manage')")
     public BaseResponse<Void> retry(@PathVariable Long id) {
@@ -30,6 +36,12 @@ public class NotifyAdminController {
         return ResultUtils.success(null);
     }
 
+    /**
+     * 批量催还：对指定借阅单立即生成并投递逾期提醒。
+     *
+     * @param request 借阅单 ID 列表，单次最多 500 条
+     * @return 实际投递数量
+     */
     @PostMapping("/remind/batch")
     @PreAuthorize("hasAuthority('overdue:board')")
     public BaseResponse<NotifyDtos.RemindResult> remind(@RequestBody(required = false) NotifyDtos.RemindRequest request) {

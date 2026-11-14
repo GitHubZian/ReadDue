@@ -108,6 +108,14 @@ public class NotifyEventListener {
                                     : LocalDateTime.now().plusHours(48));
                 }
             }
+            case MqConstant.EVENT_BORROW_RENEWED -> {
+                Long orderId = longOf(payload, "orderId");
+                Long readerId = longOf(payload, "readerId");
+                if (orderId != null && readerId != null && payload.hasNonNull("dueAt")) {
+                    notifyService.replanAfterRenewal(
+                            orderId, readerId, LocalDate.parse(payload.path("dueAt").asText()));
+                }
+            }
             case MqConstant.EVENT_GRACE_APPROVED -> {
                 Long orderId = longOf(payload, "orderId");
                 Long readerId = longOf(payload, "readerId");

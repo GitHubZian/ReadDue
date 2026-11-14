@@ -8,16 +8,30 @@ import java.util.Optional;
  */
 public interface RuleParamRepository {
 
+    /**
+     * 读取全部生效参数（键 → 值）。
+     */
+
     Map<String, String> all();
+
+    /**
+     * 按键读取参数值。
+     */
 
     Optional<String> find(String key);
 
-    /** 更新参数值并写版本号；返回是否命中该参数 */
+    /**
+     * 按旧版本做乐观锁更新，成功返回 true。
+     */
     boolean updateValue(String key, String value, Long operatorId, String nextVersion);
 
-    /** 当前参数版本（取最大 version，用于前端乐观并发） */
+    /**
+     * 当前全局规则版本。
+     */
     String currentVersion();
 
-    /** 下一次批量更新使用的版本号，使同一次请求内所有参数共享一个版本 */
+    /**
+     * 下一个全局版本号。
+     */
     String nextVersion();
 }

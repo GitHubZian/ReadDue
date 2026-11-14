@@ -19,14 +19,27 @@ public final class TraceContext {
     private TraceContext() {
     }
 
+    /**
+     * 读取当前线程的 traceId。
+     *
+     * @return traceId，未设置时返回 null
+     */
     public static String current() {
         return MDC.get(MDC_KEY);
     }
 
+    /**
+     * 写入当前线程的 traceId（同时写入 MDC）。
+     *
+     * @param traceId traceId
+     */
     public static void set(String traceId) {
         MDC.put(MDC_KEY, traceId);
     }
 
+    /**
+     * 清理当前线程的 traceId。
+     */
     public static void clear() {
         MDC.remove(MDC_KEY);
     }
@@ -45,6 +58,11 @@ public final class TraceContext {
         return v;
     }
 
+    /**
+     * 生成新的 traceId。
+     *
+     * @return 16 位短 UUID
+     */
     public static String generate() {
         return IdUtil.fastSimpleUUID().substring(0, 16);
     }

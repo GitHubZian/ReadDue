@@ -5,18 +5,16 @@ import com.zian.backend.shared.common.ResultUtils;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 启动自检端点：确认 Web、MySQL、Redis 三条链路可用。
- * 后续迁移到 bootstrap/interfaces，仅用于本地与运维探活。
  */
 @Slf4j
 @RestController
@@ -24,9 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SystemController {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final SystemHealthMapper healthMapper;
     private final StringRedisTemplate redisTemplate;
 
+    /**
+     * 健康检查：探测 MySQL 与 Redis，并返回基础表数量。
+     *
+     * @return 服务、数据库与缓存状态
+     */
     @GetMapping("/health")
     public BaseResponse<Map<String, Object>> health() {
         Map<String, Object> data = new LinkedHashMap<>();
@@ -34,10 +37,7 @@ public class SystemController {
         data.put("application", "readdue-backend");
         data.put("time", Instant.now().toString());
 
-        Integer tableCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.TABLES "
-                        + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'",
-                Integer.class);
+        Integer tableCount = healthMapper.countBaseTables();
         data.put("mysql", "UP");
         data.put("baseTables", tableCount);
 

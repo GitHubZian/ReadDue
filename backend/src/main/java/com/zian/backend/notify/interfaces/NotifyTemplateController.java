@@ -22,6 +22,13 @@ public class NotifyTemplateController {
 
     private final NotifyTemplateService templateService;
 
+    /**
+     * 更新通知模板的正文与启停状态。
+     *
+     * @param id    模板 ID
+     * @param patch 模板补丁（仅 content、enabled 生效）
+     * @return 更新后的模板
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('notify:manage')")
     public BaseResponse<NotifyDtos.TemplateView> update(

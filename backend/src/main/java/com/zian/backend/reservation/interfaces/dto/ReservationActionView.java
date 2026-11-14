@@ -7,6 +7,12 @@ import com.zian.backend.reservation.domain.model.Reservation;
  */
 public record ReservationActionView(Long id, String status, String readyAt, String expiresAt) {
 
+    /**
+     * 把预约聚合转换成管理端动作回执。
+     *
+     * @param reservation 预约
+     * @return 动作回执
+     */
     public static ReservationActionView of(Reservation reservation) {
         return new ReservationActionView(
                 reservation.getId(),

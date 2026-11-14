@@ -4,6 +4,8 @@ import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.borrow.application.BorrowQueryService;
 import com.zian.backend.notify.domain.model.NotifyTask;
 import com.zian.backend.notify.domain.model.NotifyTaskStatus;
+import com.zian.backend.notify.domain.port.EmailNotifier;
+import com.zian.backend.notify.domain.repository.ChannelPrefRepository;
 import com.zian.backend.notify.domain.repository.NotifyDeliveryRepository;
 import com.zian.backend.notify.domain.repository.NotifyTaskRepository;
 import com.zian.backend.rule.application.RuleService;
@@ -47,11 +49,18 @@ public class NotifyService {
     private final BorrowQueryService borrowQueryService;
     private final RuleService ruleService;
     private final AuditRecorder auditRecorder;
+    private final ChannelPrefRepository channelPrefRepository;
+    private final EmailNotifier emailNotifier;
 
-    // ---------------------------------------------------------------- 计划
+// region 计划
+
 
     /**
-     * 借出后计划到期提醒：L1（到期前 3 天）、L2（到期当天）。
+     * 规划到期提醒：生成 L1（到期前 3 天）与 L2（到期当天）两条待发任务。
+     *
+     * @param orderId  借阅单 ID
+     * @param readerId 读者 ID
+     * @param dueAt    有效应还日
      */
     @Transactional
     public void planReturnReminders(Long orderId, Long readerId, LocalDate dueAt) {
@@ -62,7 +71,11 @@ public class NotifyService {
     }
 
     /**
-     * 逾期标记后立即计划 L3 提醒。
+     * 规划逾期提醒：生成当日 L3 任务（按借阅单与日期去重）。
+     *
+     * @param orderId     借阅单 ID
+     * @param readerId    读者 ID
+     * @param overdueDays 逾期天数
      */
     @Transactional
     public void planOverdue(Long orderId, Long readerId, int overdueDays) {
@@ -76,7 +89,12 @@ public class NotifyService {
     }
 
     /**
-     * 预约到书立即通知（P0 直投，不进入静默窗口）。
+     * 到书通知：立即投递并绕过静默窗口。
+     *
+     * @param reservationId 预约 ID
+     * @param readerId      读者 ID
+     * @param bookId        书目 ID
+     * @param expiresAt     取书截止时间
      */
     @Transactional
     public void planReservationReady(Long reservationId, Long readerId, Long bookId, LocalDateTime expiresAt) {
@@ -98,7 +116,10 @@ public class NotifyService {
     }
 
     /**
-     * 归还后取消未发出的提醒。
+     * 取消该借阅单尚未发送的提醒。
+     *
+     * @param orderId 借阅单 ID
+     * @return 取消条数
      */
     @Transactional
     public int cancelReminders(Long orderId) {
@@ -106,11 +127,41 @@ public class NotifyService {
     }
 
     /**
-     * 宽限通过后重排提醒：取消原 L2/L3，按新的应还日重新计划 L1/L2。
+     * 宽限通过后重排提醒：取消旧的 L2/L3，按有效应还日重建 L2。
+     *
+     * @param orderId        借阅单 ID
+     * @param readerId       读者 ID
+     * @param effectiveDueAt 新的有效应还日
      */
     @Transactional
     public void replanAfterGrace(Long orderId, Long readerId, LocalDate effectiveDueAt) {
         taskRepository.cancelPlannedByOrderAndLevels(orderId, List.of(LEVEL_L2, LEVEL_L3));
+        plan(
+                "RETURN_REMIND:" + orderId + ":L2:" + effectiveDueAt,
+                readerId,
+                orderId,
+                LEVEL_L2,
+                effectiveDueAt.atTime(LocalTime.of(9, 0)),
+                payload(orderId, null));
+    }
+
+    /**
+     * 续借后重排提醒：取消 L1–L3，按新应还日重建 L1/L2。
+     *
+     * @param orderId        借阅单 ID
+     * @param readerId       读者 ID
+     * @param effectiveDueAt 新的有效应还日
+     */
+    @Transactional
+    public void replanAfterRenewal(Long orderId, Long readerId, LocalDate effectiveDueAt) {
+        taskRepository.cancelPlannedByOrderAndLevels(orderId, List.of(LEVEL_L1, LEVEL_L2, LEVEL_L3));
+        plan(
+                "RETURN_REMIND:" + orderId + ":L1:" + effectiveDueAt,
+                readerId,
+                orderId,
+                LEVEL_L1,
+                effectiveDueAt.minusDays(3).atTime(LocalTime.of(9, 0)),
+                payload(orderId, null));
         plan(
                 "RETURN_REMIND:" + orderId + ":L2:" + effectiveDueAt,
                 readerId,
@@ -166,10 +217,13 @@ public class NotifyService {
         return payload;
     }
 
-    // ---------------------------------------------------------------- 投递
+// endregion
+
+// region 投递
+
 
     /**
-     * 到点投递：站内信落库。
+     * 定时投递到期任务：写入站内信并按需投递邮件。
      */
     @Scheduled(fixedDelay = 30_000, initialDelay = 10_000)
     @Transactional
@@ -187,7 +241,9 @@ public class NotifyService {
     }
 
     /**
-     * 手动重试失败任务。
+     * 重试失败/部分成功的通知任务。
+     *
+     * @param id 任务 ID
      */
     @Transactional
     public void retry(Long id) {
@@ -202,7 +258,10 @@ public class NotifyService {
     }
 
     /**
-     * 管理端批量催还：为仍在借的订单立即生成 L3 提醒并投递。
+     * 批量催还：对指定借阅单立即生成并投递 L3 提醒。
+     *
+     * @param orderIds 借阅单 ID 列表，单次上限 500
+     * @return 实际投递条数
      */
     @Transactional
     public int remindBatch(List<Long> orderIds) {
@@ -251,9 +310,33 @@ public class NotifyService {
             return;
         }
         deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
+        if (channelPrefRepository.emailEnabled(task.readerId())) {
+            emailNotifier.enqueue(task.id(), task.readerId(), subjectOf(task.level()), bodyOf(task));
+        }
     }
 
-    // ---------------------------------------------------------------- 静默窗口
+    private static String subjectOf(String level) {
+        return switch (level) {
+            case LEVEL_L1 -> "图书到期前提醒";
+            case LEVEL_L2 -> "图书今日到期";
+            case LEVEL_L3 -> "图书逾期提醒";
+            case LEVEL_GRACE -> "宽限申请结果";
+            case LEVEL_READY -> "预约到书通知";
+            case LEVEL_APPEAL -> "申诉受理通知";
+            default -> "阅有期通知";
+        };
+    }
+
+    private static String bodyOf(NotifyTask task) {
+        String subject = subjectOf(task.level());
+        String order = task.borrowOrderId() == null ? "" : "借阅单：" + task.borrowOrderId() + "。";
+        return "读者您好，" + subject + "。" + order + "请登录阅有期查看详情。";
+    }
+
+// endregion
+
+// region 静默窗口
+
 
     /**
      * 22:00-08:00 的计划时间平移到窗口结束时刻。
@@ -271,4 +354,7 @@ public class NotifyService {
         LocalDate date = time.isBefore(end) || time.equals(end) ? planAt.toLocalDate() : planAt.toLocalDate().plusDays(1);
         return date.atTime(end);
     }
+
+// endregion
+
 }

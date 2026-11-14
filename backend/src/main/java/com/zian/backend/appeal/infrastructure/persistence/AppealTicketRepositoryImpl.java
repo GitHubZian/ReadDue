@@ -1,6 +1,7 @@
 package com.zian.backend.appeal.infrastructure.persistence;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zian.backend.appeal.domain.model.AppealStatus;
 import com.zian.backend.appeal.domain.model.AppealTicket;
 import com.zian.backend.appeal.domain.repository.AppealTicketRepository;
@@ -53,6 +54,45 @@ public class AppealTicketRepositoryImpl implements AppealTicketRepository {
         po.setCompensationDays(ticket.getCompensationDays());
         po.setResolution(ticket.getResolution());
         return mapper.updateById(po);
+    }
+
+    @Override
+    public Long insert(AppealTicket ticket) {
+        AppealTicketPO po = new AppealTicketPO();
+        po.setTicketNo(ticket.getTicketNo());
+        po.setReaderId(ticket.getReaderId());
+        po.setTargetType(ticket.getTargetType());
+        po.setTargetId(ticket.getTargetId());
+        po.setReason(ticket.getReason());
+        po.setStatus(ticket.getStatus().name());
+        po.setSlaDueAt(ticket.getSlaDueAt());
+        po.setSlaBreached(ticket.isSlaBreached() ? 1 : 0);
+        po.setCompensationDays(ticket.getCompensationDays());
+        mapper.insert(po);
+        return po.getId();
+    }
+
+    @Override
+    public List<AppealTicket> findByReader(Long readerId, String status, int offset, int limit) {
+        return mapper
+                .selectPage(
+                        new Page<>(offset / Math.max(1, limit) + 1, limit, false),
+                        Wrappers.<AppealTicketPO>lambdaQuery()
+                                .eq(AppealTicketPO::getReaderId, readerId)
+                                .eq(status != null && !status.isBlank(), AppealTicketPO::getStatus, status)
+                                .orderByDesc(AppealTicketPO::getCreatedAt)
+                                .orderByDesc(AppealTicketPO::getId))
+                .getRecords()
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByReader(Long readerId, String status) {
+        return mapper.selectCount(Wrappers.<AppealTicketPO>lambdaQuery()
+                .eq(AppealTicketPO::getReaderId, readerId)
+                .eq(status != null && !status.isBlank(), AppealTicketPO::getStatus, status));
     }
 
     private AppealTicket toDomain(AppealTicketPO po) {

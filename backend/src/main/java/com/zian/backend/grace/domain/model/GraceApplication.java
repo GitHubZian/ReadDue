@@ -172,7 +172,9 @@ public class GraceApplication {
         return status == GraceStatus.PENDING;
     }
 
-    /** 批准：天数必须在 1..Dmax 之间。 */
+    /**
+     * 审批通过：校验待审状态与天数上限。
+     */
     public void approve(int days, Long operatorId, LocalDateTime now) {
         if (!isPending()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该申请已处理，无法重复审批");
@@ -189,6 +191,9 @@ public class GraceApplication {
         this.decidedAt = now;
     }
 
+    /**
+     * 驳回：记录原因码与审批人。
+     */
     public void reject(String code, Long operatorId, LocalDateTime now) {
         if (!isPending()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该申请已处理，无法重复审批");

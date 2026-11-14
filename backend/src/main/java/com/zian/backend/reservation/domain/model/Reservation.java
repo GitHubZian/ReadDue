@@ -83,11 +83,16 @@ public class Reservation {
         return version;
     }
 
+    /**
+     * 是否仍在排队。
+     */
     public boolean isWaiting() {
         return status == ReservationStatus.WAITING;
     }
 
-    /** 到书：进入 READY，保留 holdHours 小时。 */
+    /**
+     * 到书：WAITING → READY，并设置取书截止时间。
+     */
     public void markReady(LocalDateTime now, int holdHours) {
         if (status != ReservationStatus.WAITING) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该预约当前状态为「" + status + "」，无法到书");
@@ -97,7 +102,9 @@ public class Reservation {
         this.expiresAt = now.plusHours(holdHours);
     }
 
-    /** 过期未取：释放名额。 */
+    /**
+     * 过期：仅 READY 可过期。
+     */
     public void expire() {
         if (status != ReservationStatus.READY) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "只有待到书状态可以标记过期");
@@ -105,7 +112,9 @@ public class Reservation {
         this.status = ReservationStatus.EXPIRED;
     }
 
-    /** 读者取书。 */
+    /**
+     * 取书完成：READY → FULFILLED。
+     */
     public void fulfill(LocalDateTime now) {
         if (status != ReservationStatus.READY) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该预约不在待到书状态");
@@ -114,8 +123,11 @@ public class Reservation {
         this.fulfilledAt = now;
     }
 
+    /**
+     * 取消预约：仅 WAITING/READY 可取消。
+     */
     public void cancel(String reason) {
-        if (status == ReservationStatus.FULFILLED || status == ReservationStatus.CANCELLED) {
+        if (status != ReservationStatus.WAITING && status != ReservationStatus.READY) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该预约已结束，无法取消");
         }
         this.status = ReservationStatus.CANCELLED;

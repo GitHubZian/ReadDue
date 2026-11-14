@@ -34,6 +34,12 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuditRecorder auditRecorder;
 
+    /**
+     * 登录：校验密码、记录登录时间、签发令牌并返回权限码。
+     *
+     * @param request 账号与密码
+     * @return 登录结果
+     */
     @Transactional
     public AuthDtos.LoginResult login(AuthDtos.LoginRequest request) {
         String userNo = request.userNo().trim();
@@ -54,6 +60,11 @@ public class AuthService {
         return new AuthDtos.LoginResult(issued.token(), issued.expiresIn(), toView(user, permissions));
     }
 
+    /**
+     * 当前会话用户：角色与权限以数据库为准。
+     *
+     * @return 会话用户
+     */
     @Transactional(readOnly = true)
     public AuthDtos.SessionUser me() {
         LoginUser current = UserContext.require();
@@ -63,6 +74,11 @@ public class AuthService {
         return toView(user, effectivePermissions(user.getRole()));
     }
 
+    /**
+     * 注销：吊销令牌对应的 Redis 登录态。
+     *
+     * @param token 原始令牌
+     */
     @Transactional(readOnly = true)
     public void logout(String token) {
         if (token != null && !token.isBlank()) {
@@ -71,13 +87,10 @@ public class AuthService {
     }
 
     /**
-     * 库内权限码 + 前端别名：前端权限码表与后端权限表并不完全一致，这里补齐别名，
-     * 保证 /me 返回的 permissions 能直接驱动前端菜单与按钮。
-     */
-    /**
-     * 按用户 ID 重新装载权威主体：角色与权限全部取自数据库，不信任 token 内声明。
+     * 按用户 ID 重建登录主体，供过滤器做权限回源。
      *
-     * <p>鉴权链路每请求走这里，因此拉黑 / 改角色 / 改权限立即生效，没有 2 小时快照窗口。
+     * @param userId 用户 ID
+     * @return 登录主体
      */
     @Transactional(readOnly = true)
     public LoginUser principalOf(Long userId) {

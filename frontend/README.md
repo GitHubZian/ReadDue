@@ -90,7 +90,7 @@ node scripts/real-shot.mjs /workbench shots/real-workbench.png
 
 ## 已知限制
 
-- 后端未提供的能力（续借、校历写入、宽限证据附件、审计 traceId）在前端按空态展示，接口就绪后再接。
+- 后端未提供的能力（校历写入、宽限证据附件、审计 traceId）在前端按空态展示；逾期分级与校历查询已接入规则参数页。
 - 未做 dark mode（按设计稿只提供浅色纸白主题）。
 - `dist` 单包约 742KB（gzip 235KB），后续可按路由拆包。
 

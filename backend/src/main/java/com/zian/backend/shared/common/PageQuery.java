@@ -13,6 +13,14 @@ public record PageQuery(int page, int size, String sort) {
     public static final int DEFAULT_SIZE = 20;
     public static final int MAX_SIZE = 200;
 
+    /**
+     * 构造分页参数：页码从 1 开始，单页上限 200，越界抛参数错误。
+     *
+     * @param page 页码
+     * @param size 每页条数
+     * @param sort 排序表达式（当前仅透传）
+     * @return 分页参数
+     */
     public static PageQuery of(Integer page, Integer size, String sort) {
         int p = page == null ? 1 : page;
         int s = size == null ? DEFAULT_SIZE : size;
@@ -28,6 +36,11 @@ public record PageQuery(int page, int size, String sort) {
         return new PageQuery(p, s, sort);
     }
 
+    /**
+     * 计算 SQL 偏移量。
+     *
+     * @return (page - 1) * size
+     */
     public long offset() {
         return (long) (page - 1) * size;
     }

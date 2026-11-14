@@ -298,7 +298,6 @@ export interface CirculationFlow {
   reader: Person;
   book: BookRef;
   operator: string;
-  channel: "COUNTER" | "SELF_SERVICE";
 }
 
 export interface BorrowResult {
@@ -313,4 +312,27 @@ export interface ReturnResult {
   reader: Person;
   fine: string;
   overdueDays: number;
+}
+
+/* ---------------- 逾期分级 / 校历 ---------------- */
+
+export interface TierRow {
+  code: string;
+  name: string;
+  minDays: number;
+  maxDays?: number | null;
+  actionCode: string;
+  toneCode?: string;
+  allowRenew: boolean;
+  description: string;
+}
+
+export interface CalendarEntry {
+  id: string;
+  term: string;
+  scene: string;
+  startDate: string;
+  endDate: string;
+  source: string;
+  note: string;
 }

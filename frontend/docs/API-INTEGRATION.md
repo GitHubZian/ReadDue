@@ -17,11 +17,13 @@
 | 提醒中心 | `GET /admin/templates`、`PUT /admin/templates/{id}`、`GET /admin/notify-tasks`、`POST /admin/notify-tasks/{id}/retry` | 真实 | `variables` 可能为空数组；`scene` 为库码，前端映射中文 |
 | 用户与权限 | `GET /admin/users`、`POST /admin/users/{id}/blacklist`、`/restore` | 真实 | 仅读者可拉黑：职工行不显示操作、复选框禁用；`lastActiveAt` 可能为空 → 显示「—」 |
 | 规则参数 | `GET /admin/rules`、`PUT /admin/rules` | 真实 | 5 组 27 项，`value` 全为字符串；`expectedVersion` 必填，保存后版本递增（实测 v10→v11） |
+| 逾期分级 | `GET /admin/tiers` | 真实 | 规则参数页「逾期分级」只读表；T5 无上限时展示「31 天以上」 |
+| 校历 | `GET /admin/calendar` | 真实 | 规则参数页「校历命中」；后端当前为空表 |
 | 审计日志 | `GET /admin/audit-logs`、`/audit-logs/{id}`、`/audit-logs/export` | 真实 | `action` 是动作码，前端映射中文；`detail` 多为 `"{}"`、`traceId` 为空 → 显示「—」；实际无 EXCEPTION 分类，筛选已移除该段 |
 
 ## 未接 / 后端缺口
 
-- `GET /admin/tiers`、`GET /admin/calendar`：后端有接口，前端暂未建页（校历无写接口）。
+- `GET /admin/calendar`：后端只读且当前返回空表，规则参数页以空态展示；校历写入接口尚未开放。
 - 续借没有 HTTP 端点，借还台只做借出/归还。
 - 宽限证据附件、审计 `traceId`/`before`/`after` 后端未落库，前端按空态处理。
 - `sort` 参数后端接收但不生效，列表按服务端默认顺序；分页默认 `size=20`，页面各自传 8–12。

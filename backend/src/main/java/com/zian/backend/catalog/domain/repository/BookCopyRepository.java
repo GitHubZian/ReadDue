@@ -8,13 +8,25 @@ import java.util.Optional;
  */
 public interface BookCopyRepository {
 
+    /**
+     * 按 ID 查副本。
+     */
+
     Optional<BookCopy> findById(Long id);
+
+    /**
+     * 按条码查副本。
+     */
 
     Optional<BookCopy> findByBarcode(String barcode);
 
-    /** 乐观锁更新；返回 0 表示并发冲突 */
+    /**
+     * 回写副本状态与版本，返回影响行数。
+     */
     int update(BookCopy copy);
 
-    /** 该书目下第一本可借副本（借出时自动分配） */
+    /**
+     * 查该书目第一本可借副本。
+     */
     Optional<BookCopy> findFirstAvailable(Long bookId);
 }

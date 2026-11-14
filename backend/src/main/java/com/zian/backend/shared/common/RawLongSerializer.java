@@ -10,6 +10,14 @@ import java.io.IOException;
  */
 public class RawLongSerializer extends JsonSerializer<Long> {
 
+    /**
+     * 以 JSON 数字写出 Long，避免全局 ToStringSerializer 把分页总数变成字符串。
+     *
+     * @param value       Long 值
+     * @param gen         JSON 生成器
+     * @param serializers 序列化上下文
+     * @throws IOException 写出失败
+     */
     @Override
     public void serialize(Long value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         if (value == null) {

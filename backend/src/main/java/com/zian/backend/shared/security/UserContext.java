@@ -16,14 +16,29 @@ public final class UserContext {
     private UserContext() {
     }
 
+    /**
+     * 绑定当前请求的登录用户。
+     *
+     * @param user 登录用户
+     */
     public static void set(LoginUser user) {
         HOLDER.set(user);
     }
 
+    /**
+     * 读取当前请求的登录用户。
+     *
+     * @return 登录用户，未登录时返回 null
+     */
     public static LoginUser current() {
         return HOLDER.get();
     }
 
+    /**
+     * 读取当前请求的登录用户，未登录直接抛 401。
+     *
+     * @return 登录用户
+     */
     public static LoginUser require() {
         LoginUser user = HOLDER.get();
         if (user == null) {
@@ -32,10 +47,18 @@ public final class UserContext {
         return user;
     }
 
+    /**
+     * 读取当前登录用户 ID，未登录直接抛 401。
+     *
+     * @return 用户 ID
+     */
     public static Long requireId() {
         return require().id();
     }
 
+    /**
+     * 清理当前线程的登录用户，避免线程复用串号。
+     */
     public static void clear() {
         HOLDER.remove();
     }

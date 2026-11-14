@@ -23,6 +23,13 @@ public class UserAdminController {
 
     private final UserAdminService userAdminService;
 
+    /**
+     * 拉黑账号：阻止借出、续借、预约与申请宽限，归还和申诉不受影响。
+     *
+     * @param id      用户 ID
+     * @param request 拉黑原因与可选到期时间
+     * @return 用户状态
+     */
     @PostMapping("/{id}/blacklist")
     @PreAuthorize("hasAuthority('user:blacklist')")
     public BaseResponse<AuthDtos.UserStatusView> blacklist(
@@ -30,6 +37,12 @@ public class UserAdminController {
         return ResultUtils.success(userAdminService.blacklist(id, request));
     }
 
+    /**
+     * 解除拉黑，恢复账号为正常状态。
+     *
+     * @param id 用户 ID
+     * @return 用户状态
+     */
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasAuthority('user:blacklist')")
     public BaseResponse<AuthDtos.UserStatusView> restore(@PathVariable Long id) {

@@ -17,10 +17,26 @@ public record PageResult<T>(
         int page,
         int size) {
 
+    /**
+     * 由当前页数据与总数构造分页结果。
+     *
+     * @param items 当前页数据
+     * @param total 总条数
+     * @param query 分页参数
+     * @param <T>   元素类型
+     * @return 分页结果
+     */
     public static <T> PageResult<T> of(List<T> items, long total, PageQuery query) {
         return new PageResult<>(items, total, query.page(), query.size());
     }
 
+    /**
+     * 构造空分页结果，保留页码与页大小。
+     *
+     * @param query 分页参数
+     * @param <T>   元素类型
+     * @return 空分页结果
+     */
     public static <T> PageResult<T> empty(PageQuery query) {
         return new PageResult<>(List.of(), 0L, query.page(), query.size());
     }

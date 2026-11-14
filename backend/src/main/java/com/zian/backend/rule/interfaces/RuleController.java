@@ -22,6 +22,12 @@ public class RuleController {
 
     private final RuleService ruleService;
 
+    /**
+     * 整组保存规则参数：校验值域并按 expectedVersion 做乐观锁。
+     *
+     * @param request 规则分组与期望版本
+     * @return 保存后的新版本号
+     */
     @PutMapping
     @PreAuthorize("hasAuthority('rule:update')")
     public BaseResponse<RuleDtos.RuleUpdateResult> update(@RequestBody @Valid RuleDtos.RuleUpdateRequest request) {

@@ -1,14 +1,16 @@
 package com.zian.backend.bootstrap.demo;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,16 +27,34 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);
     private static final String DEMO_PASSWORD = "123456";
+    private static final List<String> DEMO_TABLES = List.of(
+            "event_outbox",
+            "audit_log",
+            "notify_delivery",
+            "notify_task",
+            "appeal_event",
+            "appeal_ticket",
+            "lost_book_report",
+            "grace_application",
+            "reservation",
+            "renew_record",
+            "borrow_order",
+            "book_copy",
+            "book",
+            "user_status_log",
+            "reader_credit",
+            "reader_quiet_hours",
+            "reader_channel_pref",
+            "reader_profile",
+            "sys_user");
 
-    private final JdbcTemplate jdbc;
+    private final DemoSeedMapper seed;
     private final PasswordEncoder passwordEncoder;
     private final boolean reset;
 
     public DemoDataInitializer(
-            JdbcTemplate jdbc,
-            PasswordEncoder passwordEncoder,
-            @org.springframework.beans.factory.annotation.Value("${app.demo.reset:false}") boolean reset) {
-        this.jdbc = jdbc;
+            DemoSeedMapper seed, PasswordEncoder passwordEncoder, @Value("${app.demo.reset:false}") boolean reset) {
+        this.seed = seed;
         this.passwordEncoder = passwordEncoder;
         this.reset = reset;
     }
@@ -45,8 +65,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         if (reset) {
             clearDemoData();
         }
-        Integer users = jdbc.queryForObject("SELECT COUNT(*) FROM sys_user", Integer.class);
-        if (users != null && users > 0) {
+        if (seed.countUsers() > 0) {
             log.info("演示数据已存在，跳过初始化");
             return;
         }
@@ -90,19 +109,19 @@ public class DemoDataInitializer implements CommandLineRunner {
         long c6 = copy(book6, "BC0008", "A区-06-02", "ON_LOAN");
 
         long o1 = borrow("B20260101001", chen, book1, c1, now.minusDays(40), now.toLocalDate().minusDays(10),
-                now.toLocalDate().minusDays(10), 0, 0, null, "OVERDUE");
+                now.toLocalDate().minusDays(10), null, "OVERDUE");
         long o2 = borrow("B20260205002", zhou, book2, c2, now.minusDays(5), now.toLocalDate().plusDays(25),
-                now.toLocalDate().plusDays(25), 0, 0, null, "BORROWED");
+                now.toLocalDate().plusDays(25), null, "BORROWED");
         long o3 = borrow("B20260208003", lin, book3, c3, now.minusDays(30), now.toLocalDate(),
-                now.toLocalDate(), 0, 0, null, "BORROWED");
+                now.toLocalDate(), null, "BORROWED");
         long o4 = borrow("B20260120004", zhao, book4, c4, now.minusDays(30), now.toLocalDate().minusDays(2),
-                now.toLocalDate().minusDays(2), 0, 0, now.minusHours(2), "RETURNED");
+                now.toLocalDate().minusDays(2), now.minusHours(2), "RETURNED");
         borrow("B20260115005", chen, book5, c5, now.minusDays(33), now.toLocalDate().minusDays(3),
-                now.toLocalDate().minusDays(3), 0, 0, null, "OVERDUE");
+                now.toLocalDate().minusDays(3), null, "OVERDUE");
         borrow("B20261106006", lin, book6, c6, now.minusHours(1), now.toLocalDate().plusDays(30),
-                now.toLocalDate().plusDays(30), 0, 0, null, "BORROWED");
-        jdbc.update("UPDATE book_copy SET status = 'ON_LOAN' WHERE id IN (?,?,?,?,?)", c1, c2, c3, c5, c6);
-        jdbc.update("UPDATE book_copy SET status = 'AVAILABLE' WHERE id = ?", c4);
+                now.toLocalDate().plusDays(30), null, "BORROWED");
+        seed.updateCopyStatus(List.of(c1, c2, c3, c5, c6), "ON_LOAN");
+        seed.updateCopyStatus(List.of(c4), "AVAILABLE");
 
         reservation(book6, zhou, 1, "WAITING", now.minusDays(2));
         reservation(book1, lin, 2, "WAITING", now.minusDays(1));
@@ -133,33 +152,12 @@ public class DemoDataInitializer implements CommandLineRunner {
         audit(adminId, "ADMIN", "USER_BLACKLIST", "SYS_USER", wu, "拉黑违规读者",
                 "{\"reason\":\"连续三次逾期未归还\"}", "127.0.0.1", now.minusDays(3));
 
-        log.info("演示数据初始化完成：9 用户 / 6 书目 / 8 副本 / 5 借阅 / 3 预约 / 3 宽限 / 2 申诉");
+        log.info("演示数据初始化完成：7 用户 / 6 书目 / 8 副本 / 5 借阅 / 3 预约 / 3 宽限 / 2 申诉");
     }
 
     /** 重建演示数据前清空业务表（仅 local profile 且 app.demo.reset=true 时调用）。 */
     private void clearDemoData() {
-        for (String table : List.of(
-                "event_outbox",
-                "audit_log",
-                "notify_delivery",
-                "notify_task",
-                "appeal_event",
-                "appeal_ticket",
-                "lost_book_report",
-                "grace_application",
-                "reservation",
-                "renew_record",
-                "borrow_order",
-                "book_copy",
-                "book",
-                "user_status_log",
-                "reader_credit",
-                "reader_quiet_hours",
-                "reader_channel_pref",
-                "reader_profile",
-                "sys_user")) {
-            jdbc.update("DELETE FROM " + table);
-        }
+        DEMO_TABLES.forEach(seed::clear);
         log.info("已清空演示数据，准备重建");
     }
 
@@ -173,64 +171,25 @@ public class DemoDataInitializer implements CommandLineRunner {
             String status,
             String blacklistReason,
             LocalDateTime now) {
-        jdbc.update(
-                """
-                INSERT INTO sys_user (user_no, role, name, phone, email, password_hash, status, blacklist_reason,
-                                      blacklisted_at, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                userNo,
-                role,
-                name,
-                phone,
-                email,
-                hash,
-                status,
-                blacklistReason,
-                blacklistReason == null ? null : now,
-                now,
-                now);
-        return jdbc.queryForObject("SELECT id FROM sys_user WHERE user_no = ?", Long.class, userNo);
+        seed.insertUser(userNo, role, name, phone, email, hash, status, blacklistReason,
+                blacklistReason == null ? null : now, now);
+        return seed.findUserId(userNo);
     }
 
     private void profile(long userId, String department, String major, String grade) {
-        jdbc.update(
-                "INSERT INTO reader_profile (user_id, department, major, grade) VALUES (?, ?, ?, ?)",
-                userId,
-                department,
-                major,
-                grade);
+        seed.insertProfile(userId, department, major, grade);
     }
 
     private long book(
             String isbn, String title, String author, String publisher, String price, String summary, String tags) {
-        jdbc.update(
-                """
-                INSERT INTO book (isbn13, title, author, publisher, publish_date, category_code, language, price,
-                                  summary, tags, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'zh', ?, ?, ?, 1, NOW(), NOW())
-                """,
-                isbn,
-                title,
-                author,
-                publisher,
-                LocalDate.of(2016, 11, 1),
-                "TP",
-                new java.math.BigDecimal(price),
-                summary,
-                tags);
-        return jdbc.queryForObject("SELECT id FROM book WHERE isbn13 = ?", Long.class, isbn);
+        seed.insertBook(isbn, title, author, publisher, LocalDate.of(2016, 11, 1), "TP",
+                new BigDecimal(price), summary, tags);
+        return seed.findBookId(isbn);
     }
 
     private long copy(long bookId, String barcode, String location, String status) {
-        jdbc.update(
-                "INSERT INTO book_copy (book_id, barcode, location, status, acquired_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW())",
-                bookId,
-                barcode,
-                location,
-                status,
-                LocalDate.now().minusYears(2));
-        return jdbc.queryForObject("SELECT id FROM book_copy WHERE barcode = ?", Long.class, barcode);
+        seed.insertCopy(bookId, barcode, location, status, LocalDate.now().minusYears(2));
+        return seed.findCopyId(barcode);
     }
 
     private long borrow(
@@ -241,34 +200,14 @@ public class DemoDataInitializer implements CommandLineRunner {
             LocalDateTime borrowedAt,
             LocalDate dueAt,
             LocalDate effectiveDueAt,
-            int graceDays,
-            int renewCount,
             LocalDateTime returnedAt,
             String status) {
-        jdbc.update(
-                """
-                INSERT INTO borrow_order (order_no, reader_id, book_id, copy_id, borrowed_at, due_at, effective_due_at,
-                                          grace_days, renew_count, returned_at, final_overdue_days, status, return_condition,
-                                          created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                orderNo,
-                readerId,
-                bookId,
-                copyId,
-                borrowedAt,
-                dueAt,
-                effectiveDueAt,
-                graceDays,
-                renewCount,
-                returnedAt,
-                returnedAt == null ? 0 : Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(effectiveDueAt,
-                        returnedAt.toLocalDate())),
-                status,
-                returnedAt == null ? null : "GOOD",
-                borrowedAt,
-                borrowedAt);
-        return jdbc.queryForObject("SELECT id FROM borrow_order WHERE order_no = ?", Long.class, orderNo);
+        int overdueDays = returnedAt == null
+                ? 0
+                : (int) Math.max(0, ChronoUnit.DAYS.between(effectiveDueAt, returnedAt.toLocalDate()));
+        seed.insertBorrow(orderNo, readerId, bookId, copyId, borrowedAt, dueAt, effectiveDueAt,
+                0, 0, returnedAt, overdueDays, status, returnedAt == null ? null : "GOOD");
+        return seed.findBorrowId(orderNo);
     }
 
     private void reservation(long bookId, long readerId, int queueNo, String status, LocalDateTime createdAt) {
@@ -283,24 +222,12 @@ public class DemoDataInitializer implements CommandLineRunner {
             LocalDateTime createdAt,
             LocalDateTime readyAt,
             LocalDateTime expiresAt) {
-        jdbc.update(
-                """
-                INSERT INTO reservation (book_id, reader_id, queue_no, status, ready_at, expires_at, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                bookId,
-                readerId,
-                queueNo,
-                status,
-                readyAt,
-                expiresAt,
-                createdAt,
-                createdAt);
+        seed.insertReservation(bookId, readerId, queueNo, status, readyAt, expiresAt, createdAt);
     }
 
     private void grace(
             String applyNo,
-            long orderId,
+            Long orderId,
             long readerId,
             String scene,
             String source,
@@ -311,31 +238,13 @@ public class DemoDataInitializer implements CommandLineRunner {
             String status,
             Integer grantedDays,
             LocalDateTime createdAt) {
-        jdbc.update(
-                """
-                INSERT INTO grace_application (apply_no, borrow_order_id, reader_id, scene_code, scene_source, calendar_hit,
-                                               base_days, kt, kq, dmax, computed_days, granted_days, evidence_text,
-                                               formula_version, queue_len, snapshot_expires_at, status, decided_at,
-                                               created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 14, ?, ?, ?, 'v1', 2, ?, ?, ?, ?, ?)
-                """,
-                applyNo,
-                orderId,
-                readerId,
-                scene,
-                source,
+        seed.insertGrace(applyNo, orderId, readerId, scene, source,
                 "CALENDAR".equals(source) ? 1 : 0,
-                new java.math.BigDecimal(baseDays),
-                new java.math.BigDecimal(kt),
-                new java.math.BigDecimal(kq),
-                new java.math.BigDecimal(computedDays),
-                grantedDays,
+                new BigDecimal(baseDays), new BigDecimal(kt), new BigDecimal(kq),
+                new BigDecimal(computedDays), grantedDays,
                 "考试周与实习安排重叠，附实习证明与校历截图。",
-                createdAt.plusHours(24),
-                status,
-                "PENDING".equals(status) ? null : createdAt.plusHours(1),
-                createdAt,
-                createdAt);
+                createdAt.plusHours(24), status,
+                "PENDING".equals(status) ? null : createdAt.plusHours(1), createdAt);
     }
 
     private void appeal(
@@ -349,46 +258,14 @@ public class DemoDataInitializer implements CommandLineRunner {
             int slaBreached,
             Long assigneeId,
             LocalDateTime createdAt) {
-        jdbc.update(
-                """
-                INSERT INTO appeal_ticket (ticket_no, reader_id, target_type, target_id, reason, status, sla_due_at,
-                                           first_reply_at, sla_breached, assignee_id, assignee_name, compensation_days,
-                                           resolution, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
-                """,
-                ticketNo,
-                readerId,
-                targetType,
-                targetId,
-                reason,
-                status,
-                slaDueAt,
+        seed.insertAppeal(ticketNo, readerId, targetType, targetId, reason, status, slaDueAt,
                 "ACKED".equals(status) ? createdAt.plusMinutes(30) : null,
-                slaBreached,
-                assigneeId,
-                assigneeId == null ? null : "李倩",
-                "ACKED".equals(status) ? null : null,
-                createdAt,
-                createdAt);
+                slaBreached, assigneeId, assigneeId == null ? null : "李倩", createdAt);
     }
 
     private void task(
             String dedupKey, long readerId, Long orderId, String level, LocalDateTime planAt, String status) {
-        jdbc.update(
-                """
-                INSERT INTO notify_task (dedup_key, reader_id, borrow_order_id, level, plan_at, quiet_shifted, status,
-                                         payload, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
-                """,
-                dedupKey,
-                readerId,
-                orderId,
-                level,
-                planAt,
-                status,
-                "{\"orderId\":" + orderId + "}",
-                planAt,
-                planAt);
+        seed.insertTask(dedupKey, readerId, orderId, level, planAt, status, "{\"orderId\":" + orderId + "}");
     }
 
     private void audit(
@@ -401,24 +278,8 @@ public class DemoDataInitializer implements CommandLineRunner {
             String detail,
             String ip,
             LocalDateTime at) {
-        jdbc.update(
-                """
-                INSERT INTO audit_log (actor_id, actor_role, action, object_type, object_id, purpose, detail, ip, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                actorId,
-                actorRole,
-                action,
-                objectType,
-                objectId == null ? 0L : objectId,
-                purpose,
-                detail,
-                ip,
-                at);
-    }
-
-    @SuppressWarnings("unused")
-    private List<String> demoNames() {
-        return List.of("陈昊", "周雨", "林可", "赵一", "吴桐");
+        seed.insertAudit(actorId, actorRole, action, objectType,
+                objectId == null ? 0L : Long.valueOf(String.valueOf(objectId)),
+                purpose, detail, ip, at);
     }
 }

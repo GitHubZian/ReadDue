@@ -22,6 +22,13 @@ public class GraceAdminController {
 
     private final GraceService graceService;
 
+    /**
+     * 审批通过宽限：写入实批天数并顺延借阅单的有效应还日期。
+     *
+     * @param id      宽限申请 ID
+     * @param request 实批天数（缺省取计算值）与备注
+     * @return 审批后的状态与实批天数
+     */
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAuthority('grace:approve')")
     public BaseResponse<GraceDtos.GraceDecisionView> approve(
@@ -29,6 +36,13 @@ public class GraceAdminController {
         return ResultUtils.success(graceService.approve(id, request));
     }
 
+    /**
+     * 驳回宽限申请并记录理由。
+     *
+     * @param id      宽限申请 ID
+     * @param request 驳回说明
+     * @return 审批后的状态
+     */
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('grace:approve')")
     public BaseResponse<GraceDtos.GraceDecisionView> reject(

@@ -211,14 +211,14 @@ lib/
 
 | 路由 | 页面 | 关键内容 | 主要接口（见技术架构 §7） | 必测状态 |
 | --- | --- | --- | --- | --- |
-| `/` → `/borrow` | C1 我的借阅 | 问候+日期、三数概览（在借/将到期/逾期）、额度条、即将到期卡（续借/详情）、逾期卡（去归还/申请宽限）、预约到书卡（去取书）、规则提示 | `GET /borrows?status=ACTIVE&sort=due`、`GET /me/summary` | 空（无借阅）、拉黑（借阅类按钮禁用+解释） |
-| `/orders/:id` | C2 借阅详情 | 书目头卡、2×2 数据格（借出/应还/宽限/费用）、时间线、底部申请宽限 | `GET /borrows/{id}`、`GET /borrows/{id}/timeline` | 404（他人单据）、已归还（隐藏申请） |
-| `/orders/:id/grace` | C3 宽限申请 | 场景 chips、说明输入（10–200 字）、可延长 N 天依据卡、材料、历史申请、SLA 提示 | `GET /graces/scenes`、`POST /graces`、`GET /graces?mine=true` | 422（超次数/超天数）、重复提交（幂等） |
+| `/` → `/borrow` | C1 我的借阅 | 问候+日期、三数概览（在借/将到期/逾期）、额度条、即将到期卡（续借/详情）、逾期卡（去归还/申请宽限）、预约到书卡（去取书）、规则提示 | `GET /borrows/self?status=BORROWED`、`GET /me`（`/me/summary` 未实现，先由此聚合） | 空（无借阅）、拉黑（借阅类按钮禁用+解释） |
+| `/orders/:id` | C2 借阅详情 | 书目头卡、2×2 数据格（借出/应还/宽限/费用）、时间线、底部申请宽限 | `GET /borrows/self`（详情取列表项；`/borrows/{id}` 与 `/timeline` 未实现） | 404（他人单据）、已归还（隐藏申请） |
+| `/orders/:id/grace` | C3 宽限申请 | 场景 chips、说明输入（10–200 字）、可延长 N 天依据卡、材料、历史申请、SLA 提示 | 场景常量 `NORMAL/EXAM/THESIS/GRADUATION`、`POST /graces`、`GET /graces/self` | 422（超次数/超天数）、重复提交（幂等） |
 | `/search` | C4 检索 | 搜索框、可借/可预约/全部筛选、结果列表、采购建议、热门索书号 | `GET /books?q=`、`GET /books/{id}` | 空结果（给采购建议）、加载骨架 |
-| `/reservations` | C5 预约 | 排位大数、取书点与保留时长、排队规则、同书版本、取消预约 | `GET /me/reservations`、`DELETE /reservations/{id}` | 已到书（倒计时）、超时顺延 |
-| `/notifications` | C6 消息中心 | 筛选（全部/未读/系统）、消息列表（分类色条）、免打扰开关、本周摘要 | `GET /notifications?page=`、`PUT /notifications/read`、`GET/PUT /me/channels`、`GET/PUT /me/quiet-hours` | 空、未读计数、开关失败回滚 |
+| `/reservations` | C5 预约 | 排位大数、取书点与保留时长、排队规则、同书版本、取消预约 | `GET /reservations/self`、`DELETE /reservations/{id}` | 已到书（倒计时）、超时顺延 |
+| `/notifications` | C6 消息中心 | 筛选（全部/未读/系统）、消息列表（分类色条）、免打扰开关、本周摘要 | `GET /notifications`、`PUT /notifications/read`、`GET/PUT /me/channels`、`GET/PUT /me/quiet-hours`（上述四个均未实现，先本地 mock） | 空、未读计数、开关失败回滚 |
 | `/me` | C7 我的 | 头像/学号/信用、额度、六条入口、退出登录、版本号 | `GET /me`、`POST /auth/logout` | 拉黑态说明、退出二次确认 |
-| `/appeals` | C8 申诉工单 | 工单列表、新建（类型/对象/说明/凭证）、详情与补充说明、进度 | `GET /me/appeals`、`POST /appeals`、`GET /appeals/{id}`、`POST /appeals/{id}/reply` | SLA 倒计时、已结案、上传失败可重试 |
+| `/appeals` | C8 申诉工单 | 工单列表、新建（类型/对象/说明/凭证）、详情与补充说明、进度 | `GET /appeals/self`、`POST /appeals`（详情与回复接口未实现） | SLA 倒计时、已结案、上传失败可重试 |
 | `/login` | C9 登录 | 校园统一身份入口、学号/工号、条款 | `POST /auth/login` | 失败提示、网络异常 |
 
 **跨页规则**
@@ -289,3 +289,4 @@ flutter build apk --debug           # 能出包即可，不做 release 签名
 ## 完成后回复
 
 任务完成后，用一句简短的话回复人类：**「大鲸鲸做完了哦」**。
+

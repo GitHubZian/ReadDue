@@ -8,5 +8,9 @@ import java.util.Set;
  */
 public interface PermissionRepository {
 
+    /**
+     * 查询角色的全部权限码。
+     */
+
     Set<String> permissionsOf(UserRole role);
 }

@@ -62,7 +62,9 @@ public class BorrowOrder {
         this.version = version;
     }
 
-    /** 借出：应还日期 = 借出日 + 借期。 */
+    /**
+     * 创建在借单：应还日 = 借出日 + 借期，有效应还日同日。
+     */
     public static BorrowOrder open(
             String orderNo, Long readerId, Long bookId, Long copyId, LocalDateTime borrowedAt, int loanDays) {
         LocalDate due = borrowedAt.toLocalDate().plusDays(loanDays);
@@ -148,7 +150,9 @@ public class BorrowOrder {
         return status.isActive();
     }
 
-    /** 逾期天数（以有效应还为基准，未逾期为 0）。 */
+    /**
+     * 按有效应还日计算逾期天数，未到期返回 0。
+     */
     public int overdueDays(LocalDate today) {
         if (effectiveDueAt == null || !today.isAfter(effectiveDueAt)) {
             return 0;
@@ -156,7 +160,9 @@ public class BorrowOrder {
         return (int) ChronoUnit.DAYS.between(effectiveDueAt, today);
     }
 
-    /** 续借：次数与排队长度双重限制。 */
+    /**
+     * 续借：校验次数与队列后顺延应还日，超出上限抛业务异常。
+     */
     public void renew(int maxRenew, int queueLen, int queueBlock, int periodDays) {
         if (!isActive()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该借阅单已结束，无法续借");
@@ -172,7 +178,9 @@ public class BorrowOrder {
         effectiveDueAt = dueAt.plusDays(graceDays);
     }
 
-    /** 宽限生效：延长有效应还日期。 */
+    /**
+     * 累加宽限天数并重算有效应还日。
+     */
     public void applyGrace(int days) {
         if (days <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "宽限天数必须大于 0");
@@ -181,7 +189,9 @@ public class BorrowOrder {
         effectiveDueAt = dueAt.plusDays(graceDays);
     }
 
-    /** 归还：计算最终逾期并结束借阅。 */
+    /**
+     * 归还结单：按条件置为 RETURNED/LOST 并返回逾期天数。
+     */
     public int returnOn(LocalDateTime returnedAt, LocalDate today, ReturnCondition condition) {
         if (!isActive()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该借阅单不在借出状态，无法归还");

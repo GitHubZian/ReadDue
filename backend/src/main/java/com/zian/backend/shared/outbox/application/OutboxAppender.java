@@ -17,6 +17,14 @@ public class OutboxAppender {
 
     private final OutboxRepository outboxRepository;
 
+    /**
+     * 在当前事务内追加一条待投递事件，不做任何外部 IO。
+     *
+     * @param aggregateType 聚合类型
+     * @param aggregateId   聚合 ID
+     * @param eventType     事件类型
+     * @param payload       事件载荷，只放字符串/数字/布尔
+     */
     public void append(String aggregateType, Long aggregateId, String eventType, Map<String, Object> payload) {
         outboxRepository.append(OutboxEvent.pending(aggregateType, aggregateId, eventType, payload));
     }

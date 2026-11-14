@@ -1,6 +1,7 @@
 package com.zian.backend.iam.infrastructure.persistence.po;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ public class ReaderCreditPO {
     private Long userId;
 
     /** 近 12 个月逾期次数 */
+    @TableField("overdue_cnt_12m")
     private Integer overdueCnt12m;
 
     /** 连续守信月数（满 6 恢复一档） */

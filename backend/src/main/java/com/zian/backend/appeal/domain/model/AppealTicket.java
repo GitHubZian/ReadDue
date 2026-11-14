@@ -119,7 +119,9 @@ public class AppealTicket {
         return createdAt;
     }
 
-    /** 受理：写首次回应时间，开始计入 SLA 达成。 */
+    /**
+     * 受理：OPEN → ACKED 并记录首次回应时间。
+     */
     public void ack(Long operatorId, String operatorName, LocalDateTime now) {
         if (!status.isOpen()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该工单已结束，无法受理");
@@ -134,6 +136,9 @@ public class AppealTicket {
         }
     }
 
+    /**
+     * 出结论：置为 RESOLVED 并记录说明。
+     */
     public void resolve(String note, Long operatorId, String operatorName) {
         requireOpen();
         this.status = AppealStatus.RESOLVED;
@@ -142,6 +147,9 @@ public class AppealTicket {
         this.assigneeName = operatorName;
     }
 
+    /**
+     * 驳回：置为 REJECTED。
+     */
     public void reject(String note, Long operatorId, String operatorName) {
         requireOpen();
         this.status = AppealStatus.REJECTED;
@@ -150,7 +158,9 @@ public class AppealTicket {
         this.assigneeName = operatorName;
     }
 
-    /** 补偿 N 天（SLA 自动补偿或人工补偿）。 */
+    /**
+     * 补偿：置为 AUTO_COMPENSATED 并累加补偿天数。
+     */
     public void compensate(int days, String note, Long operatorId, String operatorName) {
         requireOpen();
         if (days <= 0) {
@@ -164,9 +174,7 @@ public class AppealTicket {
     }
 
     /**
-     * SLA 超时自动补偿：同一工单只补一次。
-     *
-     * @return 是否本次触发了补偿
+     * SLA 超时处理：超时且未补偿时自动补偿，返回是否发生。
      */
     public boolean breachSla(LocalDateTime now, int compensationDays) {
         if (!status.isOpen() || slaBreached) {

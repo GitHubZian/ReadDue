@@ -8,15 +8,23 @@ import java.util.List;
  */
 public interface OutboxRepository {
 
-    /** 业务事务内追加一条待投递事件 */
+    /**
+     * 写入待投递事件。
+     */
     void append(OutboxEvent event);
 
-    /** 扫描待投递事件（NEW / FAILED），按创建时间升序 */
+    /**
+     * 取待投递事件（NEW/FAILED）。
+     */
     List<OutboxEvent> findPending(int limit);
 
-    /** 投递成功 */
+    /**
+     * 标记事件已投递。
+     */
     void markPublished(Long id);
 
-    /** 投递失败：更新状态与重试次数 */
+    /**
+     * 记录投递失败，超过重试上限转 DEAD。
+     */
     void markFailed(OutboxEvent event);
 }

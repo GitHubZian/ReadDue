@@ -17,6 +17,12 @@ public class UserQueryService {
 
     private final UserRepository userRepository;
 
+    /**
+     * 按 ID 取用户，不存在时抛 404。
+     *
+     * @param id 用户 ID
+     * @return 用户聚合
+     */
     @Transactional(readOnly = true)
     public User requireById(Long id) {
         return userRepository
@@ -24,6 +30,12 @@ public class UserQueryService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "读者不存在"));
     }
 
+    /**
+     * 按学号/工号取用户，不存在时抛 404。
+     *
+     * @param userNo 学号或工号
+     * @return 用户聚合
+     */
     @Transactional(readOnly = true)
     public User requireByUserNo(String userNo) {
         return userRepository

@@ -19,6 +19,12 @@ public class BorrowQueryService {
     public record ActiveBorrow(Long id, Long readerId, Long bookId, LocalDate dueAt, LocalDate effectiveDueAt) {
     }
 
+    /**
+     * 批量读取在借单据，供通知模块补全读者与到期信息。
+     *
+     * @param ids 借阅单 ID 集合
+     * @return 在借单据，已过滤结束态与不存在的 ID
+     */
     public List<ActiveBorrow> findActive(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return List.of();

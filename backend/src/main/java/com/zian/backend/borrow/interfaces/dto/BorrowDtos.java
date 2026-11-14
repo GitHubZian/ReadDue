@@ -25,4 +25,24 @@ public final class BorrowDtos {
 
     public record ReturnResult(BookRefView book, PersonView reader, String fine, int overdueDays) {
     }
+
+    public record RenewResult(
+            Long borrowId, String dueAt, String effectiveDueAt, int renewCount, int maxRenew) {
+    }
+
+    /** 读者端「我的借阅」条目。 */
+    public record BorrowItem(
+            Long id,
+            String code,
+            String bookTitle,
+            String bookAuthor,
+            String coverUrl,
+            String borrowedAt,
+            java.time.LocalDate dueAt,
+            java.time.LocalDate effectiveDueAt,
+            String status,
+            int renewCount,
+            int graceDays,
+            int overdueDays) {
+    }
 }
