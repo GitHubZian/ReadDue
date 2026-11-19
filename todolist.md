@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 15/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 11/13（B-00…B-12；X-02/03/04 另计） · 前端 3/7 · 客户端 1/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -101,7 +101,7 @@
 | **B-07** | 校历写接口 | 只有只读 `GET /admin/calendar`，表空 | `rule/interfaces/RuleController.java` | `POST/PUT/DELETE /admin/calendar`；校验学期/场景/起止；写审计 | ✅ 2026-11-19 · e4846a6 · `mvn -B clean verify` 73 run/1 skip 绿、6 个新测试 · `AcademicCalendar`/`AcademicCalendarRepository(Impl)`/`AcademicCalendarService`/`CalendarAdminController`/`CalendarDtos`、`CalendarControllerTest`、接口文档 §18.15 |
 | **B-08** | 宽限证据附件 | 仅 `evidenceText`，`evidence[]` 恒空 | `grace/` + `shared` 文件存储 | `POST /files`（≤5MB png/jpg/pdf）；`POST /graces` 收 `evidenceIds[]`；详情返回 `evidence[]` | ✅ 2026-11-19 · 5150305 · `mvn -B clean verify` 77 run/1 skip 绿；上传→申请→详情→下载冒烟通过 |
 | **B-09** | 审计可追溯 | 无 `trace_id`、无前后值（全库命中 0） | `audit/**`、`AdminQueryMapper` | 加 `trace_id`/`before_json`/`after_json`；三类操作有值；详情与导出返回 | ✅ 2026-11-19 · 189dddf · `mvn -B clean verify` 79 run/1 skip 绿；规则调整与宽限审批冒烟/测试验证 traceId 与前后值 |
-| **B-10** | 隐私授权与遗忘 | 未实现 | `iam/` 或新 `privacy` | `GET/PUT /me/consents`、`POST /me/forget`（脱敏+保留事实+审计） | ✅ 2026-11-19 · （提交待回写） · 授权默认最小、关闭记时间、遗忘清姓名/手机/邮箱/院系并保留借阅事实，`USER_FORGET` 审计 |
+| **B-10** | 隐私授权与遗忘 | 未实现 | `iam/` 或新 `privacy` | `GET/PUT /me/consents`、`POST /me/forget`（脱敏+保留事实+审计） | ✅ 2026-11-19 · f6609a9 · 授权默认最小、关闭记时间、遗忘清姓名/手机/邮箱/院系并保留借阅事实，`USER_FORGET` 审计 |
 | **B-11** | 刷新令牌 | 只有 login/logout | `iam/interfaces/AuthController.java` | `POST /auth/refresh`（轮换 jti、旧 token 失效）+ 边界测试 | ⬜ 未开始 |
 | **B-12** | 角色权限调整 | 权限种子固定 | `iam/interfaces/UserAdminController.java` | `GET /admin/roles`、`PUT /admin/roles/{code}/permissions`，仅 ADMIN，改后 `/me` 立即生效 | ⬜ 未开始 |
 | **B-13** | sort + 幂等 | 已完成 | `PageQuery`、`IdempotencyFilter` | 不支持 `sort`（固定排序）；同 key 24h 重放返回首次结果 | ✅ 见 §2 |
