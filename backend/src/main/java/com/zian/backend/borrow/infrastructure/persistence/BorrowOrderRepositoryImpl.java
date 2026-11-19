@@ -86,6 +86,13 @@ public class BorrowOrderRepositoryImpl implements BorrowOrderRepository {
     }
 
     @Override
+    public long countActive(long readerId) {
+        return mapper.selectCount(Wrappers.<BorrowOrderPO>lambdaQuery()
+                .eq(BorrowOrderPO::getReaderId, readerId)
+                .in(BorrowOrderPO::getStatus, ACTIVE));
+    }
+
+    @Override
     public Long insert(BorrowOrder order) {
         BorrowOrderPO po = new BorrowOrderPO();
         po.setOrderNo(order.getOrderNo());

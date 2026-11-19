@@ -76,6 +76,10 @@ public class BorrowService {
         if (borrowOrderRepository.findActiveByReaderAndBook(reader.getId(), copy.getBookId()).isPresent()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该读者已借阅同一书目，请先归还");
         }
+        int quota = ruleService.intValue("BORROW.MAX_ACTIVE", 5);
+        if (borrowOrderRepository.countActive(reader.getId()) >= quota) {
+            throw new BusinessException(ErrorCode.RULE_VIOLATION, "已达借阅上限（" + quota + " 本），请先归还");
+        }
 
         int loanDays = ruleService.intValue("RENEW.LOAN_DAYS", 30);
         LocalDateTime now = LocalDateTime.now();

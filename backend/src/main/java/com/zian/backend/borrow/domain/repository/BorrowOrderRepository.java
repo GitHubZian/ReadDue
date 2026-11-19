@@ -46,6 +46,14 @@ public interface BorrowOrderRepository {
     long countByReader(Long readerId, String status);
 
     /**
+     * 统计读者当前在借（BORROWED/OVERDUE）册数，用于借阅配额校验。
+     *
+     * @param readerId 读者用户 ID
+     * @return 在借册数
+     */
+    long countActive(long readerId);
+
+    /**
      * 新建借阅单，返回生成的主键。
      */
     Long insert(BorrowOrder order);
