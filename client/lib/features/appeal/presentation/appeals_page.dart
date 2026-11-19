@@ -165,7 +165,7 @@ class _AppealsPageState extends ConsumerState<AppealsPage> {
   }
 
   Future<void> _showProgress(AppealTicket ticket) async {
-    final (tone, label) = _style(ticket.status);
+    final (tone, label) = appealStatusStyle(ticket.status);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -251,15 +251,6 @@ class _AppealsPageState extends ConsumerState<AppealsPage> {
       _ => '工单已关闭。',
     };
   }
-
-  (PillTone, String) _style(String status) => switch (status) {
-        'OPEN' => (PillTone.amber, '待处理'),
-        'ACKED' => (PillTone.mint, '已受理'),
-        'RESOLVED' => (PillTone.mint, '已解决'),
-        'AUTO_COMPENSATED' => (PillTone.mint, '已补偿'),
-        'REJECTED' => (PillTone.slate, '已驳回'),
-        _ => (PillTone.slate, '已关闭'),
-      };
 }
 
 class _AppealCard extends StatelessWidget {
@@ -270,14 +261,7 @@ class _AppealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (tone, label) = switch (ticket.status) {
-      'OPEN' => (PillTone.amber, '待处理'),
-      'ACKED' => (PillTone.mint, '已受理'),
-      'RESOLVED' => (PillTone.mint, '已解决'),
-      'AUTO_COMPENSATED' => (PillTone.mint, '已补偿'),
-      'REJECTED' => (PillTone.slate, '已驳回'),
-      _ => (PillTone.slate, '已关闭'),
-    };
+    final (tone, label) = appealStatusStyle(ticket.status);
 
     return AppCard(
       padding: const EdgeInsets.all(14),
@@ -357,3 +341,12 @@ class _AppealCard extends StatelessWidget {
     );
   }
 }
+
+(PillTone, String) appealStatusStyle(String status) => switch (status) {
+      'OPEN' => (PillTone.amber, '待处理'),
+      'ACKED' => (PillTone.mint, '已受理'),
+      'RESOLVED' => (PillTone.mint, '已解决'),
+      'AUTO_COMPENSATED' => (PillTone.mint, '已补偿'),
+      'REJECTED' => (PillTone.slate, '已驳回'),
+      _ => (PillTone.slate, '已关闭'),
+    };

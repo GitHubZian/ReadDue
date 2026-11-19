@@ -1,4 +1,7 @@
 import '../models/models.dart';
+import '../utils/app_text.dart';
+
+export '../utils/app_text.dart' show coverLabelOf;
 
 /// 后端 JSON → 客户端模型。字段缺失时给中性值，不猜业务结论。
 ///
@@ -13,13 +16,6 @@ DateTime? parseTime(dynamic value) {
       text.endsWith('Z') || RegExp(r'[+-]\d{2}:\d{2}$').hasMatch(text);
   if (!hasZone) return parsed;
   return parsed.toUtc().add(const Duration(hours: 8));
-}
-
-String coverLabelOf(String title) {
-  final text = title.trim();
-  if (text.isEmpty) return '书';
-  final runes = text.runes.toList();
-  return String.fromCharCodes(runes.take(2));
 }
 
 int _daysLeft(DateTime dueAt, DateTime now) {
@@ -37,9 +33,9 @@ BorrowItem borrowItemFromJson(
 }) {
   final dueAt = parseTime(json['dueAt']) ?? DateTime.now();
   final status = (json['status'] ?? 'BORROWED').toString();
-  final overdue = isOverdue(status, 0);
-  final daysLeft = _daysLeft(dueAt, now ?? DateTime.now());
   final overdueDays = int.tryParse((json['overdueDays'] ?? 0).toString()) ?? 0;
+  final overdue = isOverdue(status, overdueDays);
+  final daysLeft = _daysLeft(dueAt, now ?? DateTime.now());
   final renewCount = int.tryParse((json['renewCount'] ?? 0).toString()) ?? 0;
   final title = (json['bookTitle'] ?? '').toString();
   return BorrowItem(

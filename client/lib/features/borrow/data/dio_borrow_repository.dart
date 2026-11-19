@@ -2,6 +2,7 @@ import '../../../core/models/models.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/endpoints.dart';
+import '../../../core/network/reader_api.dart';
 import '../../../core/network/reader_mappers.dart';
 import '../domain/borrow_repository.dart';
 
@@ -60,8 +61,8 @@ class DioBorrowRepository implements BorrowRepository {
     final results = await Future.wait<Object>([
       _borrows(),
       _readyBooks(),
-      _summary(),
-      _unread(),
+      fetchSummary(_client),
+      fetchUnread(_client),
     ]);
     final items = results[0] as List<BorrowItem>;
     final ready = results[1] as List<ReadyBook>;
@@ -76,13 +77,13 @@ class DioBorrowRepository implements BorrowRepository {
     final sorted = [...items]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
     return BorrowDashboard(
       summary: BorrowSummary(
-        borrowing: _int(summary['borrowed'], items.length),
-        dueSoon: _int(summary['dueIn3Days'], dueSoon),
-        overdue: _int(summary['overdue'], overdue),
-        returnedThisTerm: _int(summary['returnedThisTerm'], 0),
+        borrowing: asInt(summary['borrowed'], items.length),
+        dueSoon: asInt(summary['dueIn3Days'], dueSoon),
+        overdue: asInt(summary['overdue'], overdue),
+        returnedThisTerm: asInt(summary['returnedThisTerm'], 0),
         creditLabel: (summary['creditLabel'] ?? '信用良好').toString(),
-        quotaUsed: _int(summary['borrowed'], items.length),
-        quotaTotal: _int(summary['quota'], 10),
+        quotaUsed: asInt(summary['borrowed'], items.length),
+        quotaTotal: asInt(summary['quota'], 10),
       ),
       dueSoon: sorted,
       readyBooks: ready,
@@ -91,32 +92,6 @@ class DioBorrowRepository implements BorrowRepository {
       unreadCount: unread,
     );
   }
-
-  Future<Map<String, dynamic>> _summary() async {
-    try {
-      return await _client.get<Map<String, dynamic>>(
-        Endpoints.meSummary,
-        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
-      );
-    } catch (_) {
-      return const {};
-    }
-  }
-
-  Future<int> _unread() async {
-    try {
-      final data = await _client.get<Map<String, dynamic>>(
-        Endpoints.notificationsUnread,
-        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
-      );
-      return _int(data['unread'], 0);
-    } catch (_) {
-      return 0;
-    }
-  }
-
-  int _int(Object? value, int fallback) =>
-      value is num ? value.toInt() : int.tryParse('$value') ?? fallback;
 
   @override
   Future<DateTime> renew(String orderId) async {

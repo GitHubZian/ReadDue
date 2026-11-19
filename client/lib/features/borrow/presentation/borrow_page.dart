@@ -535,9 +535,7 @@ class _ReadyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           BookCover(
-            label: book.title.length >= 2
-                ? book.title.substring(0, 2)
-                : book.title,
+            label: coverLabelOf(book.title),
             tone: CoverTone.mint,
           ),
           const SizedBox(width: 12),
