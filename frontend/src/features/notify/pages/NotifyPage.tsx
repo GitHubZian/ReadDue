@@ -2,6 +2,13 @@ import { useState } from "react";
 import { MessageSquareText, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -25,7 +32,14 @@ import { SegmentedFilter } from "@/components/common/SegmentedFilter";
 import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
-import { useTemplates, useUpdateTemplate, useNotifyTasks, useRetryNotifyTask } from "@/features/notify/queries";
+import {
+  useTemplates,
+  useUpdateTemplate,
+  useNotifyTasks,
+  useRetryNotifyTask,
+  useTopics,
+  useUpdateTopicDefaults,
+} from "@/features/notify/queries";
 import { formatDateTime, fromNow } from "@/lib/format/date";
 import type { NotifyChannel, NotifyStatus, NotifyTemplate } from "@/lib/api/models";
 
@@ -44,6 +58,18 @@ const channelLabel: Record<NotifyChannel, string> = {
   INAPP: "站内信",
 };
 
+const frequencyLabels: Record<string, string> = {
+  REALTIME: "实时",
+  DAILY: "每日",
+  WEEKLY: "每周",
+};
+
+// 后端目前只放行 INBOX/EMAIL；SMS、WECHAT 提交会 422，先不展示可点项。
+const topicChannelLabels: Record<string, string> = {
+  INBOX: "站内信",
+  EMAIL: "邮件",
+};
+
 const taskMeta: Record<NotifyStatus, { label: string; tone: "mint" | "amber" | "red" | "slate" }> = {
   PENDING: { label: "排队中", tone: "slate" },
   SENDING: { label: "发送中", tone: "amber" },
@@ -53,10 +79,12 @@ const taskMeta: Record<NotifyStatus, { label: string; tone: "mint" | "amber" | "
 };
 
 export function NotifyPage() {
-  const [tab, setTab] = useState<"TASKS" | "TEMPLATES">("TASKS");
+  const [tab, setTab] = useState<"TASKS" | "TEMPLATES" | "TOPICS">("TASKS");
   const [page, setPage] = useState(1);
   const tasks = useNotifyTasks(page, 10);
   const templates = useTemplates();
+  const topics = useTopics();
+  const topicUpdate = useUpdateTopicDefaults();
   const retry = useRetryNotifyTask();
   const update = useUpdateTemplate();
   const [editing, setEditing] = useState<NotifyTemplate | null>(null);
@@ -82,6 +110,7 @@ export function NotifyPage() {
           items={[
             { value: "TASKS", label: "发送任务" },
             { value: "TEMPLATES", label: "消息模板" },
+            { value: "TOPICS", label: "主题策略" },
           ]}
         />
 
@@ -160,7 +189,7 @@ export function NotifyPage() {
               <Pager page={page} size={10} total={tasks.data?.total ?? 0} onChange={setPage} />
             </div>
           </>
-        ) : (
+        ) : tab === "TEMPLATES" ? (
           <div className="mt-3 space-y-2">
             {(templates.data ?? []).map((template) => (
               <div
@@ -215,6 +244,96 @@ export function NotifyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {(topics.data ?? []).map((topic) => {
+              const patch = (next: {
+                defaultFrequency?: string;
+                defaultChannels?: string[];
+                enabled?: boolean;
+              }) =>
+                topicUpdate.mutate({
+                  code: topic.topicCode,
+                  payload: {
+                    defaultFrequency: topic.defaultFrequency,
+                    defaultChannels: topic.defaultChannels,
+                    enabled: topic.enabled,
+                    ...next,
+                  },
+                });
+
+              return (
+                <div
+                  key={topic.topicCode}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3"
+                >
+                  <div className="min-w-[160px] flex-1">
+                    <p className="text-[12px] font-semibold text-ink">{topic.name}</p>
+                    <p className="font-mono text-[9px] text-ink-3">{topic.topicCode}</p>
+                  </div>
+
+                  <StatusPill tone={topic.priority === "P0" ? "red" : topic.priority === "P1" ? "amber" : "slate"}>
+                    {topic.priority}
+                  </StatusPill>
+
+                  <Select
+                    value={topic.defaultFrequency}
+                    onValueChange={(value) => patch({ defaultFrequency: value })}
+                  >
+                    <SelectTrigger className="h-[30px] w-[92px] text-[10.5px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(frequencyLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value} className="text-[11px]">
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(topicChannelLabels).map(([code, label]) => {
+                      const on = topic.defaultChannels.includes(code);
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() =>
+                            patch({
+                              defaultChannels: on
+                                ? topic.defaultChannels.filter((item) => item !== code)
+                                : [...topic.defaultChannels, code],
+                            })
+                          }
+                          className={
+                            on
+                              ? "rounded-full border border-mint/40 bg-mint-soft px-2 py-0.5 text-[9.5px] font-medium text-mint-deep"
+                              : "rounded-full border border-line px-2 py-0.5 text-[9.5px] text-ink-3 transition-colors hover:bg-wash"
+                          }
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <label className="flex items-center gap-2 text-[9.5px] text-ink-3">
+                    {topic.enabled ? "启用" : "停用"}
+                    <Switch
+                      checked={topic.enabled}
+                      disabled={topicUpdate.isPending}
+                      onCheckedChange={(checked) => patch({ enabled: checked })}
+                    />
+                  </label>
+                </div>
+              );
+            })}
+            {!topics.isLoading && !(topics.data ?? []).length ? (
+              <p className="py-8 text-center text-[10.5px] text-ink-3">后端暂未配置通知主题。</p>
+            ) : null}
           </div>
         )}
       </SectionCard>

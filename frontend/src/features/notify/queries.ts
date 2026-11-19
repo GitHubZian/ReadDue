@@ -3,14 +3,18 @@ import { toast } from "sonner";
 import {
   listNotifyTasks,
   listTemplates,
+  listTopics,
   retryNotifyTask,
   updateTemplate,
+  updateTopicDefaults,
 } from "./api";
+import type { TopicDefaultsPayload } from "./api";
 import type { NotifyTemplate } from "@/lib/api/models";
 
 export const notifyKeys = {
   templates: ["notify", "templates"] as const,
   tasks: (page: number, size: number) => ["notify", "tasks", page, size] as const,
+  topics: ["notify", "topics"] as const,
 };
 
 export function useTemplates() {
@@ -25,6 +29,22 @@ export function useUpdateTemplate() {
     onSuccess: () => {
       toast.success("模板已保存");
       void client.invalidateQueries({ queryKey: ["notify", "templates"] });
+    },
+  });
+}
+
+export function useTopics() {
+  return useQuery({ queryKey: notifyKeys.topics, queryFn: listTopics, staleTime: 5 * 60_000 });
+}
+
+export function useUpdateTopicDefaults() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ code, payload }: { code: string; payload: TopicDefaultsPayload }) =>
+      updateTopicDefaults(code, payload),
+    onSuccess: () => {
+      toast.success("主题策略已更新");
+      void client.invalidateQueries({ queryKey: notifyKeys.topics });
     },
   });
 }
