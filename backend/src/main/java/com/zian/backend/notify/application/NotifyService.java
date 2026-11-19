@@ -311,26 +311,12 @@ public class NotifyService {
         }
         deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
         if (channelPrefRepository.emailEnabled(task.readerId())) {
-            emailNotifier.enqueue(task.id(), task.readerId(), subjectOf(task.level()), bodyOf(task));
+            emailNotifier.enqueue(
+                    task.id(),
+                    task.readerId(),
+                    NotifyCopy.title(task.level()),
+                    NotifyCopy.body(task.level(), task.borrowOrderId(), null, null));
         }
-    }
-
-    private static String subjectOf(String level) {
-        return switch (level) {
-            case LEVEL_L1 -> "图书到期前提醒";
-            case LEVEL_L2 -> "图书今日到期";
-            case LEVEL_L3 -> "图书逾期提醒";
-            case LEVEL_GRACE -> "宽限申请结果";
-            case LEVEL_READY -> "预约到书通知";
-            case LEVEL_APPEAL -> "申诉受理通知";
-            default -> "阅有期通知";
-        };
-    }
-
-    private static String bodyOf(NotifyTask task) {
-        String subject = subjectOf(task.level());
-        String order = task.borrowOrderId() == null ? "" : "借阅单：" + task.borrowOrderId() + "。";
-        return "读者您好，" + subject + "。" + order + "请登录阅有期查看详情。";
     }
 
 // endregion

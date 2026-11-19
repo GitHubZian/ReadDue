@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 6/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 7/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -51,7 +51,7 @@
 | --- | --- | --- | --- | --- |
 | B-00 | 提交并推送当前后端重构 | BE | ✅ 2026-11-19 · a3f6dd2/89c468e/cade101 · `mvn -B test` 42 run 1 skip 绿 · 37 文件已推送 | 无（**先做**） |
 | B-01 | 书目检索与馆藏 | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
-| B-02 | 读者消息中心 | BE | ⬜ 未开始 | B-00 |
+| B-02 | 读者消息中心 | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
 | B-03 | `/me/summary` | BE | ⬜ 未开始 | B-00 |
 | B-04 | 渠道开关 | BE | ⬜ 未开始 | B-00 |
 | B-05 | 免打扰 | BE | ⬜ 未开始 | B-00 |
@@ -93,7 +93,7 @@
 | --- | --- | --- | --- | --- | --- |
 | **B-00** | 提交并推送当前重构 | 工作区 30 文件改动 +982/−1074，含 reporting 读模型、`Masks`、`IdempotencyFilter`、`V4__drop_auto_increment`、三份文档；`feat/m3-progress-sync` 另有 1 个未推送提交 | 仓库根 | 拆 3 个提交：`refactor(reporting)`／`feat(idempotency+v4)`／`docs(sync)`；`git push` 成功；`git status` 干净 | ✅ 2026-11-19 · a3f6dd2 + 89c468e + cade101 · `mvn -B test` 42 run/1 skip 绿、`git push` 2f032d6..cade101、树干净 · 37 文件 |
 | **B-01** | 书目检索与馆藏 | 全仓无 `BookController`，`catalog` 只有 PO/Mapper | `catalog/interfaces/BookController.java`、`catalog/application/BookQueryService.java` | `GET /books?q=&page=&size=`、`/books/{id}`、`/books/{id}/copies`、`/books/{id}/queue`；单测覆盖空结果与 `size` 上限 422 | ✅ 2026-11-19 · b0f0e4a · `mvn -B verify` 46 run/1 skip 绿、4 个新测试 · `BookController`/`BookQueryService`/`BookQueryRepository`/V5 迁移/接口文档 |
-| **B-02** | 读者消息中心 | `notify_delivery` 有数据，无读接口 | `notify/interfaces/ReaderNotifyController.java` | `GET /notifications?page=`（仅本人）、`PUT /notifications/read`；未读数供 summary 复用 | ⬜ 未开始 |
+| **B-02** | 读者消息中心 | `notify_delivery` 有数据，无读接口 | `notify/interfaces/ReaderNotifyController.java` | `GET /notifications?page=`（仅本人）、`PUT /notifications/read`；未读数供 summary 复用 | ✅ 2026-11-19 · 见提交 · `mvn -B verify` 50 run/1 skip 绿、4 个新测试 · `ReaderNotifyController`/`NotifyInboxService`/`NotifyInboxRepository`/V6 迁移/接口文档 |
 | **B-03** | 首页摘要 | 缺失 | `borrow/interfaces/ReaderBorrowController.java` | 一次返回 `borrowed/dueIn3Days/overdue/quota/returnedThisTerm/creditLevel` | ⬜ 未开始 |
 | **B-04** | 渠道开关 | 表与 Mapper 就绪 | `notify/interfaces/ReaderPreferenceController.java` | `GET/PUT /me/channels`；EMAIL 关闭后不入队（补测试） | ⬜ 未开始 |
 | **B-05** | 免打扰 | 表就绪 | 同上 | `GET/PUT /me/quiet-hours`；跨零点/重叠 422；`FALLBACK` 返回 22:00–08:00 | ⬜ 未开始 |
@@ -211,6 +211,7 @@ flutter analyze; flutter test
 | 2026-11-19 | BE | 重构（未编号） | reporting record 读模型、V4 去自增、Masks；**未提交** |
 | 2026-11-19 | BE | B-00 提交推送 | a3f6dd2/89c468e/cade101 已推送，树干净，42 测试 1 skip 绿 |
 | 2026-11-19 | BE | B-01 书目检索 | 4 端点 + V5 权限；verify 46 run/1 skip；size>200 → 422 |
+| 2026-11-19 | BE | B-02 消息中心 | 列表/未读数/标记已读 + V6 `read_at` 与 `notify:read:self`；verify 50 run/1 skip |
 | 2026-11-19 | FE | F-07 演示账号清理 | DEV 包裹预填与演示块；生产包检索 0 命中 |
 | 2026-11-19 | FE | F-06 幂等与重试 | 按意图复用 Idempotency-Key；409/422 独立提示 |
 | 2026-11-19 | FE | F-02 角色权限页 | 10 项权限勾选 + 角色基线；保存待 B-12 |
@@ -224,6 +225,7 @@ flutter analyze; flutter test
 | --- | --- | --- | --- | --- |
 | C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
 | B-01-D1 | BE | 书目检索 `size>200` 按 B-01 验收返回 422（`RULE_VIOLATION`），而全站其它列表经 `PageQuery` 返回 400；请确认是否统一为 400 | FE/APP 待确认 | ⬜ 待裁决 |
+
 
 
 
