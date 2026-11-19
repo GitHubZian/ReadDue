@@ -1,7 +1,7 @@
 import { api } from "@/lib/api/client";
 import { endpoints } from "@/lib/api/endpoints";
 import type { PageParams, PageResult } from "@/lib/api/types";
-import type { AdminUser } from "@/lib/api/models";
+import type { AdminUser, PermissionView, RoleView } from "@/lib/api/models";
 
 export interface UserFilters extends PageParams {
   role?: string;
@@ -17,3 +17,10 @@ export const blacklistUser = (id: string, reason: string) =>
 
 export const restoreUser = (id: string) =>
   api.post<AdminUser>(endpoints.users.restore(id));
+
+export const listRoles = () => api.get<RoleView[]>(endpoints.roles.list);
+
+export const listPermissions = () => api.get<PermissionView[]>(endpoints.roles.permissions);
+
+export const saveRolePermissions = (code: string, permissions: string[]) =>
+  api.put<{ updated: number }>(endpoints.roles.permissionsOf(code), { permissions });
