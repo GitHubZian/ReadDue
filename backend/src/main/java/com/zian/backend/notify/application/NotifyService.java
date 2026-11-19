@@ -9,7 +9,6 @@ import com.zian.backend.notify.domain.model.ChannelPreferences;
 import com.zian.backend.notify.domain.repository.ChannelPrefRepository;
 import com.zian.backend.notify.domain.repository.NotifyDeliveryRepository;
 import com.zian.backend.notify.domain.repository.NotifyTaskRepository;
-import com.zian.backend.rule.application.RuleService;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.time.LocalDate;
@@ -48,9 +47,9 @@ public class NotifyService {
     private final NotifyTaskRepository taskRepository;
     private final NotifyDeliveryRepository deliveryRepository;
     private final BorrowQueryService borrowQueryService;
-    private final RuleService ruleService;
     private final AuditRecorder auditRecorder;
     private final ChannelPrefRepository channelPrefRepository;
+    private final QuietHoursService quietHoursService;
     private final EmailNotifier emailNotifier;
 
 // region 计划
@@ -193,7 +192,7 @@ public class NotifyService {
         if (taskRepository.findByDedupKey(dedupKey).isPresent()) {
             return null;
         }
-        LocalDateTime shifted = bypassQuiet ? planAt : shiftOutOfQuiet(planAt);
+        LocalDateTime shifted = bypassQuiet ? planAt : shiftOutOfQuiet(readerId, planAt);
         boolean quietShifted = !shifted.equals(planAt);
         NotifyTask task = new NotifyTask(
                 null,
@@ -329,23 +328,19 @@ public class NotifyService {
 
 
     /**
-     * 22:00-08:00 的计划时间平移到窗口结束时刻。
+     * 把落在读者免打扰窗口内的计划时间平移到窗口结束时刻。
+     *
+     * @param readerId 读者 ID，决定使用哪个窗口
+     * @param planAt   原计划时间
+     * @return 平移后的时间；未开启或未命中返回原值
      */
-    private LocalDateTime shiftOutOfQuiet(LocalDateTime planAt) {
-        LocalTime start = LocalTime.parse(ruleService.text("QUIET.START", "22:00"));
-        LocalTime end = LocalTime.parse(ruleService.text("QUIET.END", "08:00"));
-        LocalTime time = planAt.toLocalTime();
-        boolean inWindow = start.isAfter(end)
-                ? (time.isAfter(start) || time.isBefore(end) || time.equals(start))
-                : (time.isAfter(start) && time.isBefore(end));
-        if (!inWindow) {
-            return planAt;
-        }
-        LocalDate date = time.isBefore(end) || time.equals(end) ? planAt.toLocalDate() : planAt.toLocalDate().plusDays(1);
-        return date.atTime(end);
+    private LocalDateTime shiftOutOfQuiet(Long readerId, LocalDateTime planAt) {
+        return quietHoursService.effective(readerId).shift(planAt);
     }
 
 // endregion
 
 }
+
+
 

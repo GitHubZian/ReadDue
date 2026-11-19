@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 9/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 10/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -54,7 +54,7 @@
 | B-02 | 读者消息中心 | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
 | B-03 | `/me/summary` | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
 | B-04 | 渠道开关 | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
-| B-05 | 免打扰 | BE | ⬜ 未开始 | B-00 |
+| B-05 | 免打扰 | BE | ✅ 2026-11-19 · 见 §3 | B-00 |
 | B-06 | FR-11 偏好整块 | BE | ⬜ 未开始 | B-04、B-05 |
 | B-07 | 校历写接口 | BE | ⬜ 未开始 | B-00 |
 | B-08 | 宽限证据附件 | BE | ⬜ 未开始 | B-00 |
@@ -96,7 +96,7 @@
 | **B-02** | 读者消息中心 | `notify_delivery` 有数据，无读接口 | `notify/interfaces/ReaderNotifyController.java` | `GET /notifications?page=`（仅本人）、`PUT /notifications/read`；未读数供 summary 复用 | ✅ 2026-11-19 · 696c8d2 · `mvn -B verify` 50 run/1 skip 绿、4 个新测试 · `ReaderNotifyController`/`NotifyInboxService`/`NotifyInboxRepository`/V6 迁移/接口文档 |
 | **B-03** | 首页摘要 | 缺失 | `borrow/interfaces/ReaderSummaryController.java` | 一次返回 `borrowed/dueIn3Days/overdue/quota/returnedThisTerm/creditLevel` | ✅ 2026-11-19 · 0e530dd · `mvn -B verify` 54 run/1 skip 绿、4 个新测试 · `ReaderSummaryController`/`ReaderSummaryService`/`ReaderSummaryRepository`/`ReaderSummaryMapper`/V7 规则/接口文档 |
 | **B-04** | 渠道开关 | 表与 Mapper 就绪 | `notify/interfaces/ReaderPreferenceController.java` | `GET/PUT /me/channels`；EMAIL 关闭后不入队（补测试） | ✅ 2026-11-19 · 13eb73f · `mvn -B verify` 58 run/1 skip 绿、4 个新测试 · `ReaderPreferenceController`/`ReaderPreferenceService`/`ChannelPreferences`/V8 权限/接口文档 |
-| **B-05** | 免打扰 | 表就绪 | 同上 | `GET/PUT /me/quiet-hours`；跨零点/重叠 422；`FALLBACK` 返回 22:00–08:00 | ⬜ 未开始 |
+| **B-05** | 免打扰 | 表就绪 | `notify/interfaces/QuietHoursController.java` | `GET/PUT /me/quiet-hours`；跨零点/重叠 422；`FALLBACK` 返回 22:00–08:00 | ✅ 2026-11-19 · 见提交 · `mvn -B verify` 63 run/1 skip 绿、5 个新测试 · `QuietHoursController`/`QuietHoursService`/`QuietHours`/`QuietHoursRepository`/接口文档 |
 | **B-06** | FR-11 偏好 | 设计完成，表与接口为零 | 新 `notify_topic`/`notify_preference`/`notify_preference_log` + 6 接口 | 主题×频率×渠道落库；P0 不可关 422；快照写 `notify_task` | ⬜ 未开始 |
 | **B-07** | 校历写接口 | 只有只读 `GET /admin/calendar`，表空 | `rule/interfaces/RuleController.java` | `POST/PUT/DELETE /admin/calendar`；校验学期/场景/起止；写审计 | ⬜ 未开始 |
 | **B-08** | 宽限证据附件 | 仅 `evidenceText`，`evidence[]` 恒空 | `grace/` + `shared` 文件存储 | `POST /files`（≤5MB png/jpg/pdf）；`POST /graces` 收 `evidenceIds[]`；详情返回 `evidence[]` | ⬜ 未开始 |
@@ -212,6 +212,7 @@ flutter analyze; flutter test
 | 2026-11-19 | BE | B-00 提交推送 | a3f6dd2/89c468e/cade101 已推送，树干净，42 测试 1 skip 绿 |
 | 2026-11-19 | BE | B-01 书目检索 | 4 端点 + V5 权限；verify 46 run/1 skip；size>200 → 422 |
 | 2026-11-19 | BE | B-02 消息中心 | 列表/未读数/标记已读 + V6 `read_at` 与 `notify:read:self`；verify 50 run/1 skip |
+| 2026-11-19 | BE | B-05 免打扰 | `/v1/me/quiet-hours` 读写；排程按读者窗口顺延、全局规则兜底；起止相同 422；verify 63 run/1 skip |
 | 2026-11-19 | BE | B-04 渠道开关 | `/v1/me/channels` 读写 + 投递按开关过滤；V8 `notify:pref:self`；verify 58 run/1 skip |
 | 2026-11-19 | BE | B-03 首页摘要 | `/v1/me/summary` 六项 + V7 `BORROW.MAX_ACTIVE`；借出按上限拦截；verify 54 run/1 skip |
 | 2026-11-19 | FE | F-07 演示账号清理 | DEV 包裹预填与演示块；生产包检索 0 命中 |
@@ -226,7 +227,10 @@ flutter analyze; flutter test
 | 编号 | 发起方 | 契约摘要 | 配合方确认 | 状态 |
 | --- | --- | --- | --- | --- |
 | C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
+| B-05-D1 | BE | 免打扰表 `reader_quiet_hours` 为单窗口（PK=user_id），本期只支持一个时段，跨零点允许、起止相同返回 422；「窗口重叠 422」在多窗口落地前无可触发路径，是否需要多时段请确认 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-01-D1 | BE | 书目检索 `size>200` 按 B-01 验收返回 422（`RULE_VIOLATION`），而全站其它列表经 `PageQuery` 返回 400；请确认是否统一为 400 | FE/APP 待确认 | ⬜ 待裁决 |
+
+
 
 
 
