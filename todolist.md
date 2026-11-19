@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 13/13（B-00…B-12；X-02/03/04 另计） · 前端 7/7 · 客户端 3/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 13/13（B-00…B-12；X-02/03/04 另计） · 前端 7/7 · 客户端 7/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -75,8 +75,8 @@
 | C-03 | 消息中心与偏好 | APP | ✅ 2026-11-19 · 无 git 提交 · 通知列表/未读数、渠道开关、免打扰读写真接口；失败回滚提示；空态真机验证 | B-02、B-04、B-05 |
 | C-04 | 首页摘要 | APP | ✅ 2026-11-19 · 无 git 提交 · C1 改用 `/me/summary`，3 在借/0 临期/2 逾期与列表一致 | B-03 |
 | C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
-| C-06 | 真机联调两条链路 | APP | ⬜ 未开始 | C-01…C-05 |
-| C-07 | 隐私与偏好页 | APP | ⬜ 未开始 | B-06、B-10 |
+| C-06 | 真机联调两条链路 | APP | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3、C5→C6→C7 真机走通 | C-01…C-05 |
+| C-07 | 隐私与偏好页 | APP | ✅ 2026-11-19 · 无 git 提交 · 隐私授权/6 主题频率/遗忘确认；PUT 真机验证；test 26 绿 | B-06、B-10 |
 | X-01 | 三端冒烟 | **FE 发起** | ⬜ 未开始 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -136,11 +136,11 @@
 | --- | --- | --- | --- | --- | --- |
 | **C-01** | 去 mock 接真实后端 | `dio_` 覆盖全部 feature，`useMock` 默认 false | `lib/features/*/data/`、`endpoints.dart` | 全部 `dio_` 实现；`useMock` 默认 false；断网错误态可读 | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 24 绿 · 通知/摘要/渠道/免打扰真接口，C1/C6/C7 真机验证 |
 | **C-02** | 检索与书目详情 | 接 `/books`、`/copies`、`/queue` 与 `POST /borrows` | `lib/features/search/` | 接 B-01 四端点；空/无馆藏/可预约三态；300ms 防抖 | ✅ 2026-11-19 · 无 git 提交 · 详情弹层 + 库存状态；UI 真借阅成功（算法导论，订单 B20261119231652）并回流 C1；test 24 绿 |
-| **C-03** | 消息中心与偏好 | 数据来自 mock | `notifications/`、`profile/` | 接 B-02/B-04/B-05；失败回滚并提示 | ⬜ 未开始 |
-| **C-04** | 首页摘要 | 本地聚合 | `lib/features/borrow/` | 切 `/me/summary`；数字与列表一致 | ⬜ 未开始 |
+| **C-03** | 消息中心与偏好 | 通知/渠道/免打扰走真接口 | `notifications/`、`profile/` | 接 B-02/B-04/B-05；失败回滚并提示 | ✅ 2026-11-19 · 无 git 提交 · 列表/未读数、渠道开关、免打扰读写真接口；失败回滚 toast；空态真机验证 |
+| **C-04** | 首页摘要 | `/me/summary` | `lib/features/borrow/` | 切 `/me/summary`；数字与列表一致 | ✅ 2026-11-19 · 无 git 提交 · C1 摘要 3 在借/0 临期/2 逾期与列表一致；creditLabel 取服务端 |
 | **C-05** | 申诉与个人中心 | dio（mock 保留开关） | `appeal/`、`profile/` | 提交/列表/详情接真实接口；徽标与 `/me` 一致 | ✅ 2026-11-19 · 无 git 提交 · `flutter analyze` 0 / `flutter test` 23 绿 / 真机 C8 列表+提交、C7 资料页 · 新增 2 文件（`dio_appeal_repository.dart`、`dio_profile_repository.dart`）+ 3 处改（provider、时间映射、登录默认） |
-| **C-06** | 真机联调 | 未跑真后端 | 全端 | C1→C2→C3、C5→C6→C7 全通；`flutter test` 绿 | ⬜ 未开始 |
-| **C-07** | 隐私与偏好页 | 未建 | `profile/` | 授权开关、遗忘申请、提醒偏好 | ⬜ 未开始 |
+| **C-06** | 真机联调 | 真后端 + emulator-5554 | 全端 | C1→C2→C3、C5→C6→C7 全通；`flutter test` 绿 | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3 与 C5→C6→C7 真机走通；摘要/详情/宽限/预约/消息/我的均读真接口；test 26 绿 |
+| **C-07** | 隐私与偏好页 | 已建 `privacy_page.dart` + dio/mock repo | `profile/` | 授权开关、遗忘申请、提醒偏好 | ✅ 2026-11-19 · 无 git 提交 · 设置→隐私与提醒；授权开关、6 主题频率、遗忘确认弹窗；真机 PUT 验证（sceneConsent=true、BORROW_DUE=WEEKLY）；test 26 绿 |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -226,6 +226,9 @@ flutter analyze; flutter test
 | 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | APP | C-01 去 mock | 7 个 provider 改按 `appUseMockProvider` 切换，`useMock` 默认 false；C1 摘要/未读取自 `/me/summary` + `unread-count`，C6 通知/渠道/免打扰、C7 资料走真接口；analyze 0 / test 24 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | APP | C-02 检索与详情 | 接 `/books`、`/books/{id}`、`/copies`、`/queue`；详情弹层展示 ISBN/馆藏/副本/排队；UI 真实借阅「算法导论」成功（B20261119231652），C1 回流 3 在借；analyze 0 / test 24 绿；仓库无 `.git` 未提交 |
+| 2026-11-19 | APP | C-03/C-04 消息与摘要 | 通知列表/未读数、渠道/免打扰真接口；C1 摘要切 `/me/summary`，3 在借/0 临期/2 逾期与列表一致；失败回滚提示；analyze 0 / test 26 绿 |
+| 2026-11-19 | APP | C-06/C-07 联调与隐私页 | C1→C2→C3、C5→C6→C7 真机全通；设置新增「隐私与提醒」：授权开关、6 主题频率、遗忘确认；真机 PUT 验证 sceneConsent=true、BORROW_DUE=WEEKLY；analyze 0 / test 26 绿 |
+| 2026-11-19 | APP | C-01–C-07 提交与安装包 | 客户端 7/7；commit `90cf93a`（功能）+ `ad5be55`（README）；release APK 23.5MB，`API_BASE_URL=http://192.168.123.115:8125/api`；模拟器 release 启动验证通过 |
 | 2026-11-19 | BE | B-06 通知偏好 | 6 主题 + 差异偏好 + 日志 + 管理端字典；P0 必含 INBOX、P2 禁 REALTIME、SMS 422；排程写 `topic_code`/`pref_snapshot`，投递按快照∩渠道开关；V9；verify 67 run/1 skip |
 | 2026-11-19 | BE | B-07 校历写接口 | 新增/修改/软删除 + 学期场景起止校验、同场景重叠 422、CALENDAR_* 审计；verify 73 run/1 skip |
 | 2026-11-19 | BE | X-02 并发压测 | 种子 300 读者/300 册（`temp/x02-seed.sql`）；`backend/scripts/loadtest-x02.ps1` 并发 64：归还 200/200、P95 294.4ms、max 587.7ms；催还 100/100、P95 185.1ms、max 228.4ms；5xx=0、无死锁；压测数据已清理 |
