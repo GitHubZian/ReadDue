@@ -78,9 +78,9 @@
 | C-06 | 真机联调两条链路 | APP | ⬜ 未开始 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ⬜ 未开始 | B-06、B-10 |
 | X-01 | 三端冒烟 | **FE 发起** | ⬜ 未开始 | F-01…F-06、C-06 |
-| X-02 | 并发压测 | **BE 发起** | ⬜ 未开始 | B-01…B-05 |
+| X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
-| X-04 | `.gitattributes` | **BE 发起** | ⬜ 未开始 | 无 |
+| X-04 | `.gitattributes` | **BE 发起** | ✅ 2026-11-19 · `* text=auto eol=lf`，279 个文本文件归一化 | 无 |
 
 ---
 
@@ -154,9 +154,9 @@
 | 编号 | 任务 | 发起方 | 配合方 | 出口条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | **X-01** | 三端冒烟 | **FE** | BE、APP | 8125 + 5173 + 模拟器同时跑；C1→C3、A5→A7 两条链路无阻断，三条截图/日志留证 | ⬜ 未开始 |
-| **X-02** | 并发压测 | **BE** | FE | 200 并发归还 + 100 并发催还；P95 < 800ms、无 5xx、无死锁 | ⬜ 未开始 |
+| **X-02** | 并发压测 | **BE** | FE | 200 并发归还 + 100 并发催还；P95 < 800ms、无 5xx、无死锁 | ✅ 2026-11-19 · 归还 200/200 成功、P95 294.4ms（max 587.7，wall 2.51s）；催还 100/100 成功、P95 185.1ms（max 228.4，wall 1.37s）；5xx=0；`SHOW ENGINE INNODB STATUS` 无 LATEST DETECTED DEADLOCK；脚本 `backend/scripts/loadtest-x02.ps1`（`-Mode returns|remind`） |
 | **X-03** | 文档回填校验 | **BE** | FE、APP | 每批结束后 `技术架构.md` §7/§7.1、`API-INTEGRATION.md`、`client/AGENT.md` 三处端点一致，grep 无幽灵路径 | ✅ 2026-11-19 · `技术架构.md` 不存在（§11 X-03-D1）；FE 43 处 / 客户端 11 处 `/v1` 引用全部可解析；`frontend/docs/API-INTEGRATION.md` 缺口段已按 B-01…B-12 重写；报告 `temp/x03-doc-consistency.md` |
-| **X-04** | 换行统一 | **BE** | 全员 | `.gitattributes`（`* text=auto eol=lf`）后 `git status` 无 CRLF 警告 | ⬜ 未开始 |
+| **X-04** | 换行统一 | **BE** | 全员 | `.gitattributes`（`* text=auto eol=lf`）后 `git status` 无 CRLF 警告 | ✅ 2026-11-19 · 根 `.gitattributes`（文本 LF、二进制 binary、`*.cmd/*.bat` CRLF）；279 个已跟踪文本文件由 CRLF 归一为 LF；`git add` 不再出现 CRLF 警告（仅 APP 未提交的 `reader_mappers.dart` 保持原状） |
 
 ---
 
@@ -221,6 +221,8 @@ flutter analyze; flutter test
 | 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | BE | B-06 通知偏好 | 6 主题 + 差异偏好 + 日志 + 管理端字典；P0 必含 INBOX、P2 禁 REALTIME、SMS 422；排程写 `topic_code`/`pref_snapshot`，投递按快照∩渠道开关；V9；verify 67 run/1 skip |
 | 2026-11-19 | BE | B-07 校历写接口 | 新增/修改/软删除 + 学期场景起止校验、同场景重叠 422、CALENDAR_* 审计；verify 73 run/1 skip |
+| 2026-11-19 | BE | X-02 并发压测 | 种子 300 读者/300 册（`temp/x02-seed.sql`）；`backend/scripts/loadtest-x02.ps1` 并发 64：归还 200/200、P95 294.4ms、max 587.7ms；催还 100/100、P95 185.1ms、max 228.4ms；5xx=0、无死锁；压测数据已清理 |
+| 2026-11-19 | BE | X-04 换行统一 | 新增 `.gitattributes`（`* text=auto eol=lf` + 二进制规则）；`git add` 归一化 279 个文本文件，之后 `git status`/`git add` 无 CRLF 警告 |
 | 2026-11-19 | BE | X-03 文档回填校验 | 全仓比对 76 个后端路径 vs FE 43 / 客户端 11 处引用，幽灵路径 0；`技术架构.md` 缺失登记 `X-03-D1`；FE `API-INTEGRATION.md` 缺口段重写为 B-01…B-12 新增端点清单，并纠正「续借/证据/traceId/sort/幂等/校历」六处过时描述 |
 | 2026-11-19 | BE | B-12 角色权限调整 | `GET /v1/admin/roles`、`GET /v1/admin/permissions`、`PUT /v1/admin/roles/{code}/permissions`；V13 新增 `role:manage`（仅 ADMIN）；全量替换、ADMIN 守卫；`JwtAuthenticationFilter` 回源使旧 token 立即失权；新增 `RoleAdminControllerTest` 4 例；verify 90 run/1 skip |
 | 2026-11-19 | BE | B-11 刷新令牌 | `POST /v1/auth/refresh`：校验旧 jti → 按库重算权限 → 签发新 token → 吊销旧 jti；旧 token 立即 401，同一旧 token 只能刷新一次；写 `AUTH_REFRESH` 审计；新增 `AuthRefreshTest` 3 例；verify 86 run/1 skip |
