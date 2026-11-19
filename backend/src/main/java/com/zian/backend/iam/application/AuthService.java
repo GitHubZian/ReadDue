@@ -87,6 +87,30 @@ public class AuthService {
     }
 
     /**
+     * 刷新令牌：校验旧令牌、按数据库重算权限、签发新 jti 并吊销旧 jti。
+     *
+     * <p>旧令牌一经刷新立即失效，避免同一登录态长期有效；响应结构与登录一致。
+     *
+     * @param token 旧令牌原文（不含 Bearer 前缀）
+     * @return 新令牌、有效期与用户信息
+     */
+    @Transactional
+    public AuthDtos.LoginResult refresh(String token) {
+        if (token == null || token.isBlank()) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "缺少令牌，无法刷新");
+        }
+        LoginUser current = jwtService.parse(token);
+        LoginUser fresh = principalOf(current.id());
+        JwtService.IssuedToken issued = jwtService.issue(fresh);
+        jwtService.revoke(token);
+        auditRecorder.recordAs(fresh, "AUTH_REFRESH", "USER", fresh.id(), "刷新令牌", Map.of());
+        User user = userRepository
+                .findById(fresh.id())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        return new AuthDtos.LoginResult(issued.token(), issued.expiresIn(), toView(user, fresh.permissions()));
+    }
+
+    /**
      * 按用户 ID 重建登录主体，供过滤器做权限回源。
      *
      * @param userId 用户 ID

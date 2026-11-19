@@ -57,6 +57,18 @@ public class AuthController {
         return ResultUtils.success(null);
     }
 
+    /**
+     * 刷新令牌：用当前令牌换取新令牌，旧令牌立即失效。
+     *
+     * @param authorization Authorization 请求头（Bearer 旧 token）
+     * @return 新 token、有效期与用户信息
+     */
+    @PostMapping("/auth/refresh")
+    public BaseResponse<AuthDtos.LoginResult> refresh(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return ResultUtils.success(authService.refresh(resolveToken(authorization)));
+    }
+
     private String resolveToken(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             return null;
