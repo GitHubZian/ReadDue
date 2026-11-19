@@ -7,6 +7,7 @@ import {
   MessagesSquare,
   ScanLine,
   ScrollText,
+  ShieldCheck,
   SlidersHorizontal,
   Users,
   type LucideIcon,
@@ -50,6 +51,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "提醒中心", path: "/notify", icon: BellRing, permission: "notify:manage" },
       { label: "用户与权限", path: "/users", icon: Users, permission: "user:manage" },
+      { label: "角色权限", path: "/roles", icon: ShieldCheck, permission: "user:manage" },
       { label: "规则参数", path: "/rules", icon: SlidersHorizontal, permission: "rule:update" },
       { label: "审计日志", path: "/audit", icon: ScrollText, permission: "audit:read" },
     ],

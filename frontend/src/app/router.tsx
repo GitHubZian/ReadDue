@@ -13,6 +13,7 @@ import { GracePage } from "@/features/grace/pages/GracePage";
 import { AppealPage } from "@/features/appeal/pages/AppealPage";
 import { NotifyPage } from "@/features/notify/pages/NotifyPage";
 import { UsersPage } from "@/features/iam/pages/UsersPage";
+import { RolesPage } from "@/features/iam/pages/RolesPage";
 import { RulesPage } from "@/features/rule/pages/RulesPage";
 import { AuditPage } from "@/features/audit/pages/AuditPage";
 import { ForbiddenPage } from "@/features/auth/pages/ForbiddenPage";
@@ -111,6 +112,14 @@ export const router = createBrowserRouter([
             element: (
               <Guard code="user:manage">
                 <UsersPage />
+              </Guard>
+            ),
+          },
+          {
+            path: "roles",
+            element: (
+              <Guard code="user:manage">
+                <RolesPage />
               </Guard>
             ),
           },
