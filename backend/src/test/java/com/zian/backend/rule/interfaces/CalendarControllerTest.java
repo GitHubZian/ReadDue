@@ -7,11 +7,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.zian.backend.rule.application.AcademicCalendarService;
 import com.zian.backend.security.SecurityTestSupport;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 校历写接口：新建 / 修改 / 删除与校验、审计。
@@ -19,6 +23,26 @@ import org.junit.jupiter.api.Test;
 class CalendarControllerTest extends SecurityTestSupport {
 
     private static final String BASE = "/v1/admin/calendar";
+
+    @Autowired
+    private AcademicCalendarService academicCalendarService;
+
+    @Test
+    void semesterStartShouldUseNormalRange() {
+        jdbc.update(
+                "INSERT INTO academic_calendar (id, term, scene_code, start_date, end_date, source, deleted)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, 0)",
+                IdWorker.getId(),
+                "2026-FALL",
+                "NORMAL",
+                java.sql.Date.valueOf("2026-09-01"),
+                java.sql.Date.valueOf("2027-01-31"),
+                "DECLARED");
+
+        assertThat(academicCalendarService.semesterStart(LocalDate.of(2026, 10, 15)))
+                .contains(LocalDate.of(2026, 9, 1));
+        assertThat(academicCalendarService.semesterStart(LocalDate.of(2030, 1, 1))).isEmpty();
+    }
 
     @Test
     void createShouldPersistAndAudit() throws Exception {

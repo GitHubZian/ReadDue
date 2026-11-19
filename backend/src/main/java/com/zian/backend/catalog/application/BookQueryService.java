@@ -30,8 +30,8 @@ public class BookQueryService {
     /**
      * 分页检索上架书目。
      *
-     * <p>{@code size} 超过 200 视为规则拒绝（HTTP 422），与「页码非法」（400）区分开：
-     * 前者是调用方索要过大的页，后者是参数本身不成立。
+     * <p>分页参数统一交给 {@link PageQuery} 校验：页码非法与 size 超过 200 都是 400，
+     * 与全站列表保持一致，不做「按需放大页」的特例。
      *
      * @param q    关键词（书名/作者模糊、ISBN 精确），可空
      * @param page 页码，从 1 开始
@@ -39,9 +39,6 @@ public class BookQueryService {
      * @return 分页书目
      */
     public PageResult<BookDtos.BookItem> search(String q, Integer page, Integer size) {
-        if (size != null && size > PageQuery.MAX_SIZE) {
-            throw new BusinessException(ErrorCode.RULE_VIOLATION, "size 不能超过 " + PageQuery.MAX_SIZE);
-        }
         PageQuery query = PageQuery.of(page, size);
         String keyword = escapeLike(q);
         long total = bookQueryRepository.count(keyword);

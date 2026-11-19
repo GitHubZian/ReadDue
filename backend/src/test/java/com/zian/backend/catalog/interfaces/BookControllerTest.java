@@ -32,7 +32,7 @@ class BookControllerTest extends SecurityTestSupport {
     }
 
     @Test
-    @DisplayName("size 超过 200 返回 422，而不是静默截断")
+    @DisplayName("size 超过 200 与全站一致返回 400，而不是静默截断")
     void searchRejectsOversizedPage() throws Exception {
         String userNo = newAccount("book");
         createUser(userNo, "READER", "NORMAL", null);
@@ -41,8 +41,8 @@ class BookControllerTest extends SecurityTestSupport {
         mockMvc.perform(get("/v1/books")
                         .param("size", "201")
                         .header("Authorization", bearer(token)))
-                .andExpect(status().is(422))
-                .andExpect(jsonPath("$.code").value(42200));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
     }
 
     @Test

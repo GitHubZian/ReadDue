@@ -3,6 +3,7 @@ package com.zian.backend.borrow.application;
 import com.zian.backend.borrow.domain.model.ReaderSummary;
 import com.zian.backend.borrow.domain.repository.ReaderSummaryRepository;
 import com.zian.backend.iam.application.ReaderCreditService;
+import com.zian.backend.rule.application.AcademicCalendarService;
 import com.zian.backend.rule.application.RuleService;
 import com.zian.backend.shared.security.UserContext;
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class ReaderSummaryService {
     private final ReaderSummaryRepository summaryRepository;
     private final ReaderCreditService readerCreditService;
     private final RuleService ruleService;
+    private final AcademicCalendarService academicCalendarService;
 
     /**
      * 汇总当前读者的首页数据。
@@ -38,8 +40,7 @@ public class ReaderSummaryService {
         long readerId = UserContext.requireId();
         LocalDate today = LocalDate.now();
         ReaderSummaryRepository.Counts counts = summaryRepository.counts(
-                readerId, today, today.plusDays(DUE_SOON_DAYS), termStart(today).atStartOfDay());
-        int tier = readerCreditService.ktTier(readerId);
+                readerId, today, today.plusDays(DUE_SOON_DAYS), termStart(today).atStartOfDay());        int tier = readerCreditService.ktTier(readerId);
         return new ReaderSummary(
                 (int) counts.borrowed(),
                 (int) counts.dueIn3Days(),
@@ -51,15 +52,23 @@ public class ReaderSummaryService {
     }
 
     /**
-     * 本学期起点：9 月 1 日起算秋季学期、2 月 1 日起算春季学期，1 月沿用上一年秋季。
-     *
-     * <p>校历表 {@code academic_calendar} 目前没有数据（B-07 才提供写入接口），先按学期边界近似；
-     * 接入校历后应改为「区间命中行」的起点。
+     * 本学期起点：优先取校历 {@code NORMAL} 场景覆盖今天的区间起点；校历未维护时回退到学期边界近似。
      *
      * @param today 业务今天
      * @return 学期起点
      */
-    static LocalDate termStart(LocalDate today) {
+    LocalDate termStart(LocalDate today) {
+        return academicCalendarService.semesterStart(today).orElseGet(() -> fallbackTermStart(today));
+    }
+
+    /**
+     * 学期边界近似：9 月 1 日起算秋季学期、2 月 1 日起算春季学期，1 月沿用上一年秋季。
+     *
+     * @param today 业务今天
+     * @return 近似学期起点
+     */
+    static LocalDate fallbackTermStart(LocalDate today) {
+        // ponytail: 校历为空时的兜底；有 NORMAL 区间就以上面的 semesterStart 为准
         int month = today.getMonthValue();
         if (month >= 8) {
             return LocalDate.of(today.getYear(), 9, 1);

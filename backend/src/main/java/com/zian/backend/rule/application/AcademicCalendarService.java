@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,23 @@ public class AcademicCalendarService {
      */
     public List<CalendarDtos.CalendarView> list() {
         return repository.findAll().stream().map(AcademicCalendarService::view).toList();
+    }
+
+    /**
+     * 查某天所在常规学期的起点，供「本学期归还」一类统计使用。
+     *
+     * <p>只认 {@code scene_code = NORMAL} 且区间覆盖当天的行；校历表为空时返回空，
+     * 调用方自行回退到学期边界近似。
+     *
+     * @param day 业务日期
+     * @return 学期起点；无覆盖区间时为空
+     */
+    public Optional<LocalDate> semesterStart(LocalDate day) {
+        return repository.findAll().stream()
+                .filter(row -> "NORMAL".equals(row.sceneCode()))
+                .filter(row -> !day.isBefore(row.startDate()) && !day.isAfter(row.endDate()))
+                .map(AcademicCalendar::startDate)
+                .findFirst();
     }
 
     /**

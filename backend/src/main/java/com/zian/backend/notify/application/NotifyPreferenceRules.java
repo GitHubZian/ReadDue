@@ -56,7 +56,9 @@ final class NotifyPreferenceRules {
             String value = item.trim().toUpperCase(Locale.ROOT);
             if (!NotifyChannel.SUPPORTED.contains(value)) {
                 throw new BusinessException(
-                        ErrorCode.RULE_VIOLATION, "渠道暂不可用：" + value + "，目前仅支持 INBOX、EMAIL");
+                        ErrorCode.RULE_VIOLATION,
+                        "渠道暂不可用：" + value + "，目前仅支持 "
+                                + String.join("、", NotifyChannel.SUPPORTED));
             }
             normalized.add(value);
         }
