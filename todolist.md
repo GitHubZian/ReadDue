@@ -95,7 +95,7 @@
 | **B-01** | 书目检索与馆藏 | 全仓无 `BookController`，`catalog` 只有 PO/Mapper | `catalog/interfaces/BookController.java`、`catalog/application/BookQueryService.java` | `GET /books?q=&page=&size=`、`/books/{id}`、`/books/{id}/copies`、`/books/{id}/queue`；单测覆盖空结果与 `size` 上限 422 | ✅ 2026-11-19 · b0f0e4a · `mvn -B verify` 46 run/1 skip 绿、4 个新测试 · `BookController`/`BookQueryService`/`BookQueryRepository`/V5 迁移/接口文档 |
 | **B-02** | 读者消息中心 | `notify_delivery` 有数据，无读接口 | `notify/interfaces/ReaderNotifyController.java` | `GET /notifications?page=`（仅本人）、`PUT /notifications/read`；未读数供 summary 复用 | ✅ 2026-11-19 · 696c8d2 · `mvn -B verify` 50 run/1 skip 绿、4 个新测试 · `ReaderNotifyController`/`NotifyInboxService`/`NotifyInboxRepository`/V6 迁移/接口文档 |
 | **B-03** | 首页摘要 | 缺失 | `borrow/interfaces/ReaderSummaryController.java` | 一次返回 `borrowed/dueIn3Days/overdue/quota/returnedThisTerm/creditLevel` | ✅ 2026-11-19 · 0e530dd · `mvn -B verify` 54 run/1 skip 绿、4 个新测试 · `ReaderSummaryController`/`ReaderSummaryService`/`ReaderSummaryRepository`/`ReaderSummaryMapper`/V7 规则/接口文档 |
-| **B-04** | 渠道开关 | 表与 Mapper 就绪 | `notify/interfaces/ReaderPreferenceController.java` | `GET/PUT /me/channels`；EMAIL 关闭后不入队（补测试） | ✅ 2026-11-19 · 见提交 · `mvn -B verify` 58 run/1 skip 绿、4 个新测试 · `ReaderPreferenceController`/`ReaderPreferenceService`/`ChannelPreferences`/V8 权限/接口文档 |
+| **B-04** | 渠道开关 | 表与 Mapper 就绪 | `notify/interfaces/ReaderPreferenceController.java` | `GET/PUT /me/channels`；EMAIL 关闭后不入队（补测试） | ✅ 2026-11-19 · 13eb73f · `mvn -B verify` 58 run/1 skip 绿、4 个新测试 · `ReaderPreferenceController`/`ReaderPreferenceService`/`ChannelPreferences`/V8 权限/接口文档 |
 | **B-05** | 免打扰 | 表就绪 | 同上 | `GET/PUT /me/quiet-hours`；跨零点/重叠 422；`FALLBACK` 返回 22:00–08:00 | ⬜ 未开始 |
 | **B-06** | FR-11 偏好 | 设计完成，表与接口为零 | 新 `notify_topic`/`notify_preference`/`notify_preference_log` + 6 接口 | 主题×频率×渠道落库；P0 不可关 422；快照写 `notify_task` | ⬜ 未开始 |
 | **B-07** | 校历写接口 | 只有只读 `GET /admin/calendar`，表空 | `rule/interfaces/RuleController.java` | `POST/PUT/DELETE /admin/calendar`；校验学期/场景/起止；写审计 | ⬜ 未开始 |
@@ -227,6 +227,7 @@ flutter analyze; flutter test
 | --- | --- | --- | --- | --- |
 | C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
 | B-01-D1 | BE | 书目检索 `size>200` 按 B-01 验收返回 422（`RULE_VIOLATION`），而全站其它列表经 `PageQuery` 返回 400；请确认是否统一为 400 | FE/APP 待确认 | ⬜ 待裁决 |
+
 
 
 
