@@ -5,6 +5,7 @@ import com.zian.backend.borrow.application.BorrowQueryService;
 import com.zian.backend.notify.domain.model.NotifyTask;
 import com.zian.backend.notify.domain.model.NotifyTaskStatus;
 import com.zian.backend.notify.domain.port.EmailNotifier;
+import com.zian.backend.notify.domain.model.ChannelPreferences;
 import com.zian.backend.notify.domain.repository.ChannelPrefRepository;
 import com.zian.backend.notify.domain.repository.NotifyDeliveryRepository;
 import com.zian.backend.notify.domain.repository.NotifyTaskRepository;
@@ -309,8 +310,11 @@ public class NotifyService {
         if (taskRepository.update(sent) == 0) {
             return;
         }
-        deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
-        if (channelPrefRepository.emailEnabled(task.readerId())) {
+        ChannelPreferences preferences = channelPrefRepository.load(task.readerId());
+        if (preferences.inbox()) {
+            deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
+        }
+        if (preferences.email()) {
             emailNotifier.enqueue(
                     task.id(),
                     task.readerId(),
@@ -344,3 +348,4 @@ public class NotifyService {
 // endregion
 
 }
+
