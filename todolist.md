@@ -237,6 +237,7 @@ flutter analyze; flutter test
 | 2026-11-19 | BE | B-09 审计可追溯 | V11 增 `trace_id`/`before_json`/`after_json`；宽限审批、申诉处理、规则调整写前后值；列表/详情/CSV 导出返回；`X-Trace-Id` 落库；新增 `AuditTraceTest`；verify 79 run/1 skip |
 | 2026-11-19 | BE | B-08 宽限证据附件 | `POST/GET /v1/files` + `POST /graces` 收 `evidenceIds`（≤5 个）+ `GET /graces/{id}` 详情；V10 `file_object`/`grace_evidence`；5MB、png/jpg/pdf、魔数校验、越权 404；verify 77 run/1 skip |
 | 2026-11-19 | BE | F-03 管理端证据补齐 | `AdminQueryService#graceView` 不再固定空数组：管理端列表批量装配 `evidence[{label,url}]`；新增 `GET /v1/admin/graces/{id}`（`grace:approve`）返回同结构，不存在 404；`GraceEvidenceTest` 增管理端断言；verify 90 run/1 skip。顺带 ponytail 清理：`GraceEvidenceRepositoryImpl.fileIdsOf(long)` 复用批量实现、`NotifyTemplateService.list()` 收口模板列表，`AdminQueryService` 不再直连 `notify.domain.repository` |
+| 2026-11-19 | BE | ponytail 收口（3/4/5） | ① `ReaderSummaryService` 学期起点优先读 `academic_calendar` 的 `NORMAL` 区间（`AcademicCalendarService.semesterStart`），空表回退近似并留 `// ponytail:` 注释；② 书目 `size>200` 删除私有 422 分支，统一走 `PageQuery` 的 400/40000；③ 渠道报错文案改 `String.join("、", NotifyChannel.SUPPORTED)`；定向 12 例绿，`BookControllerTest` 断言改 400 |
 
 ---
 
@@ -247,7 +248,7 @@ flutter analyze; flutter test
 | C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
 | B-05-D1 | BE | 免打扰表 `reader_quiet_hours` 为单窗口（PK=user_id），本期只支持一个时段，跨零点允许、起止相同返回 422；「窗口重叠 422」在多窗口落地前无可触发路径，是否需要多时段请确认 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-06-D1 | BE | FR-11 接口为自定契约（`/v1/me/notify-topics`、`/v1/me/notify-preferences`、`/v1/admin/notify-topics`），规格文档缺失；DAILY/WEEKLY 本期只落库与快照、**不做频率聚合**；P0 判定为「渠道必须含 INBOX」，P2 禁 REALTIME | FE/APP 待确认 | ⬜ 待裁决 |
-| B-01-D1 | BE | 书目检索 `size>200` 按 B-01 验收返回 422（`RULE_VIOLATION`），而全站其它列表经 `PageQuery` 返回 400；请确认是否统一为 400 | FE/APP 待确认 | ⬜ 待裁决 |
+| B-01-D1 | BE | 书目检索 `size>200` 已统一为全站口径 **HTTP 400 / code 40000**（删除私有 422 分支，测试同步改 400） | BE 已裁决 | ✅ 已解决 |
 | X-03-D1 | BE | `project/spec/技术架构.md` 不存在（todolist 与三个 AGENT.md 仍引用其 §7/§7.1），当前契约真源为 `project/后端的交互接口文档.md`；是否补写该文档或改为引用新文档 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-07-D1 | BE | 校历写接口 `term` 强校验为 `四位年份-大写字母/数字`（如 `2026-FALL`），同学期同场景闭区间不允许重叠（422）；规格文档缺失，若实际学期编码为 `2026-2027-1` 之类请提供格式 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-10-D1 | BE | 关闭「计算缓存」授权时，已写入 Redis 的宽限快照不做即时删除（键为 `readdue:grace:snap:{orderId}`，跨上下文枚举成本高），按 24h TTL 自然过期；遗忘为不可撤销的脱敏，账号仍可登录但无姓名/手机/邮箱 | FE/APP 待确认 | ⬜ 待裁决 |
