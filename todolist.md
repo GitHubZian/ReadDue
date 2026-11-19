@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 12/13（B-00…B-12；X-02/03/04 另计） · 前端 3/7 · 客户端 1/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 13/13（B-00…B-12；X-02/03/04 另计） · 前端 3/7 · 客户端 1/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -61,7 +61,7 @@
 | B-09 | 审计 traceId / 前后值 | BE | ✅ 2026-11-19 · 189dddf · 79 绿/1 跳 · V11 + 2 个测试 | B-00 |
 | B-10 | 隐私授权与遗忘 | BE | ✅ 2026-11-19 · f6609a9 · 83 绿/1 跳 · V12 + 4 个测试 | B-00 |
 | B-11 | 刷新令牌 | BE | ✅ 2026-11-19 · e7879cb · 86 绿/1 跳 · 3 个测试 | B-00 |
-| B-12 | 角色权限调整 | BE | ⬜ 未开始 | B-00 |
+| B-12 | 角色权限调整 | BE | ✅ 2026-11-19 · （提交待回写） · 90 绿/1 跳 · 4 个测试 | B-00 |
 | B-13 | sort 移除 + 幂等 | BE | ✅ 2026-11-19 · 未提交 · `IdempotencyFilter` 已生效 · 42 测试绿 | — |
 | F-01 | 校历管理（A9） | FE | ⬜ 未开始 | B-07 |
 | F-02 | 角色权限页 | FE | ⬜ 未开始 | B-12 |
@@ -103,7 +103,7 @@
 | **B-09** | 审计可追溯 | 无 `trace_id`、无前后值（全库命中 0） | `audit/**`、`AdminQueryMapper` | 加 `trace_id`/`before_json`/`after_json`；三类操作有值；详情与导出返回 | ✅ 2026-11-19 · 189dddf · `mvn -B clean verify` 79 run/1 skip 绿；规则调整与宽限审批冒烟/测试验证 traceId 与前后值 |
 | **B-10** | 隐私授权与遗忘 | 未实现 | `iam/` 或新 `privacy` | `GET/PUT /me/consents`、`POST /me/forget`（脱敏+保留事实+审计） | ✅ 2026-11-19 · f6609a9 · 授权默认最小、关闭记时间、遗忘清姓名/手机/邮箱/院系并保留借阅事实，`USER_FORGET` 审计 |
 | **B-11** | 刷新令牌 | 只有 login/logout | `iam/interfaces/AuthController.java` | `POST /auth/refresh`（轮换 jti、旧 token 失效）+ 边界测试 | ✅ 2026-11-19 · （提交待回写） · 刷新后旧 token 401、新 token 可访问；同一旧 token 只能刷新一次；写 `AUTH_REFRESH` 审计 |
-| **B-12** | 角色权限调整 | 权限种子固定 | `iam/interfaces/UserAdminController.java` | `GET /admin/roles`、`PUT /admin/roles/{code}/permissions`，仅 ADMIN，改后 `/me` 立即生效 | ⬜ 未开始 |
+| **B-12** | 角色权限调整 | 权限种子固定 | `iam/interfaces/UserAdminController.java` | `GET /admin/roles`、`GET /admin/permissions`、`PUT /admin/roles/{code}/permissions`，仅 ADMIN，改后 `/me` 立即生效；ADMIN 不可移除 `role:manage` | ✅ 2026-11-19 · （提交待回写） · 90 绿/1 跳 · 4 个测试：角色列表/权限目录、旧 token 立即失权、未知角色/权限 404、ADMIN 422 |
 | **B-13** | sort + 幂等 | 已完成 | `PageQuery`、`IdempotencyFilter` | 不支持 `sort`（固定排序）；同 key 24h 重放返回首次结果 | ✅ 见 §2 |
 
 **不要做**：不改 `schema.sql` 既有语义；`domain` 不引 Spring/MyBatis；不加第二套 ORM；不为单页加专用端点；MySQL 排序不拼字符串。
@@ -217,10 +217,11 @@ flutter analyze; flutter test
 | 2026-11-19 | BE | B-03 首页摘要 | `/v1/me/summary` 六项 + V7 `BORROW.MAX_ACTIVE`；借出按上限拦截；verify 54 run/1 skip |
 | 2026-11-19 | FE | F-07 演示账号清理 | DEV 包裹预填与演示块；生产包检索 0 命中 |
 | 2026-11-19 | FE | F-06 幂等与重试 | 按意图复用 Idempotency-Key；409/422 独立提示 |
-| 2026-11-19 | FE | F-02 角色权限页 | 10 项权限勾选 + 角色基线；保存待 B-12 |
+| 2026-11-19 | FE | F-02 角色权限页 | 10 项权限勾选 + 角色基线；B-12 已就绪，可接保存 |
 | 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | BE | B-06 通知偏好 | 6 主题 + 差异偏好 + 日志 + 管理端字典；P0 必含 INBOX、P2 禁 REALTIME、SMS 422；排程写 `topic_code`/`pref_snapshot`，投递按快照∩渠道开关；V9；verify 67 run/1 skip |
 | 2026-11-19 | BE | B-07 校历写接口 | 新增/修改/软删除 + 学期场景起止校验、同场景重叠 422、CALENDAR_* 审计；verify 73 run/1 skip |
+| 2026-11-19 | BE | B-12 角色权限调整 | `GET /v1/admin/roles`、`GET /v1/admin/permissions`、`PUT /v1/admin/roles/{code}/permissions`；V13 新增 `role:manage`（仅 ADMIN）；全量替换、ADMIN 守卫；`JwtAuthenticationFilter` 回源使旧 token 立即失权；新增 `RoleAdminControllerTest` 4 例；verify 90 run/1 skip |
 | 2026-11-19 | BE | B-11 刷新令牌 | `POST /v1/auth/refresh`：校验旧 jti → 按库重算权限 → 签发新 token → 吊销旧 jti；旧 token 立即 401，同一旧 token 只能刷新一次；写 `AUTH_REFRESH` 审计；新增 `AuthRefreshTest` 3 例；verify 86 run/1 skip |
 | 2026-11-19 | BE | B-10 隐私授权与遗忘 | V12 增 `privacy:self`；`GET/PUT /v1/me/consents` 默认最小授权、关闭记 `consentRevokedAt` 并写 `CONSENT_REVOKE`；`POST /v1/me/forget` 脱敏姓名/手机/邮箱/院系、保留借阅事实、写 `USER_FORGET`，重复 409；新增 `PrivacyControllerTest` 4 例；verify 83 run/1 skip |
 | 2026-11-19 | BE | B-09 审计可追溯 | V11 增 `trace_id`/`before_json`/`after_json`；宽限审批、申诉处理、规则调整写前后值；列表/详情/CSV 导出返回；`X-Trace-Id` 落库；新增 `AuditTraceTest`；verify 79 run/1 skip |
