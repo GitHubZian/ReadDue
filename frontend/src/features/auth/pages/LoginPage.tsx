@@ -26,7 +26,10 @@ export function LoginPage() {
   const mutation = useLogin();
   const form = useForm<LoginForm>({
     resolver: zodResolver(schema),
-    defaultValues: { username: "ADMIN001", password: "123456" },
+    // 演示账号只在本地开发时预填，生产构建会被静态剔除
+    defaultValues: import.meta.env.DEV
+      ? { username: "ADMIN001", password: "123456" }
+      : { username: "", password: "" },
   });
 
   const onSubmit = (values: LoginForm) => mutation.mutate(values);
@@ -100,7 +103,7 @@ export function LoginPage() {
                       <Input
                         {...field}
                         autoComplete="username"
-                        placeholder="ADMIN001"
+                        placeholder={import.meta.env.DEV ? "ADMIN001" : "请输入学号或工号"}
                         className="h-10 bg-card text-[12px]"
                       />
                     </FormControl>
@@ -145,17 +148,19 @@ export function LoginPage() {
             </form>
           </Form>
 
-          <div className="mt-6 rounded-xl border border-dashed border-line bg-wash/70 px-3.5 py-3">
-            <p className="text-[9.5px] font-semibold tracking-wider text-ink-3">演示账号</p>
-            <div className="mt-1.5 space-y-1 text-[10.5px] text-ink-2">
-              <p className="flex items-center gap-1.5">
-                <CircleDot className="size-2.5 text-mint-deep" /> 管理员 ADMIN001 / 123456
-              </p>
-              <p className="flex items-center gap-1.5">
-                <CircleDot className="size-2.5 text-warn" /> 馆员 LIB001 / 123456
-              </p>
+          {import.meta.env.DEV ? (
+            <div className="mt-6 rounded-xl border border-dashed border-line bg-wash/70 px-3.5 py-3">
+              <p className="text-[9.5px] font-semibold tracking-wider text-ink-3">演示账号</p>
+              <div className="mt-1.5 space-y-1 text-[10.5px] text-ink-2">
+                <p className="flex items-center gap-1.5">
+                  <CircleDot className="size-2.5 text-mint-deep" /> 管理员 ADMIN001 / 123456
+                </p>
+                <p className="flex items-center gap-1.5">
+                  <CircleDot className="size-2.5 text-warn" /> 馆员 LIB001 / 123456
+                </p>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </section>
     </div>
