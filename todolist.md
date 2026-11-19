@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 13/13（B-00…B-12；X-02/03/04 另计） · 前端 3/7 · 客户端 1/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 13/13（B-00…B-12；X-02/03/04 另计） · 前端 7/7 · 客户端 3/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -63,17 +63,17 @@
 | B-11 | 刷新令牌 | BE | ✅ 2026-11-19 · e7879cb · 86 绿/1 跳 · 3 个测试 | B-00 |
 | B-12 | 角色权限调整 | BE | ✅ 2026-11-19 · 9f53861 · 90 绿/1 跳 · 4 个测试 | B-00 |
 | B-13 | sort 移除 + 幂等 | BE | ✅ 2026-11-19 · 未提交 · `IdempotencyFilter` 已生效 · 42 测试绿 | — |
-| F-01 | 校历管理（A9） | FE | ⬜ 未开始 | B-07 |
-| F-02 | 角色权限页 | FE | ⬜ 未开始 | B-12 |
-| F-03 | 宽限证据展示 | FE | ⬜ 未开始 | B-08 |
-| F-04 | 审计详情增强 | FE | ⬜ 未开始 | B-09 |
-| F-05 | 组织级通知策略 | FE | ⬜ 未开始 | B-06 |
+| F-01 | 校历管理（A9） | FE | ✅ 2026-11-19 · 7b140e0 | B-07 |
+| F-02 | 角色权限页 | FE | ✅ 2026-11-19 · 1da9f4c | B-12 |
+| F-03 | 宽限证据展示 | FE | ✅ 2026-11-19 · 663e8a1（待后端补 admin evidence） | B-08 |
+| F-04 | 审计详情增强 | FE | ✅ 2026-11-19 · 5379860 | B-09 |
+| F-05 | 组织级通知策略 | FE | ✅ 2026-11-19 · d4e6e04 | B-06 |
 | F-06 | 幂等与重试语义 | FE | ⬜ 未开始 | B-13 ✅ |
 | F-07 | 部署前清理演示账号 | FE | ⬜ 未开始 | 无 |
-| C-01 | 接真实后端（去 mock） | APP | ⬜ 未开始 | B-01、B-02、B-04、B-05 |
-| C-02 | 检索与书目详情 | APP | ⬜ 未开始 | B-01 |
-| C-03 | 消息中心与偏好 | APP | ⬜ 未开始 | B-02、B-04、B-05 |
-| C-04 | 首页摘要 | APP | ⬜ 未开始 | B-03 |
+| C-01 | 接真实后端（去 mock） | APP | ✅ 2026-11-19 · 无 git 提交 · `useMock` 默认 false，7 个 provider 按 `appUseMockProvider` 切换；C1 摘要/未读、C6 通知/渠道/免打扰、C7 资料走真接口 | B-01、B-02、B-04、B-05 |
+| C-02 | 检索与书目详情 | APP | ✅ 2026-11-19 · 无 git 提交 · `/books` 四端点 + 详情弹层 + 可借/可预约；UI 真实借阅「算法导论」成功并回流 C1 | B-01 |
+| C-03 | 消息中心与偏好 | APP | ✅ 2026-11-19 · 无 git 提交 · 通知列表/未读数、渠道开关、免打扰读写真接口；失败回滚提示；空态真机验证 | B-02、B-04、B-05 |
+| C-04 | 首页摘要 | APP | ✅ 2026-11-19 · 无 git 提交 · C1 改用 `/me/summary`，3 在借/0 临期/2 逾期与列表一致 | B-03 |
 | C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
 | C-06 | 真机联调两条链路 | APP | ⬜ 未开始 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ⬜ 未开始 | B-06、B-10 |
@@ -116,11 +116,11 @@
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| **F-01** | 校历管理 | 只读命中表 | `src/features/rule/pages/RulesPage.tsx` | 增删改 + 冲突校验 + 保存后即时刷新 | ⬜ 未开始 |
-| **F-02** | 角色权限页 | 仅 A8 右侧面板，无保存 | `src/features/iam/` | 角色下拉 + 勾选 + 保存；B-12 未就绪时按钮禁用并注明依赖 | ✅ 2026-11-19 · f3ca589 · `pnpm typecheck`/`pnpm build` 通过；/roles 实测 10 项权限、馆员默认 7 项、保存按钮禁用且 title 指向 B-12、侧栏「角色权限」可见 · 3 文件（RolesPage.tsx、nav.ts、router.tsx） |
-| **F-03** | 宽限证据展示 | `evidence` 恒空 | `src/features/grace/` | 文件名/大小/下载；空态保留；只放行 `http(s)` 或受控下载 | ⬜ 未开始 |
-| **F-04** | 审计详情增强 | `traceId` 空、`detail={}` | `src/features/audit/` | 展示 traceId 与 before/after 差异；导出含新列；旧数据降级 | ⬜ 未开始 |
-| **F-05** | 组织级通知策略 | A7 只收发模板 | `src/features/notify/` | 院系/角色默认偏好与强制项；不覆盖读者 OFF | ⬜ 未开始 |
+| **F-01** | 校历管理 | 只读命中表 | `src/features/rule/pages/RulesPage.tsx` | 增删改 + 冲突校验 + 保存后即时刷新 | ✅ 2026-11-19 · 7b140e0 · `pnpm typecheck`/`pnpm build` 通过；`POST /admin/calendar` 创建 2026-FALL/EXAM → id 2123424523504750593，行内编辑/删除与 Dialog 校验已实测 · 3 文件（rule/api.ts、queries.ts、StrategyPanels.tsx） |
+| **F-02** | 角色权限页 | 仅 A8 右侧面板，无保存 | `src/features/iam/` | 角色下拉 + 勾选 + 保存；B-12 未就绪时按钮禁用并注明依赖 | ✅ 2026-11-19 · 1da9f4c · `pnpm typecheck`/`pnpm build` 通过；`GET /admin/roles` 三组 24/13/11 项、`PUT /admin/roles/LIBRARIAN/permissions` code=0，保存后刷新 /me · 3 文件（iam/api.ts、queries.ts、RolesPage.tsx） |
+| **F-03** | 宽限证据展示 | `evidence` 恒空 | `src/features/grace/` | 文件名/大小/下载；空态保留；只放行 `http(s)` 或受控下载 | ✅ 2026-11-19 · 663e8a1 · `pnpm typecheck`/`pnpm build` 通过；附件行支持文件名/大小、`GET /files/{id}` 受控下载、http(s) 链接兜底；管理端列表 evidence 仍为 0（后端 admin 视图未带上），待后端补齐 · 2 文件（grace/api.ts、pages/GracePage.tsx） |
+| **F-04** | 审计详情增强 | `traceId` 空、`detail={}` | `src/features/audit/` | 展示 traceId 与 before/after 差异；导出含新列；旧数据降级 | ✅ 2026-11-19 · 5379860 · `pnpm typecheck`/`pnpm build` 通过；/audit 详情 traceId 可复制、before/after 差异表、空快照降级；新增动作码与对象前缀中文化 · 1 文件（pages/AuditPage.tsx） |
+| **F-05** | 组织级通知策略 | A7 只收发模板 | `src/features/notify/` | 院系/角色默认偏好与强制项；不覆盖读者 OFF | ✅ 2026-11-19 · d4e6e04 · `pnpm typecheck`/`pnpm build` 通过；/notify 主题策略 6 个主题渲染，`PUT /admin/notify-topics/BORROW_DUE` code=0；SMS 渠道 422，UI 仅保留 INBOX/EMAIL · 3 文件（notify/api.ts、queries.ts、pages/NotifyPage.tsx） |
 | **F-06** | 幂等与重试语义 | 重试不复用 key | `src/lib/api/` | 同一写操作重试复用 key；409/422 提示区分 | ✅ 2026-11-19 · 3a08e5d · `pnpm typecheck`/`pnpm build` 通过；同 body 连发两次 `POST /borrows` 复用同一 Idempotency-Key（8f94cb92…），失败不清键 · 2 文件（client.ts、errors.ts） |
 | **F-07** | 演示账号清理 | 登录页预填 | `src/features/auth/pages/LoginPage.tsx` | `import.meta.env.DEV` 包裹，生产构建不含演示账号 | ✅ 2026-11-19 · 6fe2744 · `pnpm build` 通过；`dist` 内检索 ADMIN001/演示账号 计数 0 · 1 文件（LoginPage.tsx） |
 
@@ -130,12 +130,12 @@
 
 ## 5. 客户端 Agent（`project/client`）
 
-> 入口 `client/AGENT.md`；现状：75 dart / 9 feature / 23 测试绿 / 4 个 mock repo + search 无 data 层。
+> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 24 测试绿 / `useMock` 默认 false。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| **C-01** | 去 mock 接真实后端 | `mock_appeal/auth/notification/profile` 仍在 | `lib/features/*/data/`、`endpoints.dart` | 全部 `dio_` 实现；`useMock` 默认 false；断网错误态可读 | ⬜ 未开始 |
-| **C-02** | 检索与书目详情 | `search` 无数据源 | `lib/features/search/` | 接 B-01 四端点；空/无馆藏/可预约三态；300ms 防抖 | ⬜ 未开始 |
+| **C-01** | 去 mock 接真实后端 | `dio_` 覆盖全部 feature，`useMock` 默认 false | `lib/features/*/data/`、`endpoints.dart` | 全部 `dio_` 实现；`useMock` 默认 false；断网错误态可读 | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 24 绿 · 通知/摘要/渠道/免打扰真接口，C1/C6/C7 真机验证 |
+| **C-02** | 检索与书目详情 | 接 `/books`、`/copies`、`/queue` 与 `POST /borrows` | `lib/features/search/` | 接 B-01 四端点；空/无馆藏/可预约三态；300ms 防抖 | ✅ 2026-11-19 · 无 git 提交 · 详情弹层 + 库存状态；UI 真借阅成功（算法导论，订单 B20261119231652）并回流 C1；test 24 绿 |
 | **C-03** | 消息中心与偏好 | 数据来自 mock | `notifications/`、`profile/` | 接 B-02/B-04/B-05；失败回滚并提示 | ⬜ 未开始 |
 | **C-04** | 首页摘要 | 本地聚合 | `lib/features/borrow/` | 切 `/me/summary`；数字与列表一致 | ⬜ 未开始 |
 | **C-05** | 申诉与个人中心 | dio（mock 保留开关） | `appeal/`、`profile/` | 提交/列表/详情接真实接口；徽标与 `/me` 一致 | ✅ 2026-11-19 · 无 git 提交 · `flutter analyze` 0 / `flutter test` 23 绿 / 真机 C8 列表+提交、C7 资料页 · 新增 2 文件（`dio_appeal_repository.dart`、`dio_profile_repository.dart`）+ 3 处改（provider、时间映射、登录默认） |
@@ -218,7 +218,14 @@ flutter analyze; flutter test
 | 2026-11-19 | FE | F-07 演示账号清理 | DEV 包裹预填与演示块；生产包检索 0 命中 |
 | 2026-11-19 | FE | F-06 幂等与重试 | 按意图复用 Idempotency-Key；409/422 独立提示 |
 | 2026-11-19 | FE | F-02 角色权限页 | 10 项权限勾选 + 角色基线；B-12 已就绪，可接保存 |
+| 2026-11-19 | FE | F-01 校历管理 | 新增/编辑/删除 + 学期/场景/来源校验；创建 2026-FALL 校历并回显 |
+| 2026-11-19 | FE | F-02 角色权限接真接口 | 24 项权限按 13 模块分组；保存后刷新 /me 收敛菜单 |
+| 2026-11-19 | FE | F-03 宽限证据 | 文件名/大小/受控下载/链接兜底；管理端 evidence 仍为空，待后端补 |
+| 2026-11-19 | FE | F-04 审计详情 | traceId 复制、before/after 差异表、空快照降级、动作码中文化 |
+| 2026-11-19 | FE | F-05 通知主题策略 | 6 主题频率/渠道/启停；SMS/WECHAT 422 后仅保留 INBOX/EMAIL |
 | 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
+| 2026-11-19 | APP | C-01 去 mock | 7 个 provider 改按 `appUseMockProvider` 切换，`useMock` 默认 false；C1 摘要/未读取自 `/me/summary` + `unread-count`，C6 通知/渠道/免打扰、C7 资料走真接口；analyze 0 / test 24 绿；仓库无 `.git` 未提交 |
+| 2026-11-19 | APP | C-02 检索与详情 | 接 `/books`、`/books/{id}`、`/copies`、`/queue`；详情弹层展示 ISBN/馆藏/副本/排队；UI 真实借阅「算法导论」成功（B20261119231652），C1 回流 3 在借；analyze 0 / test 24 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | BE | B-06 通知偏好 | 6 主题 + 差异偏好 + 日志 + 管理端字典；P0 必含 INBOX、P2 禁 REALTIME、SMS 422；排程写 `topic_code`/`pref_snapshot`，投递按快照∩渠道开关；V9；verify 67 run/1 skip |
 | 2026-11-19 | BE | B-07 校历写接口 | 新增/修改/软删除 + 学期场景起止校验、同场景重叠 422、CALENDAR_* 审计；verify 73 run/1 skip |
 | 2026-11-19 | BE | X-02 并发压测 | 种子 300 读者/300 册（`temp/x02-seed.sql`）；`backend/scripts/loadtest-x02.ps1` 并发 64：归还 200/200、P95 294.4ms、max 587.7ms；催还 100/100、P95 185.1ms、max 228.4ms；5xx=0、无死锁；压测数据已清理 |

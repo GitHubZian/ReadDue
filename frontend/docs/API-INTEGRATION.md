@@ -12,32 +12,26 @@
 | 借还台 | `POST /borrows`、`POST /returns`、`GET /admin/circulation/today` | 真实 | 今日流水无 `channel` 字段，已移除「渠道」列；`operator` 为自由文本 |
 | 预约管理 | `GET /admin/reservations`、`POST /admin/reservations/{id}/promote`、`/expire` | 真实 | promote 后返回 `readyAt`/`expiresAt`/`shelf` |
 | 逾期看板 | `GET /admin/overdue`、`POST /admin/remind/batch` | 真实 | 后端按「同一读者 24h」去重，返回 `{ sent }`；提示以 sent 为准 |
-| 宽限审批 | `GET /admin/graces`、`POST /admin/graces/{id}/approve`、`/reject` | 真实 | `scene` 为库码（EXAM/THESIS/GRADUATION），前端映射中文；`evidence` 恒为空数组 |
+| 宽限审批 | `GET /admin/graces`、`POST /admin/graces/{id}/approve`、`/reject` | 真实 | `scene` 为库码（EXAM/THESIS/GRADUATION），前端映射中文；**管理端列表 `evidence` 仍返回空**（读者侧同单有附件） |
 | 申诉工单 | `GET /admin/appeals`、`POST /admin/appeals/{id}/ack`、`/resolve`、`/reject`、`/compensate` | 真实 | 关联书目可能只有 `{ title: "关联借阅单", author: "" }`；PENDING 必须先受理，前端已限制结论区 |
 | 提醒中心 | `GET /admin/templates`、`PUT /admin/templates/{id}`、`GET /admin/notify-tasks`、`POST /admin/notify-tasks/{id}/retry` | 真实 | `variables` 可能为空数组；`scene` 为库码，前端映射中文 |
+| 通知主题策略 | `GET /admin/notify-topics`、`PUT /admin/notify-topics/{code}` | 真实 | 6 个主题；频率/渠道/启停可改；后端仅放行 `INBOX`/`EMAIL`，SMS/WECHAT 提交 422 |
+| 角色权限 | `GET /admin/roles`、`GET /admin/permissions`、`PUT /admin/roles/{code}/permissions` | 真实 | 24/13/11 项；保存后重拉 `/me` 收敛当前用户菜单 |
 | 用户与权限 | `GET /admin/users`、`POST /admin/users/{id}/blacklist`、`/restore` | 真实 | 仅读者可拉黑：职工行不显示操作、复选框禁用；`lastActiveAt` 可能为空 → 显示「—」 |
 | 规则参数 | `GET /admin/rules`、`PUT /admin/rules` | 真实 | 5 组 27 项，`value` 全为字符串；`expectedVersion` 必填，保存后版本递增（实测 v10→v11） |
 | 逾期分级 | `GET /admin/tiers` | 真实 | 规则参数页「逾期分级」只读表；T5 无上限时展示「31 天以上」 |
-| 校历 | `GET /admin/calendar` | 真实 | 规则参数页「校历命中」；后端当前为空表 |
+| 校历 | `GET/POST /admin/calendar`、`PUT/DELETE /admin/calendar/{id}` | 真实 | 学期须 `2026-FALL` 形式、来源仅 `CALENDAR`/`DECLARED`；页面已做新增/编辑/删除与冲突提示 |
 | 审计日志 | `GET /admin/audit-logs`、`/audit-logs/{id}`、`/audit-logs/export` | 真实 | `action` 是动作码，前端映射中文；`detail` 多为 `"{}"`、`traceId` 为空 → 显示「—」；实际无 EXCEPTION 分类，筛选已移除该段 |
 
 ## 未接 / 后端缺口（2026-11-19 复核）
 
-以下为 **2026-11-06 之后又补齐** 的能力，前端可直接接入；更细的字段与示例见 `后端的交互接口文档.md`。
+- **F-03 宽限证据**：`AdminQueryService#graceView` 组装管理端视图时 evidence 固定 `List.of()`；同一申请读者侧 `GET /graces/self` 返回 1 条附件、管理端 `GET /admin/graces` 返回 0 条，`GET /admin/graces/{id}` 为 404。前端文件名/大小/受控下载 UI 已就绪，待后端在 admin 视图补 `evidence[]`。
+- **通知渠道**：`PUT /admin/notify-topics/{code}` 只接受 `INBOX`/`EMAIL`，`SMS`/`WECHAT` 返回 422「渠道暂不可用」；页面因此只展示两个可选渠道。
+- **审计前后值**：`traceId` 已全量返回；`before`/`after` 只覆盖宽限审批、申诉处理、规则调整等少数动作，其余 `detail="{}"`；前端做空值降级（「无变更快照」）。
+- **只读接口**：`GET /admin/tiers`、`GET /admin/calendar` 无写入口（校历写接口已单独提供）；`/admin/tiers` 为固定分级，无编辑。
+- **读者端接口**（`/books*`、`/notifications*`、`/me/*`、`/borrows/self`、`/graces/self`、`/appeals/self`、`/reservations/self`、`POST /files`、`POST /auth/refresh`）不在管理端范围，由 Flutter 客户端使用。
+- `sort` 已从后端移除，列表按服务端默认排序；`Idempotency-Key` 已生效，同一意图重试复用同键，2xx 回放首次响应。
 
-- 书目检索（B-01）：`GET /v1/books`、`/v1/books/{id}`、`/v1/books/{id}/copies`、`/v1/books/{id}/queue`，权限 `catalog:read`。
-- 消息中心（B-02）：`GET /v1/notifications`、`/unread-count`、`PUT /v1/notifications/read`。
-- 首页摘要（B-03）：`GET /v1/me/summary`（在借/三天内到期/逾期/配额/本学期归还/信用等级）。
-- 渠道开关（B-04）：`GET/PUT /v1/me/channels`；免打扰（B-05）：`GET/PUT /v1/me/quiet-hours`。
-- 通知偏好（B-06）：`GET /v1/me/notify-topics`、`GET/PUT /v1/me/notify-preferences`、`GET /v1/me/notify-preferences/log`；管理端 `GET/PUT /v1/admin/notify-topics`。
-- 校历写入（B-07）：`POST /v1/admin/calendar`、`PUT/DELETE /v1/admin/calendar/{id}`（`rule:update`）。
-- 宽限证据（B-08）：`POST /v1/files`（≤5MB，png/jpg/pdf）、`GET /v1/files/{id}`；`POST /v1/graces` 支持 `evidenceIds`，详情 `GET /v1/graces/{id}` 返回 `evidence[]`。
-- 审计增强（B-09）：审计列表/详情多 `traceId`、`before`、`after`，导出 CSV 追加三列。
-- 隐私自助（B-10）：`GET/PUT /v1/me/consents`、`POST /v1/me/forget`。
-- 刷新令牌（B-11）：`POST /v1/auth/refresh`（旧 token 立即失效）。
-- 角色权限（B-12）：`GET /v1/admin/roles`、`GET /v1/admin/permissions`、`PUT /v1/admin/roles/{code}/permissions`（修改后立即生效，前端守卫可重拉 `/me`）。
-
-仍待前端处理：`sort` 已从后端移除（传了也会被忽略，列表固定排序）；`Idempotency-Key` 已生效，重试同键会回放首次响应。
 ## 已处理的数据差异
 
 1. 权限以登录返回的 `permissions` 为准：`can()` 不再用角色默认表兜底覆盖服务端结果（馆员曾因此误见「审计日志」）。

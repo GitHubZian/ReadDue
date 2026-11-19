@@ -9,3 +9,6 @@ src/lib/api/schema.d.ts
 
 # 视觉自查截图
 shots/
+
+# 临时联调记录
+test.md
