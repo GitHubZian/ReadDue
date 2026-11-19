@@ -9,6 +9,13 @@ spring:
     async:
       request-timeout: 300000
 
+  # ---------- 文件上传（B-08）----------
+  servlet:
+    multipart:
+      # 业务上限 5MB，容器放宽到 6MB，便于在应用层返回统一错误码而不是 413
+      max-file-size: 6MB
+      max-request-size: 8MB
+
   # ---------- Jackson ----------
   jackson:
     time-zone: UTC
@@ -134,6 +141,9 @@ app:
   demo:
     # 仅在 local profile 且该开关为 true 时装载演示数据；非 local 环境务必保持 false
     enabled: false
+  file:
+    # 上传文件落盘根目录（B-08）；默认放系统临时目录，避免污染仓库，生产用 FILE_STORAGE_DIR 指向数据盘
+    storage-dir: ${FILE_STORAGE_DIR:${java.io.tmpdir}/readdue/uploads}
 
 # ---------- SpringDoc / OpenAPI ----------
 springdoc:

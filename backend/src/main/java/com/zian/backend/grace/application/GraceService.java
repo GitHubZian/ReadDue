@@ -9,6 +9,7 @@ import com.zian.backend.grace.domain.model.GraceApplication;
 import com.zian.backend.grace.domain.model.GraceCalculator;
 import com.zian.backend.grace.domain.model.GraceStatus;
 import com.zian.backend.grace.domain.repository.GraceApplicationRepository;
+import com.zian.backend.grace.domain.repository.GraceEvidenceRepository;
 import com.zian.backend.grace.interfaces.dto.GraceDtos;
 import com.zian.backend.iam.application.ReaderCreditService;
 import com.zian.backend.iam.application.UserQueryService;
@@ -21,7 +22,10 @@ import com.zian.backend.shared.common.PageResult;
 import com.zian.backend.shared.common.Times;
 import com.zian.backend.shared.constant.MqConstant;
 import com.zian.backend.shared.exception.BusinessException;
+import com.zian.backend.shared.file.domain.model.StoredFile;
+import com.zian.backend.shared.file.application.FileService;
 import com.zian.backend.shared.outbox.application.OutboxAppender;
+import com.zian.backend.shared.security.LoginUser;
 import com.zian.backend.shared.security.UserContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -49,6 +54,8 @@ public class GraceService {
     private static final DateTimeFormatter APPLY_NO_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final GraceApplicationRepository repository;
+    private final GraceEvidenceRepository evidenceRepository;
+    private final FileService fileService;
     private final BorrowService borrowService;
     private final ReservationService reservationService;
     private final ReaderCreditService readerCreditService;
@@ -84,6 +91,7 @@ public class GraceService {
         if (repository.countApprovedSince(order.getId(), now.minusDays(30)) >= 2) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "同一借阅 30 天内最多批准 2 次宽限");
         }
+        List<StoredFile> evidence = fileService.requireOwned(request.evidenceIds(), readerId);
 
         String scene = request.sceneCode() == null || request.sceneCode().isBlank()
                 ? "NORMAL"
@@ -129,24 +137,38 @@ public class GraceService {
                 null,
                 0);
         Long id = repository.insert(application);
+        // 仓储只返回主键，回填到聚合后再复用统一的视图转换（含证据附件）
+        application.setId(id);
+        evidenceRepository.attach(id, evidence.stream().map(StoredFile::id).toList());
         cacheSnapshot(order.getId(), application, snapshotExpiresAt);
         auditRecorder.record(
                 "GRACE_APPLY",
                 "GRACE_APPLICATION",
                 id,
                 "提交宽限申请",
-                Map.of("orderId", order.getId(), "scene", scene, "computedDays", computed.toPlainString()));
+                Map.of(
+                        "orderId", order.getId(),
+                        "scene", scene,
+                        "computedDays", computed.toPlainString(),
+                        "evidenceCount", evidence.size()));
 
-        return new GraceDtos.ApplicationView(
-                id,
-                application.getApplyNo(),
-                order.getId(),
-                scene,
-                GraceStatus.PENDING.name(),
-                String.valueOf(GraceCalculator.asDays(computed)),
-                null,
-                Times.iso(now),
-                Times.iso(snapshotExpiresAt));
+        return view(application, evidence);
+    }
+
+    /**
+     * 读取一次宽限申请（本人或馆员/管理员），返回完整证据列表。
+     *
+     * @param id 申请 id
+     * @return 申请视图
+     */
+    @Transactional(readOnly = true)
+    public GraceDtos.ApplicationView detail(long id) {
+        GraceApplication application = require(id);
+        LoginUser user = UserContext.require();
+        if (!user.id().equals(application.getReaderId()) && !user.isStaff()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "宽限申请不存在");
+        }
+        return view(application, fileService.files(evidenceRepository.fileIdsOf(id)));
     }
 
     /**
@@ -162,22 +184,19 @@ public class GraceService {
         List<GraceApplication> applications =
                 repository.findByReader(readerId, status, (int) pageQuery.offset(), pageQuery.size());
         long total = repository.countByReader(readerId, status);
+        Map<Long, List<Long>> evidenceIds = evidenceRepository.fileIdsOf(
+                applications.stream().map(GraceApplication::getId).toList());
+        Map<Long, StoredFile> filesById = fileService
+                .files(evidenceIds.values().stream().flatMap(List::stream).toList())
+                .stream()
+                .collect(Collectors.toMap(StoredFile::id, file -> file));
         List<GraceDtos.ApplicationView> items = applications.stream()
-                .map(application -> new GraceDtos.ApplicationView(
-                        application.getId(),
-                        application.getApplyNo(),
-                        application.getBorrowOrderId(),
-                        application.getSceneCode(),
-                        application.getStatus().name(),
-                        application.getComputedDays() == null
-                                ? null
-                                : String.valueOf(GraceCalculator.asDays(application.getComputedDays())),
-                        application.getGrantedDays(),
-                        Times.iso(application.getSnapshotExpiresAt() == null
-                                ? null
-                                : application.getSnapshotExpiresAt().minusHours(
-                                        ruleService.intValue("GRACE.SNAPSHOT_TTL_HOURS", 24))),
-                        Times.iso(application.getSnapshotExpiresAt())))
+                .map(application -> view(
+                        application,
+                        evidenceIds.getOrDefault(application.getId(), List.of()).stream()
+                                .map(filesById::get)
+                                .filter(java.util.Objects::nonNull)
+                                .toList()))
                 .toList();
         return PageResult.of(items, total, pageQuery);
     }
@@ -237,6 +256,25 @@ public class GraceService {
         }
         auditRecorder.record("GRACE_REJECT", "GRACE_APPLICATION", id, "宽限审批", Map.of("note", note));
         return GraceDtos.GraceDecisionView.of(application);
+    }
+
+    private GraceDtos.ApplicationView view(GraceApplication application, List<StoredFile> evidence) {
+        return new GraceDtos.ApplicationView(
+                application.getId(),
+                application.getApplyNo(),
+                application.getBorrowOrderId(),
+                application.getSceneCode(),
+                application.getStatus().name(),
+                application.getComputedDays() == null
+                        ? null
+                        : String.valueOf(GraceCalculator.asDays(application.getComputedDays())),
+                application.getGrantedDays(),
+                Times.iso(application.getSnapshotExpiresAt() == null
+                        ? null
+                        : application.getSnapshotExpiresAt()
+                                .minusHours(ruleService.intValue("GRACE.SNAPSHOT_TTL_HOURS", 24))),
+                Times.iso(application.getSnapshotExpiresAt()),
+                evidence.stream().map(GraceDtos.EvidenceView::of).toList());
     }
 
     private GraceApplication require(Long id) {
