@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 4/15 · 前端 0/7 · 客户端 0/7 · 联动 0/4
+**进度快照（回写时同步此行）**：后端 5/15 · 前端 3/7 · 客户端 1/7 · 联动 0/4
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -49,7 +49,7 @@
 
 | ID | 任务 | 负责 | 状态 | 依赖 |
 | --- | --- | --- | --- | --- |
-| B-00 | 提交并推送当前后端重构 | BE | ⬜ 未开始 | 无（**先做**） |
+| B-00 | 提交并推送当前后端重构 | BE | ✅ 2026-11-19 · a3f6dd2/89c468e/cade101 · `mvn -B test` 42 run 1 skip 绿 · 37 文件已推送 | 无（**先做**） |
 | B-01 | 书目检索与馆藏 | BE | ⬜ 未开始 | B-00 |
 | B-02 | 读者消息中心 | BE | ⬜ 未开始 | B-00 |
 | B-03 | `/me/summary` | BE | ⬜ 未开始 | B-00 |
@@ -74,7 +74,7 @@
 | C-02 | 检索与书目详情 | APP | ⬜ 未开始 | B-01 |
 | C-03 | 消息中心与偏好 | APP | ⬜ 未开始 | B-02、B-04、B-05 |
 | C-04 | 首页摘要 | APP | ⬜ 未开始 | B-03 |
-| C-05 | 申诉与个人中心 | APP | ⬜ 未开始 | 无（接口已在） |
+| C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
 | C-06 | 真机联调两条链路 | APP | ⬜ 未开始 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ⬜ 未开始 | B-06、B-10 |
 | X-01 | 三端冒烟 | **FE 发起** | ⬜ 未开始 | F-01…F-06、C-06 |
@@ -91,7 +91,7 @@
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| **B-00** | 提交并推送当前重构 | 工作区 30 文件改动 +982/−1074，含 reporting 读模型、`Masks`、`IdempotencyFilter`、`V4__drop_auto_increment`、三份文档；`feat/m3-progress-sync` 另有 1 个未推送提交 | 仓库根 | 拆 3 个提交：`refactor(reporting)`／`feat(idempotency+v4)`／`docs(sync)`；`git push` 成功；`git status` 干净 | ⬜ 未开始 |
+| **B-00** | 提交并推送当前重构 | 工作区 30 文件改动 +982/−1074，含 reporting 读模型、`Masks`、`IdempotencyFilter`、`V4__drop_auto_increment`、三份文档；`feat/m3-progress-sync` 另有 1 个未推送提交 | 仓库根 | 拆 3 个提交：`refactor(reporting)`／`feat(idempotency+v4)`／`docs(sync)`；`git push` 成功；`git status` 干净 | ✅ 2026-11-19 · a3f6dd2 + 89c468e + cade101 · `mvn -B test` 42 run/1 skip 绿、`git push` 2f032d6..cade101、树干净 · 37 文件 |
 | **B-01** | 书目检索与馆藏 | 全仓无 `BookController`，`catalog` 只有 PO/Mapper | `catalog/interfaces/BookController.java`、`catalog/application/BookQueryService.java` | `GET /books?q=&page=&size=`、`/books/{id}`、`/books/{id}/copies`、`/books/{id}/queue`；单测覆盖空结果与 `size` 上限 422 | ⬜ 未开始 |
 | **B-02** | 读者消息中心 | `notify_delivery` 有数据，无读接口 | `notify/interfaces/ReaderNotifyController.java` | `GET /notifications?page=`（仅本人）、`PUT /notifications/read`；未读数供 summary 复用 | ⬜ 未开始 |
 | **B-03** | 首页摘要 | 缺失 | `borrow/interfaces/ReaderBorrowController.java` | 一次返回 `borrowed/dueIn3Days/overdue/quota/returnedThisTerm/creditLevel` | ⬜ 未开始 |
@@ -117,12 +117,12 @@
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | **F-01** | 校历管理 | 只读命中表 | `src/features/rule/pages/RulesPage.tsx` | 增删改 + 冲突校验 + 保存后即时刷新 | ⬜ 未开始 |
-| **F-02** | 角色权限页 | 仅 A8 右侧面板，无保存 | `src/features/iam/` | 角色下拉 + 勾选 + 保存；B-12 未就绪时按钮禁用并注明依赖 | ⬜ 未开始 |
+| **F-02** | 角色权限页 | 仅 A8 右侧面板，无保存 | `src/features/iam/` | 角色下拉 + 勾选 + 保存；B-12 未就绪时按钮禁用并注明依赖 | ✅ 2026-11-19 · f3ca589 · `pnpm typecheck`/`pnpm build` 通过；/roles 实测 10 项权限、馆员默认 7 项、保存按钮禁用且 title 指向 B-12、侧栏「角色权限」可见 · 3 文件（RolesPage.tsx、nav.ts、router.tsx） |
 | **F-03** | 宽限证据展示 | `evidence` 恒空 | `src/features/grace/` | 文件名/大小/下载；空态保留；只放行 `http(s)` 或受控下载 | ⬜ 未开始 |
 | **F-04** | 审计详情增强 | `traceId` 空、`detail={}` | `src/features/audit/` | 展示 traceId 与 before/after 差异；导出含新列；旧数据降级 | ⬜ 未开始 |
 | **F-05** | 组织级通知策略 | A7 只收发模板 | `src/features/notify/` | 院系/角色默认偏好与强制项；不覆盖读者 OFF | ⬜ 未开始 |
-| **F-06** | 幂等与重试语义 | 重试不复用 key | `src/lib/api/` | 同一写操作重试复用 key；409/422 提示区分 | ⬜ 未开始 |
-| **F-07** | 演示账号清理 | 登录页预填 | `src/features/auth/pages/LoginPage.tsx` | `import.meta.env.DEV` 包裹，生产构建不含演示账号 | ⬜ 未开始 |
+| **F-06** | 幂等与重试语义 | 重试不复用 key | `src/lib/api/` | 同一写操作重试复用 key；409/422 提示区分 | ✅ 2026-11-19 · 3a08e5d · `pnpm typecheck`/`pnpm build` 通过；同 body 连发两次 `POST /borrows` 复用同一 Idempotency-Key（8f94cb92…），失败不清键 · 2 文件（client.ts、errors.ts） |
+| **F-07** | 演示账号清理 | 登录页预填 | `src/features/auth/pages/LoginPage.tsx` | `import.meta.env.DEV` 包裹，生产构建不含演示账号 | ✅ 2026-11-19 · 6fe2744 · `pnpm build` 通过；`dist` 内检索 ADMIN001/演示账号 计数 0 · 1 文件（LoginPage.tsx） |
 
 **不要做**：不改 `components/ui/*`；不引第二套 UI；不开 dark mode；不端算金额/天数/SLA。
 
@@ -138,7 +138,7 @@
 | **C-02** | 检索与书目详情 | `search` 无数据源 | `lib/features/search/` | 接 B-01 四端点；空/无馆藏/可预约三态；300ms 防抖 | ⬜ 未开始 |
 | **C-03** | 消息中心与偏好 | 数据来自 mock | `notifications/`、`profile/` | 接 B-02/B-04/B-05；失败回滚并提示 | ⬜ 未开始 |
 | **C-04** | 首页摘要 | 本地聚合 | `lib/features/borrow/` | 切 `/me/summary`；数字与列表一致 | ⬜ 未开始 |
-| **C-05** | 申诉与个人中心 | mock | `appeal/`、`profile/` | 提交/列表/详情接真实接口；徽标与 `/me` 一致 | ⬜ 未开始 |
+| **C-05** | 申诉与个人中心 | dio（mock 保留开关） | `appeal/`、`profile/` | 提交/列表/详情接真实接口；徽标与 `/me` 一致 | ✅ 2026-11-19 · 无 git 提交 · `flutter analyze` 0 / `flutter test` 23 绿 / 真机 C8 列表+提交、C7 资料页 · 新增 2 文件（`dio_appeal_repository.dart`、`dio_profile_repository.dart`）+ 3 处改（provider、时间映射、登录默认） |
 | **C-06** | 真机联调 | 未跑真后端 | 全端 | C1→C2→C3、C5→C6→C7 全通；`flutter test` 绿 | ⬜ 未开始 |
 | **C-07** | 隐私与偏好页 | 未建 | `profile/` | 授权开关、遗忘申请、提醒偏好 | ⬜ 未开始 |
 
@@ -209,6 +209,11 @@ flutter analyze; flutter test
 | --- | --- | --- | --- |
 | 2026-11-14 | BE | B-13（部分） | sort 从后端移除、幂等过滤器落地 |
 | 2026-11-19 | BE | 重构（未编号） | reporting record 读模型、V4 去自增、Masks；**未提交** |
+| 2026-11-19 | BE | B-00 提交推送 | a3f6dd2/89c468e/cade101 已推送，树干净，42 测试 1 skip 绿 |
+| 2026-11-19 | FE | F-07 演示账号清理 | DEV 包裹预填与演示块；生产包检索 0 命中 |
+| 2026-11-19 | FE | F-06 幂等与重试 | 按意图复用 Idempotency-Key；409/422 独立提示 |
+| 2026-11-19 | FE | F-02 角色权限页 | 10 项权限勾选 + 角色基线；保存待 B-12 |
+| 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
 
 ---
 
@@ -216,4 +221,5 @@ flutter analyze; flutter test
 
 | 编号 | 发起方 | 契约摘要 | 配合方确认 | 状态 |
 | --- | --- | --- | --- | --- |
+| C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
 | （待登记） | — | — | — | — |
