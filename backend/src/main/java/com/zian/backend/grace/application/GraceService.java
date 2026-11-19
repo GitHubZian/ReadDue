@@ -213,6 +213,9 @@ public class GraceService {
         Long operatorId = UserContext.requireId();
         LocalDateTime now = LocalDateTime.now();
         GraceApplication application = require(id);
+        Map<String, Object> before = new LinkedHashMap<>();
+        before.put("status", application.getStatus().name());
+        before.put("grantedDays", application.getGrantedDays() == null ? 0 : application.getGrantedDays());
         int days = request != null && request.days() != null
                 ? request.days()
                 : GraceCalculator.asDays(application.getComputedDays());
@@ -229,12 +232,18 @@ public class GraceService {
         payload.put("days", days);
         payload.put("effectiveDueAt", String.valueOf(order.getEffectiveDueAt()));
         outboxAppender.append("GRACE_APPLICATION", application.getId(), MqConstant.EVENT_GRACE_APPROVED, payload);
+        Map<String, Object> after = new LinkedHashMap<>();
+        after.put("status", application.getStatus().name());
+        after.put("grantedDays", days);
+        after.put("effectiveDueAt", String.valueOf(order.getEffectiveDueAt()));
         auditRecorder.record(
                 "GRACE_APPROVE",
                 "GRACE_APPLICATION",
                 id,
                 "宽限审批",
-                Map.of("days", days, "note", request == null || request.note() == null ? "" : request.note()));
+                Map.of("days", days, "note", request == null || request.note() == null ? "" : request.note()),
+                before,
+                after);
         return GraceDtos.GraceDecisionView.of(application);
     }
 
@@ -249,12 +258,20 @@ public class GraceService {
     public GraceDtos.GraceDecisionView reject(Long id, GraceDtos.RejectRequest request) {
         Long operatorId = UserContext.requireId();
         GraceApplication application = require(id);
+        Map<String, Object> before = Map.of("status", application.getStatus().name());
         String note = request == null || request.note() == null ? "" : request.note().trim();
         application.reject("REJECTED", operatorId, LocalDateTime.now());
         if (repository.update(application) == 0) {
             throw new BusinessException(ErrorCode.CONFLICT_ERROR, "申请已被其他人处理，请刷新后重试");
         }
-        auditRecorder.record("GRACE_REJECT", "GRACE_APPLICATION", id, "宽限审批", Map.of("note", note));
+        auditRecorder.record(
+                "GRACE_REJECT",
+                "GRACE_APPLICATION",
+                id,
+                "宽限审批",
+                Map.of("note", note),
+                before,
+                Map.of("status", application.getStatus().name(), "rejectCode", "REJECTED"));
         return GraceDtos.GraceDecisionView.of(application);
     }
 

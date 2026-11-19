@@ -570,9 +570,9 @@ public class AdminQueryService {
                 row.objectType() + " #" + row.objectId(),
                 detailText(row.detail()),
                 row.ip() == null ? "" : row.ip(),
-                "",
-                null,
-                null);
+                row.traceId() == null ? "" : row.traceId(),
+                row.beforeJson(),
+                row.afterJson());
     }
 
     private String auditCategory(String action) {

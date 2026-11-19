@@ -599,7 +599,9 @@ public interface AdminQueryMapper {
     @Select("""
             <script>
             SELECT a.id, a.action, a.object_type AS objectType, a.object_id AS objectId, a.purpose,
-                   a.detail, a.ip, a.actor_role AS actorRole, a.created_at AS createdAt,
+                   a.detail, a.ip, a.trace_id AS traceId,
+                   a.before_json AS beforeJson, a.after_json AS afterJson,
+                   a.actor_role AS actorRole, a.created_at AS createdAt,
                    u.name AS actorName
               FROM audit_log a
               LEFT JOIN sys_user u ON u.id = a.actor_id
@@ -648,7 +650,9 @@ public interface AdminQueryMapper {
      */
     @Select("""
             SELECT a.id, a.action, a.object_type AS objectType, a.object_id AS objectId, a.purpose,
-                   a.detail, a.ip, a.actor_role AS actorRole, a.created_at AS createdAt,
+                   a.detail, a.ip, a.trace_id AS traceId,
+                   a.before_json AS beforeJson, a.after_json AS afterJson,
+                   a.actor_role AS actorRole, a.created_at AS createdAt,
                    u.name AS actorName
               FROM audit_log a
               LEFT JOIN sys_user u ON u.id = a.actor_id

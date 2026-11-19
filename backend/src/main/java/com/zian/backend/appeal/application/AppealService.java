@@ -76,9 +76,17 @@ public class AppealService {
     public AppealDtos.AppealActionView resolve(Long id, AppealDtos.ActionRequest request) {
         LoginUser operator = UserContext.require();
         AppealTicket ticket = require(id);
+        Map<String, Object> before = Map.of("status", ticket.getStatus().name());
         ticket.resolve(note(request), operator.id(), operator.name());
         persist(ticket);
-        auditRecorder.record("APPEAL_RESOLVE", "APPEAL_TICKET", id, "申诉处理", Map.of("note", note(request)));
+        auditRecorder.record(
+                "APPEAL_RESOLVE",
+                "APPEAL_TICKET",
+                id,
+                "申诉处理",
+                Map.of("note", note(request)),
+                before,
+                Map.of("status", ticket.getStatus().name()));
         return AppealDtos.AppealActionView.of(ticket);
     }
 
@@ -93,9 +101,17 @@ public class AppealService {
     public AppealDtos.AppealActionView reject(Long id, AppealDtos.ActionRequest request) {
         LoginUser operator = UserContext.require();
         AppealTicket ticket = require(id);
+        Map<String, Object> before = Map.of("status", ticket.getStatus().name());
         ticket.reject(note(request), operator.id(), operator.name());
         persist(ticket);
-        auditRecorder.record("APPEAL_REJECT", "APPEAL_TICKET", id, "申诉处理", Map.of("note", note(request)));
+        auditRecorder.record(
+                "APPEAL_REJECT",
+                "APPEAL_TICKET",
+                id,
+                "申诉处理",
+                Map.of("note", note(request)),
+                before,
+                Map.of("status", ticket.getStatus().name()));
         return AppealDtos.AppealActionView.of(ticket);
     }
 
@@ -110,10 +126,21 @@ public class AppealService {
     public AppealDtos.AppealActionView compensate(Long id, AppealDtos.ActionRequest request) {
         LoginUser operator = UserContext.require();
         AppealTicket ticket = require(id);
+        Map<String, Object> before = Map.of("status", ticket.getStatus().name());
         int days = request != null && request.days() != null ? request.days() : 3;
         ticket.compensate(days, note(request), operator.id(), operator.name());
         persist(ticket);
-        auditRecorder.record("APPEAL_COMPENSATE", "APPEAL_TICKET", id, "申诉补偿", Map.of("days", days));
+        Map<String, Object> after = new LinkedHashMap<>();
+        after.put("status", ticket.getStatus().name());
+        after.put("compensationDays", days);
+        auditRecorder.record(
+                "APPEAL_COMPENSATE",
+                "APPEAL_TICKET",
+                id,
+                "申诉补偿",
+                Map.of("days", days),
+                before,
+                after);
         return AppealDtos.AppealActionView.of(ticket);
     }
 

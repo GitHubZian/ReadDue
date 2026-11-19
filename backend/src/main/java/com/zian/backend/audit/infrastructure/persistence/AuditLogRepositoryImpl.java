@@ -27,6 +27,9 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         po.setPurpose(record.purpose());
         po.setDetail(record.detail());
         po.setIp(record.ip());
+        po.setTraceId(record.traceId());
+        po.setBeforeJson(record.before());
+        po.setAfterJson(record.after());
         mapper.insert(po);
     }
 }

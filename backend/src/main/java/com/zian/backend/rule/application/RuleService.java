@@ -97,6 +97,7 @@ public class RuleService {
         Map<String, String> existing = repository.all();
         String nextVersion = repository.nextVersion();
         Map<String, Object> changed = new LinkedHashMap<>();
+        Map<String, Object> beforeChanges = new LinkedHashMap<>();
         int updated = 0;
         if (request.groups() != null) {
             for (RuleDtos.RuleGroup group : request.groups()) {
@@ -115,11 +116,19 @@ public class RuleService {
                         throw new BusinessException(ErrorCode.CONFLICT_ERROR, "规则已被其他人修改，请刷新后重试");
                     }
                     updated++;
+                    beforeChanges.put(item.key(), existing.get(item.key()));
                     changed.put(item.key(), item.value());
                 }
             }
         }
-        auditRecorder.record("RULE_UPDATE", "RULE", null, "规则调整", Map.of("updated", updated, "changes", changed));
+        auditRecorder.record(
+                "RULE_UPDATE",
+                "RULE",
+                null,
+                "规则调整",
+                Map.of("updated", updated, "changes", changed),
+                beforeChanges,
+                changed);
         return repository.currentVersion();
     }
 

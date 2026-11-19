@@ -40,6 +40,17 @@ public class AuditLogPO {
 
     private String ip;
 
+    /** 当次请求的 X-Trace-Id，用于把前端报障与审计行对齐 */
+    private String traceId;
+
+    /** 变更前快照；只有宽限审批、申诉处理、规则调整等留痕操作才有值 */
+    @TableField(value = "before_json", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> beforeJson;
+
+    /** 变更后快照；与 beforeJson 成对出现 */
+    @TableField(value = "after_json", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> afterJson;
+
     private LocalDateTime createdAt;
 
 }

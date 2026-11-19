@@ -253,7 +253,7 @@ public class AdminQueryController {
             @RequestParam(required = false) String category, @RequestParam(required = false) String keyword) {
         PageResult<AdminViews.AuditLogView> result =
                 queryService.auditLogs(category, keyword, PageQuery.of(1, PageQuery.MAX_SIZE));
-        StringBuilder csv = new StringBuilder("id,时间,操作人,角色,动作,分类,对象,IP,详情\n");
+        StringBuilder csv = new StringBuilder("id,时间,操作人,角色,动作,分类,对象,IP,详情,traceId,变更前,变更后\n");
         result.items().forEach(log -> {
             csv.append(String.join(",",
                             csvCell(log.id()),
@@ -264,7 +264,10 @@ public class AdminQueryController {
                             csvCell(log.category()),
                             csvCell(log.target()),
                             csvCell(log.ip()),
-                            csvCell(log.detail())))
+                            csvCell(log.detail()),
+                            csvCell(log.traceId()),
+                            csvCell(log.before()),
+                            csvCell(log.after())))
                     .append('\n');
         });
         byte[] bytes = csv.toString().getBytes(StandardCharsets.UTF_8);
