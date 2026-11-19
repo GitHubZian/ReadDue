@@ -5581,6 +5581,1055 @@ abstract class _ReservationsPage implements ReservationsPage {
       throw _privateConstructorUsedError;
 }
 
+BookCopy _$BookCopyFromJson(Map<String, dynamic> json) {
+  return _BookCopy.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BookCopy {
+  String get id => throw _privateConstructorUsedError;
+  String get barcode => throw _privateConstructorUsedError;
+  String get location => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
+
+  /// Serializes this BookCopy to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BookCopy
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BookCopyCopyWith<BookCopy> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BookCopyCopyWith<$Res> {
+  factory $BookCopyCopyWith(BookCopy value, $Res Function(BookCopy) then) =
+      _$BookCopyCopyWithImpl<$Res, BookCopy>;
+  @useResult
+  $Res call({String id, String barcode, String location, String status});
+}
+
+/// @nodoc
+class _$BookCopyCopyWithImpl<$Res, $Val extends BookCopy>
+    implements $BookCopyCopyWith<$Res> {
+  _$BookCopyCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BookCopy
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? barcode = null,
+    Object? location = null,
+    Object? status = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      barcode: null == barcode
+          ? _value.barcode
+          : barcode // ignore: cast_nullable_to_non_nullable
+              as String,
+      location: null == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BookCopyImplCopyWith<$Res>
+    implements $BookCopyCopyWith<$Res> {
+  factory _$$BookCopyImplCopyWith(
+          _$BookCopyImpl value, $Res Function(_$BookCopyImpl) then) =
+      __$$BookCopyImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String barcode, String location, String status});
+}
+
+/// @nodoc
+class __$$BookCopyImplCopyWithImpl<$Res>
+    extends _$BookCopyCopyWithImpl<$Res, _$BookCopyImpl>
+    implements _$$BookCopyImplCopyWith<$Res> {
+  __$$BookCopyImplCopyWithImpl(
+      _$BookCopyImpl _value, $Res Function(_$BookCopyImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BookCopy
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? barcode = null,
+    Object? location = null,
+    Object? status = null,
+  }) {
+    return _then(_$BookCopyImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      barcode: null == barcode
+          ? _value.barcode
+          : barcode // ignore: cast_nullable_to_non_nullable
+              as String,
+      location: null == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$BookCopyImpl implements _BookCopy {
+  const _$BookCopyImpl(
+      {required this.id,
+      required this.barcode,
+      this.location = '',
+      this.status = 'AVAILABLE'});
+
+  factory _$BookCopyImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BookCopyImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String barcode;
+  @override
+  @JsonKey()
+  final String location;
+  @override
+  @JsonKey()
+  final String status;
+
+  @override
+  String toString() {
+    return 'BookCopy(id: $id, barcode: $barcode, location: $location, status: $status)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BookCopyImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.barcode, barcode) || other.barcode == barcode) &&
+            (identical(other.location, location) ||
+                other.location == location) &&
+            (identical(other.status, status) || other.status == status));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, barcode, location, status);
+
+  /// Create a copy of BookCopy
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BookCopyImplCopyWith<_$BookCopyImpl> get copyWith =>
+      __$$BookCopyImplCopyWithImpl<_$BookCopyImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BookCopyImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BookCopy implements BookCopy {
+  const factory _BookCopy(
+      {required final String id,
+      required final String barcode,
+      final String location,
+      final String status}) = _$BookCopyImpl;
+
+  factory _BookCopy.fromJson(Map<String, dynamic> json) =
+      _$BookCopyImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get barcode;
+  @override
+  String get location;
+  @override
+  String get status;
+
+  /// Create a copy of BookCopy
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BookCopyImplCopyWith<_$BookCopyImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+BookDetail _$BookDetailFromJson(Map<String, dynamic> json) {
+  return _BookDetail.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BookDetail {
+  String get id => throw _privateConstructorUsedError;
+  String get title => throw _privateConstructorUsedError;
+  String get author => throw _privateConstructorUsedError;
+  String get publisher => throw _privateConstructorUsedError;
+  String get isbn13 => throw _privateConstructorUsedError;
+  String get publishDate => throw _privateConstructorUsedError;
+  String get price => throw _privateConstructorUsedError;
+  String get summary => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  int get totalCopies => throw _privateConstructorUsedError;
+  int get availableCopies => throw _privateConstructorUsedError;
+  int get onLoanCopies => throw _privateConstructorUsedError;
+  int get queueLen => throw _privateConstructorUsedError;
+
+  /// Serializes this BookDetail to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BookDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BookDetailCopyWith<BookDetail> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BookDetailCopyWith<$Res> {
+  factory $BookDetailCopyWith(
+          BookDetail value, $Res Function(BookDetail) then) =
+      _$BookDetailCopyWithImpl<$Res, BookDetail>;
+  @useResult
+  $Res call(
+      {String id,
+      String title,
+      String author,
+      String publisher,
+      String isbn13,
+      String publishDate,
+      String price,
+      String summary,
+      List<String> tags,
+      int totalCopies,
+      int availableCopies,
+      int onLoanCopies,
+      int queueLen});
+}
+
+/// @nodoc
+class _$BookDetailCopyWithImpl<$Res, $Val extends BookDetail>
+    implements $BookDetailCopyWith<$Res> {
+  _$BookDetailCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BookDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? title = null,
+    Object? author = null,
+    Object? publisher = null,
+    Object? isbn13 = null,
+    Object? publishDate = null,
+    Object? price = null,
+    Object? summary = null,
+    Object? tags = null,
+    Object? totalCopies = null,
+    Object? availableCopies = null,
+    Object? onLoanCopies = null,
+    Object? queueLen = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      author: null == author
+          ? _value.author
+          : author // ignore: cast_nullable_to_non_nullable
+              as String,
+      publisher: null == publisher
+          ? _value.publisher
+          : publisher // ignore: cast_nullable_to_non_nullable
+              as String,
+      isbn13: null == isbn13
+          ? _value.isbn13
+          : isbn13 // ignore: cast_nullable_to_non_nullable
+              as String,
+      publishDate: null == publishDate
+          ? _value.publishDate
+          : publishDate // ignore: cast_nullable_to_non_nullable
+              as String,
+      price: null == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
+              as String,
+      summary: null == summary
+          ? _value.summary
+          : summary // ignore: cast_nullable_to_non_nullable
+              as String,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      totalCopies: null == totalCopies
+          ? _value.totalCopies
+          : totalCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      availableCopies: null == availableCopies
+          ? _value.availableCopies
+          : availableCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      onLoanCopies: null == onLoanCopies
+          ? _value.onLoanCopies
+          : onLoanCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      queueLen: null == queueLen
+          ? _value.queueLen
+          : queueLen // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BookDetailImplCopyWith<$Res>
+    implements $BookDetailCopyWith<$Res> {
+  factory _$$BookDetailImplCopyWith(
+          _$BookDetailImpl value, $Res Function(_$BookDetailImpl) then) =
+      __$$BookDetailImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String title,
+      String author,
+      String publisher,
+      String isbn13,
+      String publishDate,
+      String price,
+      String summary,
+      List<String> tags,
+      int totalCopies,
+      int availableCopies,
+      int onLoanCopies,
+      int queueLen});
+}
+
+/// @nodoc
+class __$$BookDetailImplCopyWithImpl<$Res>
+    extends _$BookDetailCopyWithImpl<$Res, _$BookDetailImpl>
+    implements _$$BookDetailImplCopyWith<$Res> {
+  __$$BookDetailImplCopyWithImpl(
+      _$BookDetailImpl _value, $Res Function(_$BookDetailImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BookDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? title = null,
+    Object? author = null,
+    Object? publisher = null,
+    Object? isbn13 = null,
+    Object? publishDate = null,
+    Object? price = null,
+    Object? summary = null,
+    Object? tags = null,
+    Object? totalCopies = null,
+    Object? availableCopies = null,
+    Object? onLoanCopies = null,
+    Object? queueLen = null,
+  }) {
+    return _then(_$BookDetailImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: null == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      author: null == author
+          ? _value.author
+          : author // ignore: cast_nullable_to_non_nullable
+              as String,
+      publisher: null == publisher
+          ? _value.publisher
+          : publisher // ignore: cast_nullable_to_non_nullable
+              as String,
+      isbn13: null == isbn13
+          ? _value.isbn13
+          : isbn13 // ignore: cast_nullable_to_non_nullable
+              as String,
+      publishDate: null == publishDate
+          ? _value.publishDate
+          : publishDate // ignore: cast_nullable_to_non_nullable
+              as String,
+      price: null == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
+              as String,
+      summary: null == summary
+          ? _value.summary
+          : summary // ignore: cast_nullable_to_non_nullable
+              as String,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      totalCopies: null == totalCopies
+          ? _value.totalCopies
+          : totalCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      availableCopies: null == availableCopies
+          ? _value.availableCopies
+          : availableCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      onLoanCopies: null == onLoanCopies
+          ? _value.onLoanCopies
+          : onLoanCopies // ignore: cast_nullable_to_non_nullable
+              as int,
+      queueLen: null == queueLen
+          ? _value.queueLen
+          : queueLen // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$BookDetailImpl implements _BookDetail {
+  const _$BookDetailImpl(
+      {required this.id,
+      required this.title,
+      required this.author,
+      this.publisher = '',
+      this.isbn13 = '',
+      this.publishDate = '',
+      this.price = '',
+      this.summary = '',
+      final List<String> tags = const <String>[],
+      this.totalCopies = 0,
+      this.availableCopies = 0,
+      this.onLoanCopies = 0,
+      this.queueLen = 0})
+      : _tags = tags;
+
+  factory _$BookDetailImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BookDetailImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String title;
+  @override
+  final String author;
+  @override
+  @JsonKey()
+  final String publisher;
+  @override
+  @JsonKey()
+  final String isbn13;
+  @override
+  @JsonKey()
+  final String publishDate;
+  @override
+  @JsonKey()
+  final String price;
+  @override
+  @JsonKey()
+  final String summary;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final int totalCopies;
+  @override
+  @JsonKey()
+  final int availableCopies;
+  @override
+  @JsonKey()
+  final int onLoanCopies;
+  @override
+  @JsonKey()
+  final int queueLen;
+
+  @override
+  String toString() {
+    return 'BookDetail(id: $id, title: $title, author: $author, publisher: $publisher, isbn13: $isbn13, publishDate: $publishDate, price: $price, summary: $summary, tags: $tags, totalCopies: $totalCopies, availableCopies: $availableCopies, onLoanCopies: $onLoanCopies, queueLen: $queueLen)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BookDetailImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.author, author) || other.author == author) &&
+            (identical(other.publisher, publisher) ||
+                other.publisher == publisher) &&
+            (identical(other.isbn13, isbn13) || other.isbn13 == isbn13) &&
+            (identical(other.publishDate, publishDate) ||
+                other.publishDate == publishDate) &&
+            (identical(other.price, price) || other.price == price) &&
+            (identical(other.summary, summary) || other.summary == summary) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.totalCopies, totalCopies) ||
+                other.totalCopies == totalCopies) &&
+            (identical(other.availableCopies, availableCopies) ||
+                other.availableCopies == availableCopies) &&
+            (identical(other.onLoanCopies, onLoanCopies) ||
+                other.onLoanCopies == onLoanCopies) &&
+            (identical(other.queueLen, queueLen) ||
+                other.queueLen == queueLen));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      title,
+      author,
+      publisher,
+      isbn13,
+      publishDate,
+      price,
+      summary,
+      const DeepCollectionEquality().hash(_tags),
+      totalCopies,
+      availableCopies,
+      onLoanCopies,
+      queueLen);
+
+  /// Create a copy of BookDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BookDetailImplCopyWith<_$BookDetailImpl> get copyWith =>
+      __$$BookDetailImplCopyWithImpl<_$BookDetailImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BookDetailImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BookDetail implements BookDetail {
+  const factory _BookDetail(
+      {required final String id,
+      required final String title,
+      required final String author,
+      final String publisher,
+      final String isbn13,
+      final String publishDate,
+      final String price,
+      final String summary,
+      final List<String> tags,
+      final int totalCopies,
+      final int availableCopies,
+      final int onLoanCopies,
+      final int queueLen}) = _$BookDetailImpl;
+
+  factory _BookDetail.fromJson(Map<String, dynamic> json) =
+      _$BookDetailImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get title;
+  @override
+  String get author;
+  @override
+  String get publisher;
+  @override
+  String get isbn13;
+  @override
+  String get publishDate;
+  @override
+  String get price;
+  @override
+  String get summary;
+  @override
+  List<String> get tags;
+  @override
+  int get totalCopies;
+  @override
+  int get availableCopies;
+  @override
+  int get onLoanCopies;
+  @override
+  int get queueLen;
+
+  /// Create a copy of BookDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BookDetailImplCopyWith<_$BookDetailImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+BookQueue _$BookQueueFromJson(Map<String, dynamic> json) {
+  return _BookQueue.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BookQueue {
+  int get waiting => throw _privateConstructorUsedError;
+  int? get myQueueNo => throw _privateConstructorUsedError;
+  String? get myStatus => throw _privateConstructorUsedError;
+
+  /// Serializes this BookQueue to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BookQueue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BookQueueCopyWith<BookQueue> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BookQueueCopyWith<$Res> {
+  factory $BookQueueCopyWith(BookQueue value, $Res Function(BookQueue) then) =
+      _$BookQueueCopyWithImpl<$Res, BookQueue>;
+  @useResult
+  $Res call({int waiting, int? myQueueNo, String? myStatus});
+}
+
+/// @nodoc
+class _$BookQueueCopyWithImpl<$Res, $Val extends BookQueue>
+    implements $BookQueueCopyWith<$Res> {
+  _$BookQueueCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BookQueue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? waiting = null,
+    Object? myQueueNo = freezed,
+    Object? myStatus = freezed,
+  }) {
+    return _then(_value.copyWith(
+      waiting: null == waiting
+          ? _value.waiting
+          : waiting // ignore: cast_nullable_to_non_nullable
+              as int,
+      myQueueNo: freezed == myQueueNo
+          ? _value.myQueueNo
+          : myQueueNo // ignore: cast_nullable_to_non_nullable
+              as int?,
+      myStatus: freezed == myStatus
+          ? _value.myStatus
+          : myStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BookQueueImplCopyWith<$Res>
+    implements $BookQueueCopyWith<$Res> {
+  factory _$$BookQueueImplCopyWith(
+          _$BookQueueImpl value, $Res Function(_$BookQueueImpl) then) =
+      __$$BookQueueImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int waiting, int? myQueueNo, String? myStatus});
+}
+
+/// @nodoc
+class __$$BookQueueImplCopyWithImpl<$Res>
+    extends _$BookQueueCopyWithImpl<$Res, _$BookQueueImpl>
+    implements _$$BookQueueImplCopyWith<$Res> {
+  __$$BookQueueImplCopyWithImpl(
+      _$BookQueueImpl _value, $Res Function(_$BookQueueImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BookQueue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? waiting = null,
+    Object? myQueueNo = freezed,
+    Object? myStatus = freezed,
+  }) {
+    return _then(_$BookQueueImpl(
+      waiting: null == waiting
+          ? _value.waiting
+          : waiting // ignore: cast_nullable_to_non_nullable
+              as int,
+      myQueueNo: freezed == myQueueNo
+          ? _value.myQueueNo
+          : myQueueNo // ignore: cast_nullable_to_non_nullable
+              as int?,
+      myStatus: freezed == myStatus
+          ? _value.myStatus
+          : myStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$BookQueueImpl implements _BookQueue {
+  const _$BookQueueImpl({this.waiting = 0, this.myQueueNo, this.myStatus});
+
+  factory _$BookQueueImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BookQueueImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int waiting;
+  @override
+  final int? myQueueNo;
+  @override
+  final String? myStatus;
+
+  @override
+  String toString() {
+    return 'BookQueue(waiting: $waiting, myQueueNo: $myQueueNo, myStatus: $myStatus)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BookQueueImpl &&
+            (identical(other.waiting, waiting) || other.waiting == waiting) &&
+            (identical(other.myQueueNo, myQueueNo) ||
+                other.myQueueNo == myQueueNo) &&
+            (identical(other.myStatus, myStatus) ||
+                other.myStatus == myStatus));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, waiting, myQueueNo, myStatus);
+
+  /// Create a copy of BookQueue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BookQueueImplCopyWith<_$BookQueueImpl> get copyWith =>
+      __$$BookQueueImplCopyWithImpl<_$BookQueueImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BookQueueImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BookQueue implements BookQueue {
+  const factory _BookQueue(
+      {final int waiting,
+      final int? myQueueNo,
+      final String? myStatus}) = _$BookQueueImpl;
+
+  factory _BookQueue.fromJson(Map<String, dynamic> json) =
+      _$BookQueueImpl.fromJson;
+
+  @override
+  int get waiting;
+  @override
+  int? get myQueueNo;
+  @override
+  String? get myStatus;
+
+  /// Create a copy of BookQueue
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BookQueueImplCopyWith<_$BookQueueImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+BookDetailData _$BookDetailDataFromJson(Map<String, dynamic> json) {
+  return _BookDetailData.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BookDetailData {
+  BookDetail get detail => throw _privateConstructorUsedError;
+  List<BookCopy> get copies => throw _privateConstructorUsedError;
+  BookQueue get queue => throw _privateConstructorUsedError;
+
+  /// Serializes this BookDetailData to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BookDetailDataCopyWith<BookDetailData> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BookDetailDataCopyWith<$Res> {
+  factory $BookDetailDataCopyWith(
+          BookDetailData value, $Res Function(BookDetailData) then) =
+      _$BookDetailDataCopyWithImpl<$Res, BookDetailData>;
+  @useResult
+  $Res call({BookDetail detail, List<BookCopy> copies, BookQueue queue});
+
+  $BookDetailCopyWith<$Res> get detail;
+  $BookQueueCopyWith<$Res> get queue;
+}
+
+/// @nodoc
+class _$BookDetailDataCopyWithImpl<$Res, $Val extends BookDetailData>
+    implements $BookDetailDataCopyWith<$Res> {
+  _$BookDetailDataCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detail = null,
+    Object? copies = null,
+    Object? queue = null,
+  }) {
+    return _then(_value.copyWith(
+      detail: null == detail
+          ? _value.detail
+          : detail // ignore: cast_nullable_to_non_nullable
+              as BookDetail,
+      copies: null == copies
+          ? _value.copies
+          : copies // ignore: cast_nullable_to_non_nullable
+              as List<BookCopy>,
+      queue: null == queue
+          ? _value.queue
+          : queue // ignore: cast_nullable_to_non_nullable
+              as BookQueue,
+    ) as $Val);
+  }
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $BookDetailCopyWith<$Res> get detail {
+    return $BookDetailCopyWith<$Res>(_value.detail, (value) {
+      return _then(_value.copyWith(detail: value) as $Val);
+    });
+  }
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $BookQueueCopyWith<$Res> get queue {
+    return $BookQueueCopyWith<$Res>(_value.queue, (value) {
+      return _then(_value.copyWith(queue: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$BookDetailDataImplCopyWith<$Res>
+    implements $BookDetailDataCopyWith<$Res> {
+  factory _$$BookDetailDataImplCopyWith(_$BookDetailDataImpl value,
+          $Res Function(_$BookDetailDataImpl) then) =
+      __$$BookDetailDataImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({BookDetail detail, List<BookCopy> copies, BookQueue queue});
+
+  @override
+  $BookDetailCopyWith<$Res> get detail;
+  @override
+  $BookQueueCopyWith<$Res> get queue;
+}
+
+/// @nodoc
+class __$$BookDetailDataImplCopyWithImpl<$Res>
+    extends _$BookDetailDataCopyWithImpl<$Res, _$BookDetailDataImpl>
+    implements _$$BookDetailDataImplCopyWith<$Res> {
+  __$$BookDetailDataImplCopyWithImpl(
+      _$BookDetailDataImpl _value, $Res Function(_$BookDetailDataImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detail = null,
+    Object? copies = null,
+    Object? queue = null,
+  }) {
+    return _then(_$BookDetailDataImpl(
+      detail: null == detail
+          ? _value.detail
+          : detail // ignore: cast_nullable_to_non_nullable
+              as BookDetail,
+      copies: null == copies
+          ? _value._copies
+          : copies // ignore: cast_nullable_to_non_nullable
+              as List<BookCopy>,
+      queue: null == queue
+          ? _value.queue
+          : queue // ignore: cast_nullable_to_non_nullable
+              as BookQueue,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$BookDetailDataImpl implements _BookDetailData {
+  const _$BookDetailDataImpl(
+      {required this.detail,
+      final List<BookCopy> copies = const <BookCopy>[],
+      this.queue = const BookQueue()})
+      : _copies = copies;
+
+  factory _$BookDetailDataImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BookDetailDataImplFromJson(json);
+
+  @override
+  final BookDetail detail;
+  final List<BookCopy> _copies;
+  @override
+  @JsonKey()
+  List<BookCopy> get copies {
+    if (_copies is EqualUnmodifiableListView) return _copies;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_copies);
+  }
+
+  @override
+  @JsonKey()
+  final BookQueue queue;
+
+  @override
+  String toString() {
+    return 'BookDetailData(detail: $detail, copies: $copies, queue: $queue)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BookDetailDataImpl &&
+            (identical(other.detail, detail) || other.detail == detail) &&
+            const DeepCollectionEquality().equals(other._copies, _copies) &&
+            (identical(other.queue, queue) || other.queue == queue));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, detail, const DeepCollectionEquality().hash(_copies), queue);
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BookDetailDataImplCopyWith<_$BookDetailDataImpl> get copyWith =>
+      __$$BookDetailDataImplCopyWithImpl<_$BookDetailDataImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BookDetailDataImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BookDetailData implements BookDetailData {
+  const factory _BookDetailData(
+      {required final BookDetail detail,
+      final List<BookCopy> copies,
+      final BookQueue queue}) = _$BookDetailDataImpl;
+
+  factory _BookDetailData.fromJson(Map<String, dynamic> json) =
+      _$BookDetailDataImpl.fromJson;
+
+  @override
+  BookDetail get detail;
+  @override
+  List<BookCopy> get copies;
+  @override
+  BookQueue get queue;
+
+  /// Create a copy of BookDetailData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BookDetailDataImplCopyWith<_$BookDetailDataImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 AppNotification _$AppNotificationFromJson(Map<String, dynamic> json) {
   return _AppNotification.fromJson(json);
 }

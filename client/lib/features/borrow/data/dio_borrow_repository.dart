@@ -57,31 +57,66 @@ class DioBorrowRepository implements BorrowRepository {
 
   @override
   Future<BorrowDashboard> fetchDashboard() async {
-    final items = await _borrows();
-    final ready = await _readyBooks();
+    final results = await Future.wait<Object>([
+      _borrows(),
+      _readyBooks(),
+      _summary(),
+      _unread(),
+    ]);
+    final items = results[0] as List<BorrowItem>;
+    final ready = results[1] as List<ReadyBook>;
+    final summary = results[2] as Map<String, dynamic>;
+    final unread = results[3] as int;
     final now = DateTime.now();
     final overdue = items.where((item) => item.overdueDays > 0).length;
     final dueSoon = items
         .where((item) =>
-            item.overdueDays == 0 && item.daysLeft >= 0 && item.daysLeft <= 2)
+            item.overdueDays == 0 && item.daysLeft >= 0 && item.daysLeft <= 3)
         .length;
     final sorted = [...items]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
     return BorrowDashboard(
       summary: BorrowSummary(
-        borrowing: items.length,
-        dueSoon: dueSoon,
-        overdue: overdue,
-        returnedThisTerm: 0,
-        creditLabel: '信用良好',
-        quotaUsed: items.length,
-        quotaTotal: 5,
+        borrowing: _int(summary['borrowed'], items.length),
+        dueSoon: _int(summary['dueIn3Days'], dueSoon),
+        overdue: _int(summary['overdue'], overdue),
+        returnedThisTerm: _int(summary['returnedThisTerm'], 0),
+        creditLabel: (summary['creditLabel'] ?? '信用良好').toString(),
+        quotaUsed: _int(summary['borrowed'], items.length),
+        quotaTotal: _int(summary['quota'], 10),
       ),
       dueSoon: sorted,
       readyBooks: ready,
       feeNote: '逾期费用按天计费 · 归还时一次结清',
       lastSyncAt: now,
+      unreadCount: unread,
     );
   }
+
+  Future<Map<String, dynamic>> _summary() async {
+    try {
+      return await _client.get<Map<String, dynamic>>(
+        Endpoints.meSummary,
+        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
+      );
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<int> _unread() async {
+    try {
+      final data = await _client.get<Map<String, dynamic>>(
+        Endpoints.notificationsUnread,
+        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
+      );
+      return _int(data['unread'], 0);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  int _int(Object? value, int fallback) =>
+      value is num ? value.toInt() : int.tryParse('$value') ?? fallback;
 
   @override
   Future<DateTime> renew(String orderId) async {

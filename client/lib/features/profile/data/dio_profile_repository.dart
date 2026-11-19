@@ -14,29 +14,34 @@ class DioProfileRepository implements ProfileRepository {
 
   @override
   Future<ProfileData> fetchProfile() async {
-    final me = await _client.get<Map<String, dynamic>>(
-      Endpoints.me,
-      decode: (data) => data as Map<String, dynamic>,
-    );
-    final borrows = await _client.get<Map<String, dynamic>>(
-      Endpoints.myBorrows,
-      query: {'page': 1, 'size': 100},
-      decode: (data) => data as Map<String, dynamic>,
-    );
-    final reservations = await _client.get<Map<String, dynamic>>(
-      Endpoints.myReservations,
-      query: {'page': 1, 'size': 100},
-      decode: (data) => data as Map<String, dynamic>,
-    );
+    final results = await Future.wait<Object>([
+      _client.get<Map<String, dynamic>>(
+        Endpoints.me,
+        decode: (data) => data as Map<String, dynamic>,
+      ),
+      _client.get<Map<String, dynamic>>(
+        Endpoints.myBorrows,
+        query: {'page': 1, 'size': 100},
+        decode: (data) => data as Map<String, dynamic>,
+      ),
+      _client.get<Map<String, dynamic>>(
+        Endpoints.myReservations,
+        query: {'page': 1, 'size': 100},
+        decode: (data) => data as Map<String, dynamic>,
+      ),
+      _summary(),
+      _unread(),
+    ]);
+    final me = results[0] as Map<String, dynamic>;
+    final borrows = results[1] as Map<String, dynamic>;
+    final reservations = results[2] as Map<String, dynamic>;
+    final summary = results[3] as Map<String, dynamic>;
+    final unread = results[4] as int;
 
     final borrowItems = (borrows['items'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .toList();
-    final overdueCount = borrowItems
-        .where(
-          (json) => (int.tryParse('${json['overdueDays'] ?? 0}') ?? 0) > 0,
-        )
-        .length;
+    final overdueCount = _int(summary['overdue'], 0);
     final reservationItems =
         (reservations['items'] as List<dynamic>? ?? const [])
             .whereType<Map<String, dynamic>>()
@@ -60,17 +65,45 @@ class DioProfileRepository implements ProfileRepository {
       studentNo: (me['studentNo'] ?? '').toString(),
       department: '',
       degree: roleLabel,
-      creditLabel: overdueCount > 0 ? '有逾期' : '信用良好',
-      quotaUsed: borrowItems.length,
-      quotaTotal: 10,
-      borrowingCount: borrowItems.length,
-      totalBorrowed: borrowItems.length,
+      creditLabel:
+          (summary['creditLabel'] ?? (overdueCount > 0 ? '有逾期' : '信用良好'))
+              .toString(),
+      quotaUsed: _int(summary['borrowed'], borrowItems.length),
+      quotaTotal: _int(summary['quota'], 10),
+      borrowingCount: _int(summary['borrowed'], borrowItems.length),
+      totalBorrowed: _int(summary['borrowed'], borrowItems.length),
       reservationCount: activeReservations,
-      returnedThisTerm: 0,
+      returnedThisTerm: _int(summary['returnedThisTerm'], 0),
       overdueCount: overdueCount,
-      unreadCount: 0,
+      unreadCount: unread,
     );
   }
+
+  Future<int> _unread() async {
+    try {
+      final data = await _client.get<Map<String, dynamic>>(
+        Endpoints.notificationsUnread,
+        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
+      );
+      return _int(data['unread'], 0);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<Map<String, dynamic>> _summary() async {
+    try {
+      return await _client.get<Map<String, dynamic>>(
+        Endpoints.meSummary,
+        decode: (data) => (data as Map<String, dynamic>?) ?? const {},
+      );
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  int _int(Object? value, int fallback) =>
+      value is num ? value.toInt() : int.tryParse('$value') ?? fallback;
 
   @override
   Future<void> logout() async {

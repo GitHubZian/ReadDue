@@ -1,3 +1,4 @@
+import 'package:client/core/config/app_env.dart';
 import 'package:client/core/storage/kv_store.dart';
 import 'package:client/core/storage/storage_providers.dart';
 import 'package:client/core/theme/app_theme.dart';
@@ -25,6 +26,7 @@ Future<void> pumpPage(
   final container = ProviderContainer(
     overrides: [
       kvStoreProvider.overrideWithValue(kv),
+      appUseMockProvider.overrideWithValue(true),
       ...overrides,
     ],
   );

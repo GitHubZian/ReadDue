@@ -14,6 +14,7 @@ import '../../../core/widgets/page_title.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../auth/presentation/auth_controller.dart';
+import 'privacy_page.dart';
 import 'profile_providers.dart';
 
 /// C7 我的：身份、额度、统计、入口组与退出登录。
@@ -336,6 +337,18 @@ class ProfilePage extends ConsumerWidget {
                 alignment: Alignment.centerLeft,
                 child: Text('设置', style: AppText.h3.copyWith(fontSize: 17)),
               ),
+            ),
+            _MenuRow(
+              icon: Icons.shield_outlined,
+              title: '隐私与提醒',
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                await Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PrivacyPage(),
+                  ),
+                );
+              },
             ),
             _MenuRow(
               icon: Icons.cleaning_services_outlined,

@@ -25,6 +25,8 @@ class ApiClient {
   final KvStore _kv;
   static const _uuid = Uuid();
 
+  String get readerNo => _kv.studentNo ?? '';
+
   Future<T> get<T>(
     String path, {
     Map<String, dynamic>? query,

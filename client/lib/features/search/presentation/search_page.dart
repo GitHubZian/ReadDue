@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_env.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/async_body.dart';
+import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/dialogs.dart';
 import '../../../core/widgets/enter_fade.dart';
 import '../../../core/widgets/page_title.dart';
@@ -31,15 +33,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   static const _filters = ['全部', '可借', '可预约'];
   static const _filterValues = ['all', 'available', 'reservable'];
 
-  final _controller = TextEditingController(text: '乡土');
+  late final String _initialQuery;
+  late final TextEditingController _controller;
   final _focusNode = FocusNode();
   Timer? _debounce;
-  String _query = '乡土';
+  late String _query;
   int _filter = 0;
 
   @override
   void initState() {
     super.initState();
+    _initialQuery = ref.read(appUseMockProvider) ? '乡土' : '';
+    _controller = TextEditingController(text: _initialQuery);
+    _query = _initialQuery;
     _focusNode.addListener(() {
       if (mounted) setState(() {});
     });
@@ -232,6 +238,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       index: index,
                       child: _BookRow(
                         book: data.items[index],
+                        onTap: () => _openDetail(data.items[index]),
                         onAction: () => _onAction(data.items[index]),
                       ),
                     );
@@ -245,48 +252,69 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
+  Future<void> _openDetail(BookItem book) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) => _BookDetailSheet(book: book, onBorrow: _borrow),
+    );
+  }
+
   Future<void> _onAction(BookItem book) async {
     if (book.status == 'AVAILABLE') {
-      final ok = await showConfirmDialog(
-        context,
-        title: '借阅《${book.title}》',
-        message: '确认借阅？到馆后凭校园卡取书，应还日以服务端为准。',
-        confirmLabel: '确认借阅',
-      );
-      if (ok && mounted) {
-        try {
-          await ref.read(searchRepositoryProvider).borrow(book.id);
-          if (!mounted) return;
-          ref.invalidate(borrowDashboardProvider);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('已借出《${book.title}》'),
-              action: SnackBarAction(
-                label: '查看我的借阅',
-                textColor: AppColors.mintSoft,
-                onPressed: () => context.go('/borrow'),
-              ),
-            ),
-          );
-        } catch (error) {
-          if (!mounted) return;
-          showToast(context, messageForError(error));
-        }
-      }
+      await _borrow(book);
       return;
     }
     if (book.status == 'EBOOK') {
       showToast(context, '正在打开电子书阅读器');
       return;
     }
-    showToast(context, '已加入预约队列，排位以服务端为准');
+    if (mounted) showToast(context, '已加入预约队列，排位以服务端为准');
+  }
+
+  Future<void> _borrow(BookItem book) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: '借阅《${book.title}》',
+      message: '确认借阅？到馆后凭校园卡取书，应还日以服务端为准。',
+      confirmLabel: '确认借阅',
+    );
+    if (!ok || !mounted) return;
+    try {
+      await ref.read(searchRepositoryProvider).borrow(book.id);
+      if (!mounted) return;
+      ref.invalidate(borrowDashboardProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已借出《${book.title}》'),
+          action: SnackBarAction(
+            label: '查看我的借阅',
+            textColor: AppColors.mintSoft,
+            onPressed: () => context.go('/borrow'),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showToast(context, messageForError(error));
+    }
   }
 }
 
 class _BookRow extends StatelessWidget {
-  const _BookRow({required this.book, required this.onAction});
+  const _BookRow({
+    required this.book,
+    required this.onTap,
+    required this.onAction,
+  });
 
   final BookItem book;
+  final VoidCallback onTap;
   final VoidCallback onAction;
 
   @override
@@ -299,6 +327,7 @@ class _BookRow extends StatelessWidget {
     };
     return AppCard(
       padding: const EdgeInsets.all(12),
+      onTap: onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -357,6 +386,214 @@ class _BookRow extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookDetailSheet extends ConsumerWidget {
+  const _BookDetailSheet({required this.book, required this.onBorrow});
+
+  final BookItem book;
+  final Future<void> Function(BookItem) onBorrow;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detail = ref.watch(bookDetailProvider(book.id));
+    return SafeArea(
+      top: false,
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.72,
+        minChildSize: 0.45,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.line,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            detail.when(
+              loading: () => const SizedBox(
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => ErrorState(
+                message: messageForError(error),
+                onRetry: () => ref.invalidate(bookDetailProvider(book.id)),
+              ),
+              data: (data) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BookCover(
+                        label: book.coverLabel,
+                        tone: book.availableCopies > 0
+                            ? CoverTone.mint
+                            : CoverTone.slate,
+                        width: 72,
+                        height: 96,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              data.detail.title,
+                              style: AppText.h3.copyWith(height: 1.25),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${data.detail.author} · ${data.detail.publisher}',
+                              style: AppText.caption
+                                  .copyWith(color: AppColors.ink2),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ISBN ${data.detail.isbn13}',
+                              style: AppText.caption
+                                  .copyWith(color: AppColors.ink3),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [
+                                StatusPill(
+                                  label: data.detail.availableCopies > 0
+                                      ? '可借 ${data.detail.availableCopies} 本'
+                                      : '已借出',
+                                  tone: data.detail.availableCopies > 0
+                                      ? PillTone.mint
+                                      : PillTone.slate,
+                                ),
+                                if (data.detail.queueLen > 0)
+                                  StatusPill(
+                                    label: '${data.detail.queueLen} 人排队',
+                                    tone: PillTone.amber,
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    data.detail.summary.isEmpty ? '暂无简介。' : data.detail.summary,
+                    style: AppText.bodySm.copyWith(
+                      color: AppColors.ink2,
+                      height: 1.7,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _DetailRow(
+                      label: '馆藏', value: '共 ${data.detail.totalCopies} 本'),
+                  _DetailRow(
+                    label: '可借',
+                    value: '${data.detail.availableCopies} 本',
+                  ),
+                  _DetailRow(
+                    label: '在借',
+                    value: '${data.detail.onLoanCopies} 本',
+                  ),
+                  _DetailRow(
+                    label: '定价',
+                    value: data.detail.price.isEmpty
+                        ? '—'
+                        : '¥ ${data.detail.price}',
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('馆藏位置', style: AppText.label),
+                  const SizedBox(height: 6),
+                  for (final copy in data.copies.take(4))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${copy.location.isEmpty ? '馆藏' : copy.location} · ${copy.barcode}',
+                              style: AppText.caption
+                                  .copyWith(color: AppColors.ink2),
+                            ),
+                          ),
+                          StatusPill(
+                            label: copy.status == 'AVAILABLE' ? '在架' : '借出',
+                            tone: copy.status == 'AVAILABLE'
+                                ? PillTone.mint
+                                : PillTone.slate,
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: PrimaryButton(
+                      label: data.detail.availableCopies > 0 ? '借阅' : '预约',
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        if (data.detail.availableCopies > 0) {
+                          await onBorrow(book);
+                        } else {
+                          showToast(context, '已加入预约队列，排位以服务端为准');
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: AppText.caption.copyWith(color: AppColors.ink3),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: AppText.caption.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

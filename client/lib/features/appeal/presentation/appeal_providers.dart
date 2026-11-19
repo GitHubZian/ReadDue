@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/app_config.dart';
+import '../../../core/config/app_env.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/network_providers.dart';
 import '../data/dio_appeal_repository.dart';
@@ -8,7 +8,7 @@ import '../data/mock_appeal_repository.dart';
 import '../domain/appeal_repository.dart';
 
 final appealRepositoryProvider = Provider<AppealRepository>((ref) {
-  if (AppConfig.useMock) return MockAppealRepository();
+  if (ref.watch(appUseMockProvider)) return MockAppealRepository();
   return DioAppealRepository(ref.watch(apiClientProvider));
 });
 

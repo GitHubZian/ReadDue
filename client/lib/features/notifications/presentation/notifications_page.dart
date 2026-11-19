@@ -27,6 +27,7 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   int _tab = 0;
   bool? _quietOverride;
+  bool? _emailOverride;
   bool _markingAll = false;
 
   @override
@@ -125,7 +126,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         const SizedBox(height: 10),
         AppCard(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          onTap: () => _openSettings(quietHours, quiet),
+          onTap: () => _openSettings(quietHours, quiet, data.channels),
           child: Row(
             children: [
               const Icon(Icons.settings_outlined,
@@ -168,7 +169,27 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     }
   }
 
-  Future<void> _openSettings(QuietHours quietHours, bool initial) async {
+  Future<void> _setEmail(bool enabled) async {
+    setState(() => _emailOverride = enabled);
+    try {
+      await ref
+          .read(notificationRepositoryProvider)
+          .setChannels(email: enabled);
+      if (!mounted) return;
+      ref.invalidate(notificationsProvider);
+      showToast(context, enabled ? '已开启邮件提醒' : '已关闭邮件提醒');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _emailOverride = null);
+      showToast(context, messageForError(error));
+    }
+  }
+
+  Future<void> _openSettings(
+    QuietHours quietHours,
+    bool initial,
+    NotificationChannels channels,
+  ) async {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.card,
@@ -179,6 +200,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheet) {
           final enabled = _quietOverride ?? initial;
+          final emailOn = _emailOverride ?? channels.email;
           return SafeArea(
             top: false,
             child: Padding(
@@ -215,6 +237,38 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                         onChanged: (value) {
                           setSheet(() {});
                           _setQuiet(value);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, color: AppColors.line2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '邮件提醒',
+                              style: AppText.bodySm.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '到期与逾期提醒同时发送到校园邮箱',
+                              style: AppText.caption
+                                  .copyWith(color: AppColors.ink3),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: emailOn,
+                        onChanged: (value) {
+                          setSheet(() {});
+                          _setEmail(value);
                         },
                       ),
                     ],

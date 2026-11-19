@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/app_config.dart';
+import '../../../core/config/app_env.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/network_providers.dart';
@@ -110,7 +110,7 @@ class AuthController extends StateNotifier<AuthState> {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final kv = ref.watch(kvStoreProvider);
-  if (AppConfig.useMock) return MockAuthRepository(kv);
+  if (ref.watch(appUseMockProvider)) return MockAuthRepository(kv);
   return DioAuthRepository(client: ref.watch(apiClientProvider), kv: kv);
 });
 

@@ -305,6 +305,65 @@ class ReservationsPage with _$ReservationsPage {
 }
 
 @freezed
+class BookCopy with _$BookCopy {
+  const factory BookCopy({
+    required String id,
+    required String barcode,
+    @Default('') String location,
+    @Default('AVAILABLE') String status,
+  }) = _BookCopy;
+
+  factory BookCopy.fromJson(Map<String, dynamic> json) =>
+      _$BookCopyFromJson(json);
+}
+
+@freezed
+class BookDetail with _$BookDetail {
+  const factory BookDetail({
+    required String id,
+    required String title,
+    required String author,
+    @Default('') String publisher,
+    @Default('') String isbn13,
+    @Default('') String publishDate,
+    @Default('') String price,
+    @Default('') String summary,
+    @Default(<String>[]) List<String> tags,
+    @Default(0) int totalCopies,
+    @Default(0) int availableCopies,
+    @Default(0) int onLoanCopies,
+    @Default(0) int queueLen,
+  }) = _BookDetail;
+
+  factory BookDetail.fromJson(Map<String, dynamic> json) =>
+      _$BookDetailFromJson(json);
+}
+
+@freezed
+class BookQueue with _$BookQueue {
+  const factory BookQueue({
+    @Default(0) int waiting,
+    int? myQueueNo,
+    String? myStatus,
+  }) = _BookQueue;
+
+  factory BookQueue.fromJson(Map<String, dynamic> json) =>
+      _$BookQueueFromJson(json);
+}
+
+@freezed
+class BookDetailData with _$BookDetailData {
+  const factory BookDetailData({
+    required BookDetail detail,
+    @Default(<BookCopy>[]) List<BookCopy> copies,
+    @Default(BookQueue()) BookQueue queue,
+  }) = _BookDetailData;
+
+  factory BookDetailData.fromJson(Map<String, dynamic> json) =>
+      _$BookDetailDataFromJson(json);
+}
+
+@freezed
 class AppNotification with _$AppNotification {
   const factory AppNotification({
     required String id,

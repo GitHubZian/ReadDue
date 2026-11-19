@@ -507,6 +507,92 @@ Map<String, dynamic> _$$ReservationsPageImplToJson(
       'isOffline': instance.isOffline,
     };
 
+_$BookCopyImpl _$$BookCopyImplFromJson(Map<String, dynamic> json) =>
+    _$BookCopyImpl(
+      id: json['id'] as String,
+      barcode: json['barcode'] as String,
+      location: json['location'] as String? ?? '',
+      status: json['status'] as String? ?? 'AVAILABLE',
+    );
+
+Map<String, dynamic> _$$BookCopyImplToJson(_$BookCopyImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'barcode': instance.barcode,
+      'location': instance.location,
+      'status': instance.status,
+    };
+
+_$BookDetailImpl _$$BookDetailImplFromJson(Map<String, dynamic> json) =>
+    _$BookDetailImpl(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      author: json['author'] as String,
+      publisher: json['publisher'] as String? ?? '',
+      isbn13: json['isbn13'] as String? ?? '',
+      publishDate: json['publishDate'] as String? ?? '',
+      price: json['price'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const <String>[],
+      totalCopies: (json['totalCopies'] as num?)?.toInt() ?? 0,
+      availableCopies: (json['availableCopies'] as num?)?.toInt() ?? 0,
+      onLoanCopies: (json['onLoanCopies'] as num?)?.toInt() ?? 0,
+      queueLen: (json['queueLen'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$BookDetailImplToJson(_$BookDetailImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'author': instance.author,
+      'publisher': instance.publisher,
+      'isbn13': instance.isbn13,
+      'publishDate': instance.publishDate,
+      'price': instance.price,
+      'summary': instance.summary,
+      'tags': instance.tags,
+      'totalCopies': instance.totalCopies,
+      'availableCopies': instance.availableCopies,
+      'onLoanCopies': instance.onLoanCopies,
+      'queueLen': instance.queueLen,
+    };
+
+_$BookQueueImpl _$$BookQueueImplFromJson(Map<String, dynamic> json) =>
+    _$BookQueueImpl(
+      waiting: (json['waiting'] as num?)?.toInt() ?? 0,
+      myQueueNo: (json['myQueueNo'] as num?)?.toInt(),
+      myStatus: json['myStatus'] as String?,
+    );
+
+Map<String, dynamic> _$$BookQueueImplToJson(_$BookQueueImpl instance) =>
+    <String, dynamic>{
+      'waiting': instance.waiting,
+      'myQueueNo': instance.myQueueNo,
+      'myStatus': instance.myStatus,
+    };
+
+_$BookDetailDataImpl _$$BookDetailDataImplFromJson(Map<String, dynamic> json) =>
+    _$BookDetailDataImpl(
+      detail: BookDetail.fromJson(json['detail'] as Map<String, dynamic>),
+      copies: (json['copies'] as List<dynamic>?)
+              ?.map((e) => BookCopy.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <BookCopy>[],
+      queue: json['queue'] == null
+          ? const BookQueue()
+          : BookQueue.fromJson(json['queue'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$BookDetailDataImplToJson(
+        _$BookDetailDataImpl instance) =>
+    <String, dynamic>{
+      'detail': instance.detail,
+      'copies': instance.copies,
+      'queue': instance.queue,
+    };
+
 _$AppNotificationImpl _$$AppNotificationImplFromJson(
         Map<String, dynamic> json) =>
     _$AppNotificationImpl(

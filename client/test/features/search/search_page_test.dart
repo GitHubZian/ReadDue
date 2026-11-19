@@ -21,6 +21,15 @@ class _FailingSearchRepository implements SearchRepository {
 
   @override
   Future<void> borrow(String bookId) async {}
+
+  @override
+  Future<BookDetailData> fetchDetail(String id) async {
+    throw const ApiException(
+      code: 'SERVER_ERROR',
+      message: '服务暂时不可用，请稍后重试',
+      statusCode: 500,
+    );
+  }
 }
 
 void main() {
@@ -31,6 +40,17 @@ void main() {
 
     expect(find.textContaining('乡土中国'), findsWidgets);
     expect(find.textContaining('找到'), findsWidgets);
+  });
+
+  testWidgets('C4 点结果卡展示馆藏详情', (tester) async {
+    await pumpPage(tester, const SearchPage());
+
+    await tester.tap(find.text('乡土中国').first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ISBN'), findsOneWidget);
+    expect(find.text('馆藏'), findsOneWidget);
+    expect(find.text('借阅'), findsWidgets);
   });
 
   testWidgets('C4 借阅成功后提示并给回 C1 的入口', (tester) async {

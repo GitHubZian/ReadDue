@@ -1,10 +1,18 @@
 import '../models/models.dart';
 
 /// 后端 JSON → 客户端模型。字段缺失时给中性值，不猜业务结论。
+///
+/// 带时区的时间统一换算到北京时间（UTC+8）再展示，避免模拟器/海外设备
+/// 因本地时区不同显示成另一个时刻；纯日期（yyyy-MM-dd）按字面保留。
 DateTime? parseTime(dynamic value) {
   final text = value?.toString();
   if (text == null || text.isEmpty || text == 'null') return null;
-  return DateTime.tryParse(text)?.toLocal();
+  final parsed = DateTime.tryParse(text);
+  if (parsed == null) return null;
+  final hasZone =
+      text.endsWith('Z') || RegExp(r'[+-]\d{2}:\d{2}$').hasMatch(text);
+  if (!hasZone) return parsed;
+  return parsed.toUtc().add(const Duration(hours: 8));
 }
 
 String coverLabelOf(String title) {
@@ -107,5 +115,48 @@ OrderDetail orderDetailFromJson(
     canGrace: true,
     timeline: timeline,
     settleNote: '待归还 · 归还后自动核算，减免费用需馆员操作并留痕',
+  );
+}
+
+/// 检索结果行。库存取后端视图口径，不在端上重算。
+BookItem bookItemFromJson(Map<String, dynamic> json) {
+  final title = (json['title'] ?? '—').toString();
+  final available = (json['availableCopies'] as num?)?.toInt() ?? 0;
+  final queue = (json['queueLen'] as num?)?.toInt() ?? 0;
+  final category = (json['categoryCode'] ?? '').toString();
+  return BookItem(
+    id: (json['id'] ?? '').toString(),
+    title: title,
+    author: (json['author'] ?? '').toString(),
+    publisher: (json['publisher'] ?? '').toString(),
+    callNo: category.isEmpty ? '' : category,
+    libraryLabel: available > 0 ? '可借 · $available 本' : '已借出 · 可预约',
+    status: available > 0 ? 'AVAILABLE' : 'ON_LOAN',
+    availableCopies: available,
+    queueLen: queue,
+    coverLabel: coverLabelOf(title),
+    coverTone: available > 0 ? 'mint' : 'slate',
+    year: (json['publishDate'] ?? '').toString().split('-').first,
+  );
+}
+
+BookDetail bookDetailFromJson(Map<String, dynamic> json) {
+  final tags = (json['tags'] as List<dynamic>? ?? const [])
+      .map((t) => t.toString())
+      .toList();
+  return BookDetail(
+    id: (json['id'] ?? '').toString(),
+    title: (json['title'] ?? '—').toString(),
+    author: (json['author'] ?? '').toString(),
+    publisher: (json['publisher'] ?? '').toString(),
+    isbn13: (json['isbn13'] ?? '').toString(),
+    publishDate: (json['publishDate'] ?? '').toString(),
+    price: (json['price'] ?? '').toString(),
+    summary: (json['summary'] ?? '').toString(),
+    tags: tags,
+    totalCopies: (json['totalCopies'] as num?)?.toInt() ?? 0,
+    availableCopies: (json['availableCopies'] as num?)?.toInt() ?? 0,
+    onLoanCopies: (json['onLoanCopies'] as num?)?.toInt() ?? 0,
+    queueLen: (json['queueLen'] as num?)?.toInt() ?? 0,
   );
 }
