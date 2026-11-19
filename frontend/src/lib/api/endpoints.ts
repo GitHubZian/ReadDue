@@ -34,6 +34,8 @@ export const endpoints = {
     templates: "/admin/templates",
     tasks: "/admin/notify-tasks",
     retry: (id: string) => `/admin/notify-tasks/${id}/retry`,
+    topics: "/admin/notify-topics",
+    topic: (code: string) => `/admin/notify-topics/${code}`,
   },
   users: {
     list: "/admin/users",
@@ -44,6 +46,16 @@ export const endpoints = {
     root: "/admin/rules",
     tiers: "/admin/tiers",
     calendar: "/admin/calendar",
+    calendarItem: (id: string) => `/admin/calendar/${id}`,
+  },
+  roles: {
+    list: "/admin/roles",
+    permissions: "/admin/permissions",
+    permissionsOf: (code: string) => `/admin/roles/${code}/permissions`,
+  },
+  files: {
+    upload: "/files",
+    download: (id: string) => `/files/${id}`,
   },
   audit: {
     list: "/admin/audit-logs",

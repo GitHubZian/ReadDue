@@ -98,6 +98,15 @@ export interface TimelineItem {
   text: string;
 }
 
+export interface Evidence {
+  id?: string;
+  label?: string;
+  url?: string;
+  name?: string;
+  size?: number;
+  contentType?: string;
+}
+
 export interface GraceRecord {
   id: string;
   code: string;
@@ -110,7 +119,7 @@ export interface GraceRecord {
   approvedDays?: number;
   slaDeadline: string;
   createdAt: string;
-  evidence: { label: string; url: string }[];
+  evidence: Evidence[];
   history: TimelineItem[];
   fineBefore?: string;
 }
@@ -335,4 +344,33 @@ export interface CalendarEntry {
   endDate: string;
   source: string;
   note: string;
+}
+/* ---------------- 角色与权限 ---------------- */
+
+export interface RoleView {
+  code: string;
+  name: string;
+  dataScope: string;
+  permissions: string[];
+  permissionCount: number;
+}
+
+export interface PermissionView {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  module: string;
+}
+
+/* ---------------- 通知主题策略 ---------------- */
+
+export interface NotifyTopic {
+  topicCode: string;
+  name: string;
+  priority: string;
+  defaultFrequency: string;
+  defaultChannels: string[];
+  enabled: boolean;
+  sort: number;
 }
