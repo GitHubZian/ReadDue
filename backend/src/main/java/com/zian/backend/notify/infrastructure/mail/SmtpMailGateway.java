@@ -1,6 +1,7 @@
 package com.zian.backend.notify.infrastructure.mail;
 
 import com.zian.backend.notify.domain.port.MailGateway;
+import com.zian.backend.shared.common.Masks;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -42,7 +43,7 @@ public class SmtpMailGateway implements MailGateway {
             log.warn("邮件通道未配置，EMAIL 投递将记为 SKIPPED(MAIL_DISABLED)");
             return;
         }
-        log.info("邮件通道已配置 host={} account={}", host, mask(username));
+        log.info("邮件通道已配置 host={} account={}", host, Masks.email(username));
     }
 
     /**
@@ -74,22 +75,10 @@ public class SmtpMailGateway implements MailGateway {
         message.setSubject(subject);
         message.setText(body);
         sender.send(message);
-        log.info("邮件已发送 to={} subject={}", mask(to), subject);
+        log.info("邮件已发送 to={} subject={}", Masks.email(to), Masks.text(subject, 120));
     }
 
     private boolean configured() {
         return !host.isBlank() && !username.isBlank();
-    }
-
-    /** 邮箱脱敏：保留首字符与域名，例如 2***@qq.com。 */
-    static String mask(String address) {
-        if (address == null || address.isEmpty()) {
-            return "***";
-        }
-        int at = address.indexOf('@');
-        if (at <= 0) {
-            return "***";
-        }
-        return address.charAt(0) + "***" + address.substring(at);
     }
 }

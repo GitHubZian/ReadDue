@@ -4,6 +4,7 @@ import com.zian.backend.iam.application.UserQueryService;
 import com.zian.backend.iam.domain.model.User;
 import com.zian.backend.notify.domain.port.MailGateway;
 import com.zian.backend.notify.domain.repository.NotifyDeliveryRepository;
+import com.zian.backend.shared.common.Masks;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,15 +46,10 @@ public class EmailDeliveryService {
             mailGateway.send(email, subject, body);
             deliveryRepository.append(taskId, "EMAIL", "SENT", 1, null, null);
         } catch (RuntimeException e) {
-            log.warn("邮件发送失败 taskId={} to={}: {}", taskId, mask(email), e.getMessage());
-            deliveryRepository.append(taskId, "EMAIL", "FAILED", 1, "SEND_FAILED", e.getMessage());
+            String reason = Masks.text(e.getMessage(), 200);
+            log.warn("邮件发送失败 taskId={} to={}: {}", taskId, Masks.email(email), reason);
+            deliveryRepository.append(taskId, "EMAIL", "FAILED", 1, "SEND_FAILED", reason);
             throw e;
         }
-    }
-
-    /** 日志脱敏：保留首字符与域名，避免把读者邮箱完整写进日志。 */
-    private static String mask(String address) {
-        int at = address.indexOf('@');
-        return at <= 0 ? "***" : address.charAt(0) + "***" + address.substring(at);
     }
 }

@@ -1,10 +1,12 @@
 package com.zian.backend.bootstrap.demo;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 本地演示数据：仅在 local profile 且 app.demo.enabled=true 时执行，且库中没有任何用户时插入一次。
@@ -27,41 +29,32 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);
     private static final String DEMO_PASSWORD = "123456";
-    private static final List<String> DEMO_TABLES = List.of(
-            "event_outbox",
-            "audit_log",
-            "notify_delivery",
-            "notify_task",
-            "appeal_event",
-            "appeal_ticket",
-            "lost_book_report",
-            "grace_application",
-            "reservation",
-            "renew_record",
-            "borrow_order",
-            "book_copy",
-            "book",
-            "user_status_log",
-            "reader_credit",
-            "reader_quiet_hours",
-            "reader_channel_pref",
-            "reader_profile",
-            "sys_user");
 
     private final DemoSeedMapper seed;
     private final PasswordEncoder passwordEncoder;
+    private final TransactionTemplate transactionTemplate;
     private final boolean reset;
 
     public DemoDataInitializer(
-            DemoSeedMapper seed, PasswordEncoder passwordEncoder, @Value("${app.demo.reset:false}") boolean reset) {
+            DemoSeedMapper seed,
+            PasswordEncoder passwordEncoder,
+            TransactionTemplate transactionTemplate,
+            @Value("${app.demo.reset:false}") boolean reset) {
         this.seed = seed;
         this.passwordEncoder = passwordEncoder;
+        this.transactionTemplate = transactionTemplate;
         this.reset = reset;
     }
 
     @Override
-    @Transactional
     public void run(String... args) {
+        // 演示种子是本地开发夹具，用编程式事务保证「要么全写入、要么全回滚」；
+        // 业务代码仍然只在 application 层用 @Transactional。
+        transactionTemplate.executeWithoutResult(status -> seed());
+    }
+
+    /** 在单个事务内写入演示数据；库中已有用户时跳过。 */
+    private void seed() {
         if (reset) {
             clearDemoData();
         }
@@ -127,13 +120,16 @@ public class DemoDataInitializer implements CommandLineRunner {
         reservation(book1, lin, 2, "WAITING", now.minusDays(1));
         reservation(book4, zhao, 1, "READY", now.minusDays(1), now.minusHours(20), now.plusHours(28));
 
-        grace("GA20260210001", o1, chen, "EXAM", "CALENDAR", 7, "0.85", "1.00", 5, "PENDING", null, now.minusHours(3));
-        grace("GA20260209002", o4, zhao, "THESIS", "BOTH", 10, "1.00", "0.85", 9, "APPROVED", 9, now.minusDays(2));
-        grace("GA20260208003", o2, zhou, "GRADUATION", "DECLARED", 14, "0.70", "0.70", 7, "REJECTED", null, now.minusDays(3));
+        grace("GA20260210001", o1, chen, "EXAM", "CALENDAR", 7, "0.85", "1.00", 5, "PENDING", null,
+                now.minusHours(3));
+        long g2 = grace("GA20260209002", o4, zhao, "THESIS", "BOTH", 10, "1.00", "0.85", 9, "APPROVED", 9,
+                now.minusDays(2));
+        grace("GA20260208003", o2, zhou, "GRADUATION", "DECLARED", 14, "0.70", "0.70", 7, "REJECTED", null,
+                now.minusDays(3));
 
         appeal("AP20260210001", chen, "OVERDUE_TIER", o1, "系统判定逾期不成立，考试周前后我在外地实习，已提前申请宽限。",
                 "OPEN", now.plusHours(2), 0, null, now.minusHours(1));
-        appeal("AP20260209002", zhou, "GRACE", 2L, "宽限天数与考试周不匹配，希望按校历重新核算。",
+        long a2 = appeal("AP20260209002", zhou, "GRACE", g2, "宽限天数与考试周不匹配，希望按校历重新核算。",
                 "ACKED", now.minusHours(1), 1, librarianId, now.minusDays(1));
 
         task("RETURN_REMIND:" + o1 + ":L1", chen, o1, "L1", now.minusDays(13), "SENT");
@@ -145,9 +141,9 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         audit(adminId, "ADMIN", "RULE_UPDATE", "RULE", null, "调整宽限上限", "{\"GRACE.DMAX\":\"14\"}", "127.0.0.1",
                 now.minusDays(1));
-        audit(librarianId, "LIBRARIAN", "GRACE_APPROVE", "GRACE_APPLICATION", 2, "通过毕业季宽限申请",
+        audit(librarianId, "LIBRARIAN", "GRACE_APPROVE", "GRACE_APPLICATION", g2, "通过毕业季宽限申请",
                 "{\"days\":9}", "127.0.0.1", now.minusDays(2));
-        audit(librarianId, "LIBRARIAN", "APPEAL_ACK", "APPEAL_TICKET", 2, "受理申诉", "{}", "127.0.0.1",
+        audit(librarianId, "LIBRARIAN", "APPEAL_ACK", "APPEAL_TICKET", a2, "受理申诉", "{}", "127.0.0.1",
                 now.minusDays(1));
         audit(adminId, "ADMIN", "USER_BLACKLIST", "SYS_USER", wu, "拉黑违规读者",
                 "{\"reason\":\"连续三次逾期未归还\"}", "127.0.0.1", now.minusDays(3));
@@ -157,7 +153,25 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     /** 重建演示数据前清空业务表（仅 local profile 且 app.demo.reset=true 时调用）。 */
     private void clearDemoData() {
-        DEMO_TABLES.forEach(seed::clear);
+        seed.clearEventOutbox();
+        seed.clearAuditLog();
+        seed.clearNotifyDelivery();
+        seed.clearNotifyTask();
+        seed.clearAppealEvent();
+        seed.clearAppealTicket();
+        seed.clearLostBookReport();
+        seed.clearGraceApplication();
+        seed.clearReservation();
+        seed.clearRenewRecord();
+        seed.clearBorrowOrder();
+        seed.clearBookCopy();
+        seed.clearBook();
+        seed.clearUserStatusLog();
+        seed.clearReaderCredit();
+        seed.clearReaderQuietHours();
+        seed.clearReaderChannelPref();
+        seed.clearReaderProfile();
+        seed.clearSysUser();
         log.info("已清空演示数据，准备重建");
     }
 
@@ -171,7 +185,7 @@ public class DemoDataInitializer implements CommandLineRunner {
             String status,
             String blacklistReason,
             LocalDateTime now) {
-        seed.insertUser(userNo, role, name, phone, email, hash, status, blacklistReason,
+        seed.insertUser(IdWorker.getId(), userNo, role, name, phone, email, hash, status, blacklistReason,
                 blacklistReason == null ? null : now, now);
         return seed.findUserId(userNo);
     }
@@ -182,13 +196,13 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private long book(
             String isbn, String title, String author, String publisher, String price, String summary, String tags) {
-        seed.insertBook(isbn, title, author, publisher, LocalDate.of(2016, 11, 1), "TP",
+        seed.insertBook(IdWorker.getId(), isbn, title, author, publisher, LocalDate.of(2016, 11, 1), "TP",
                 new BigDecimal(price), summary, tags);
         return seed.findBookId(isbn);
     }
 
     private long copy(long bookId, String barcode, String location, String status) {
-        seed.insertCopy(bookId, barcode, location, status, LocalDate.now().minusYears(2));
+        seed.insertCopy(IdWorker.getId(), bookId, barcode, location, status, LocalDate.now().minusYears(2));
         return seed.findCopyId(barcode);
     }
 
@@ -205,7 +219,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         int overdueDays = returnedAt == null
                 ? 0
                 : (int) Math.max(0, ChronoUnit.DAYS.between(effectiveDueAt, returnedAt.toLocalDate()));
-        seed.insertBorrow(orderNo, readerId, bookId, copyId, borrowedAt, dueAt, effectiveDueAt,
+        seed.insertBorrow(IdWorker.getId(), orderNo, readerId, bookId, copyId, borrowedAt, dueAt, effectiveDueAt,
                 0, 0, returnedAt, overdueDays, status, returnedAt == null ? null : "GOOD");
         return seed.findBorrowId(orderNo);
     }
@@ -222,10 +236,10 @@ public class DemoDataInitializer implements CommandLineRunner {
             LocalDateTime createdAt,
             LocalDateTime readyAt,
             LocalDateTime expiresAt) {
-        seed.insertReservation(bookId, readerId, queueNo, status, readyAt, expiresAt, createdAt);
+        seed.insertReservation(IdWorker.getId(), bookId, readerId, queueNo, status, readyAt, expiresAt, createdAt);
     }
 
-    private void grace(
+    private long grace(
             String applyNo,
             Long orderId,
             long readerId,
@@ -238,16 +252,17 @@ public class DemoDataInitializer implements CommandLineRunner {
             String status,
             Integer grantedDays,
             LocalDateTime createdAt) {
-        seed.insertGrace(applyNo, orderId, readerId, scene, source,
+        seed.insertGrace(IdWorker.getId(), applyNo, orderId, readerId, scene, source,
                 "CALENDAR".equals(source) ? 1 : 0,
                 new BigDecimal(baseDays), new BigDecimal(kt), new BigDecimal(kq),
                 new BigDecimal(computedDays), grantedDays,
                 "考试周与实习安排重叠，附实习证明与校历截图。",
                 createdAt.plusHours(24), status,
                 "PENDING".equals(status) ? null : createdAt.plusHours(1), createdAt);
+        return Objects.requireNonNull(seed.findGraceId(applyNo), "宽限申请插入失败: " + applyNo);
     }
 
-    private void appeal(
+    private long appeal(
             String ticketNo,
             long readerId,
             String targetType,
@@ -258,14 +273,16 @@ public class DemoDataInitializer implements CommandLineRunner {
             int slaBreached,
             Long assigneeId,
             LocalDateTime createdAt) {
-        seed.insertAppeal(ticketNo, readerId, targetType, targetId, reason, status, slaDueAt,
+        seed.insertAppeal(IdWorker.getId(), ticketNo, readerId, targetType, targetId, reason, status, slaDueAt,
                 "ACKED".equals(status) ? createdAt.plusMinutes(30) : null,
                 slaBreached, assigneeId, assigneeId == null ? null : "李倩", createdAt);
+        return Objects.requireNonNull(seed.findAppealId(ticketNo), "申诉工单插入失败: " + ticketNo);
     }
 
     private void task(
             String dedupKey, long readerId, Long orderId, String level, LocalDateTime planAt, String status) {
-        seed.insertTask(dedupKey, readerId, orderId, level, planAt, status, "{\"orderId\":" + orderId + "}");
+        seed.insertTask(IdWorker.getId(), dedupKey, readerId, orderId, level, planAt, status,
+                "{\"orderId\":" + orderId + "}");
     }
 
     private void audit(
@@ -278,7 +295,7 @@ public class DemoDataInitializer implements CommandLineRunner {
             String detail,
             String ip,
             LocalDateTime at) {
-        seed.insertAudit(actorId, actorRole, action, objectType,
+        seed.insertAudit(IdWorker.getId(), actorId, actorRole, action, objectType,
                 objectId == null ? 0L : Long.valueOf(String.valueOf(objectId)),
                 purpose, detail, ip, at);
     }

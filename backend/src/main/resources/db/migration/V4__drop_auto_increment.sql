@@ -1,0 +1,60 @@
+-- =============================================================
+-- V4：去掉主键 AUTO_INCREMENT，主键统一由应用侧雪花 id 生成
+--   1) MyBatis-Plus 全局 id-type=assign_id，业务写入一律显式带 id；
+--   2) 演示种子（DemoSeedMapper）改为显式 id，不再依赖自增；
+--   3) 列类型 / 可空性 / COMMENT 与 V1 保持一致（仅 sys_user.id 有 COMMENT '主键'）。
+-- 说明：V2 的参考数据插入在 Flyway 顺序上早于本迁移，全新库仍可用自增取号；
+--      本迁移只改列属性，不动主键与唯一索引，外键引用列类型不变。
+-- 外键子表引用了这些 id 列，InnoDB 默认拒绝对被引用列做 MODIFY（ERROR 1833）；
+-- 列类型未变，仅在会话内关闭外键检查执行 DDL，结束后恢复。
+-- =============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE sys_user MODIFY COLUMN id BIGINT UNSIGNED NOT NULL COMMENT '主键';
+
+ALTER TABLE sys_role MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE sys_permission MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE sys_role_permission MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE user_status_log MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE reader_channel_pref MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE book MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE book_copy MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE borrow_order MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE renew_record MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE reservation MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE academic_calendar MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE grace_application MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE rule_param MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE overdue_tier MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE notify_template MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE notify_task MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE notify_delivery MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE event_outbox MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE appeal_ticket MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE appeal_event MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE lost_book_report MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+ALTER TABLE audit_log MODIFY COLUMN id BIGINT UNSIGNED NOT NULL;
+
+SET FOREIGN_KEY_CHECKS = 1;

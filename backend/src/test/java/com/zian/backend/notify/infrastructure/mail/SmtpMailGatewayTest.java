@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.zian.backend.shared.common.Masks;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -47,7 +48,7 @@ class SmtpMailGatewayTest {
 
     @Test
     void masksAccountInLogs() {
-        assertThat(SmtpMailGateway.mask("2927251542@qq.com")).isEqualTo("2***@qq.com");
-        assertThat(SmtpMailGateway.mask(null)).isEqualTo("***");
+        assertThat(Masks.email("2927251542@qq.com")).isEqualTo("2***@qq.com");
+        assertThat(Masks.email(null)).isEqualTo("***");
     }
 }

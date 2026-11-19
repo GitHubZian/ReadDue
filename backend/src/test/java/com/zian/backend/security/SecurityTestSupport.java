@@ -2,6 +2,7 @@ package com.zian.backend.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
@@ -50,21 +51,19 @@ abstract class SecurityTestSupport {
     }
 
     protected long createUser(String userNo, String role, String status, String blacklistReason) {
+        long id = IdWorker.getId();
         jdbc.update(
                 """
-                INSERT INTO sys_user (user_no, role, name, password_hash, status, blacklist_reason, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                INSERT INTO sys_user (id, user_no, role, name, password_hash, status, blacklist_reason, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 """,
+                id,
                 userNo,
                 role,
                 "安全审计-" + role,
                 passwordEncoder.encode(DEMO_PASSWORD),
                 status,
                 blacklistReason);
-        Long id = jdbc.queryForObject("SELECT id FROM sys_user WHERE user_no = ?", Long.class, userNo);
-        if (id == null) {
-            throw new IllegalStateException("测试账号插入失败：" + userNo);
-        }
         return id;
     }
 
@@ -72,17 +71,15 @@ abstract class SecurityTestSupport {
     protected Fixture createBookWithCopy(String copyStatus) {
         String isbn = "T" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String barcode = "TBC" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
-        jdbc.update("INSERT INTO book (isbn13, title, status) VALUES (?, ?, 1)", isbn, "安全审计测试书目");
-        Long bookId = jdbc.queryForObject("SELECT id FROM book WHERE isbn13 = ?", Long.class, isbn);
+        long bookId = IdWorker.getId();
+        long copyId = IdWorker.getId();
+        jdbc.update("INSERT INTO book (id, isbn13, title, status) VALUES (?, ?, ?, 1)", bookId, isbn, "安全审计测试书目");
         jdbc.update(
-                "INSERT INTO book_copy (book_id, barcode, status, acquired_at) VALUES (?, ?, ?, CURDATE())",
+                "INSERT INTO book_copy (id, book_id, barcode, status, acquired_at) VALUES (?, ?, ?, ?, CURDATE())",
+                copyId,
                 bookId,
                 barcode,
                 copyStatus);
-        Long copyId = jdbc.queryForObject("SELECT id FROM book_copy WHERE barcode = ?", Long.class, barcode);
-        if (bookId == null || copyId == null) {
-            throw new IllegalStateException("测试馆藏插入失败");
-        }
         return new Fixture(bookId, copyId, barcode);
     }
 
@@ -90,22 +87,20 @@ abstract class SecurityTestSupport {
     protected long createActiveLoan(long readerId, Fixture fixture) {
         String orderNo = "TO" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         LocalDate due = LocalDate.now().plusDays(20);
+        long id = IdWorker.getId();
         jdbc.update(
                 """
-                INSERT INTO borrow_order (order_no, reader_id, book_id, copy_id, borrowed_at, due_at,
+                INSERT INTO borrow_order (id, order_no, reader_id, book_id, copy_id, borrowed_at, due_at,
                                           effective_due_at, status)
-                VALUES (?, ?, ?, ?, NOW(), ?, ?, 'BORROWED')
+                VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, 'BORROWED')
                 """,
+                id,
                 orderNo,
                 readerId,
                 fixture.bookId(),
                 fixture.copyId(),
                 due,
                 due);
-        Long id = jdbc.queryForObject("SELECT id FROM borrow_order WHERE order_no = ?", Long.class, orderNo);
-        if (id == null) {
-            throw new IllegalStateException("测试借阅单插入失败");
-        }
         return id;
     }
 
