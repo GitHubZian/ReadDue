@@ -21,14 +21,23 @@
 | 校历 | `GET /admin/calendar` | 真实 | 规则参数页「校历命中」；后端当前为空表 |
 | 审计日志 | `GET /admin/audit-logs`、`/audit-logs/{id}`、`/audit-logs/export` | 真实 | `action` 是动作码，前端映射中文；`detail` 多为 `"{}"`、`traceId` 为空 → 显示「—」；实际无 EXCEPTION 分类，筛选已移除该段 |
 
-## 未接 / 后端缺口
+## 未接 / 后端缺口（2026-11-19 复核）
 
-- `GET /admin/calendar`：后端只读且当前返回空表，规则参数页以空态展示；校历写入接口尚未开放。
-- 续借没有 HTTP 端点，借还台只做借出/归还。
-- 宽限证据附件、审计 `traceId`/`before`/`after` 后端未落库，前端按空态处理。
-- `sort` 参数后端接收但不生效，列表按服务端默认顺序；分页默认 `size=20`，页面各自传 8–12。
-- `Idempotency-Key` 后端仅接收不去重，前端照发，重试语义仍以后端为准。
+以下为 **2026-11-06 之后又补齐** 的能力，前端可直接接入；更细的字段与示例见 `后端的交互接口文档.md`。
 
+- 书目检索（B-01）：`GET /v1/books`、`/v1/books/{id}`、`/v1/books/{id}/copies`、`/v1/books/{id}/queue`，权限 `catalog:read`。
+- 消息中心（B-02）：`GET /v1/notifications`、`/unread-count`、`PUT /v1/notifications/read`。
+- 首页摘要（B-03）：`GET /v1/me/summary`（在借/三天内到期/逾期/配额/本学期归还/信用等级）。
+- 渠道开关（B-04）：`GET/PUT /v1/me/channels`；免打扰（B-05）：`GET/PUT /v1/me/quiet-hours`。
+- 通知偏好（B-06）：`GET /v1/me/notify-topics`、`GET/PUT /v1/me/notify-preferences`、`GET /v1/me/notify-preferences/log`；管理端 `GET/PUT /v1/admin/notify-topics`。
+- 校历写入（B-07）：`POST /v1/admin/calendar`、`PUT/DELETE /v1/admin/calendar/{id}`（`rule:update`）。
+- 宽限证据（B-08）：`POST /v1/files`（≤5MB，png/jpg/pdf）、`GET /v1/files/{id}`；`POST /v1/graces` 支持 `evidenceIds`，详情 `GET /v1/graces/{id}` 返回 `evidence[]`。
+- 审计增强（B-09）：审计列表/详情多 `traceId`、`before`、`after`，导出 CSV 追加三列。
+- 隐私自助（B-10）：`GET/PUT /v1/me/consents`、`POST /v1/me/forget`。
+- 刷新令牌（B-11）：`POST /v1/auth/refresh`（旧 token 立即失效）。
+- 角色权限（B-12）：`GET /v1/admin/roles`、`GET /v1/admin/permissions`、`PUT /v1/admin/roles/{code}/permissions`（修改后立即生效，前端守卫可重拉 `/me`）。
+
+仍待前端处理：`sort` 已从后端移除（传了也会被忽略，列表固定排序）；`Idempotency-Key` 已生效，重试同键会回放首次响应。
 ## 已处理的数据差异
 
 1. 权限以登录返回的 `permissions` 为准：`can()` 不再用角色默认表兜底覆盖服务端结果（馆员曾因此误见「审计日志」）。

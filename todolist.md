@@ -79,7 +79,7 @@
 | C-07 | 隐私与偏好页 | APP | ⬜ 未开始 | B-06、B-10 |
 | X-01 | 三端冒烟 | **FE 发起** | ⬜ 未开始 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ⬜ 未开始 | B-01…B-05 |
-| X-03 | 文档回填校验 | **BE 发起** | ⬜ 未开始 | 每批结束 |
+| X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
 | X-04 | `.gitattributes` | **BE 发起** | ⬜ 未开始 | 无 |
 
 ---
@@ -155,7 +155,7 @@
 | --- | --- | --- | --- | --- | --- |
 | **X-01** | 三端冒烟 | **FE** | BE、APP | 8125 + 5173 + 模拟器同时跑；C1→C3、A5→A7 两条链路无阻断，三条截图/日志留证 | ⬜ 未开始 |
 | **X-02** | 并发压测 | **BE** | FE | 200 并发归还 + 100 并发催还；P95 < 800ms、无 5xx、无死锁 | ⬜ 未开始 |
-| **X-03** | 文档回填校验 | **BE** | FE、APP | 每批结束后 `技术架构.md` §7/§7.1、`API-INTEGRATION.md`、`client/AGENT.md` 三处端点一致，grep 无幽灵路径 | ⬜ 未开始 |
+| **X-03** | 文档回填校验 | **BE** | FE、APP | 每批结束后 `技术架构.md` §7/§7.1、`API-INTEGRATION.md`、`client/AGENT.md` 三处端点一致，grep 无幽灵路径 | ✅ 2026-11-19 · `技术架构.md` 不存在（§11 X-03-D1）；FE 43 处 / 客户端 11 处 `/v1` 引用全部可解析；`frontend/docs/API-INTEGRATION.md` 缺口段已按 B-01…B-12 重写；报告 `temp/x03-doc-consistency.md` |
 | **X-04** | 换行统一 | **BE** | 全员 | `.gitattributes`（`* text=auto eol=lf`）后 `git status` 无 CRLF 警告 | ⬜ 未开始 |
 
 ---
@@ -221,6 +221,7 @@ flutter analyze; flutter test
 | 2026-11-19 | APP | C-05 申诉与个人中心 | C8 真实列表/提交、C7 真实资料页；`GET /v1/me` + 借阅/预约计数；时间统一北京时间；analyze 0 / test 23 绿；仓库无 `.git` 未提交 |
 | 2026-11-19 | BE | B-06 通知偏好 | 6 主题 + 差异偏好 + 日志 + 管理端字典；P0 必含 INBOX、P2 禁 REALTIME、SMS 422；排程写 `topic_code`/`pref_snapshot`，投递按快照∩渠道开关；V9；verify 67 run/1 skip |
 | 2026-11-19 | BE | B-07 校历写接口 | 新增/修改/软删除 + 学期场景起止校验、同场景重叠 422、CALENDAR_* 审计；verify 73 run/1 skip |
+| 2026-11-19 | BE | X-03 文档回填校验 | 全仓比对 76 个后端路径 vs FE 43 / 客户端 11 处引用，幽灵路径 0；`技术架构.md` 缺失登记 `X-03-D1`；FE `API-INTEGRATION.md` 缺口段重写为 B-01…B-12 新增端点清单，并纠正「续借/证据/traceId/sort/幂等/校历」六处过时描述 |
 | 2026-11-19 | BE | B-12 角色权限调整 | `GET /v1/admin/roles`、`GET /v1/admin/permissions`、`PUT /v1/admin/roles/{code}/permissions`；V13 新增 `role:manage`（仅 ADMIN）；全量替换、ADMIN 守卫；`JwtAuthenticationFilter` 回源使旧 token 立即失权；新增 `RoleAdminControllerTest` 4 例；verify 90 run/1 skip |
 | 2026-11-19 | BE | B-11 刷新令牌 | `POST /v1/auth/refresh`：校验旧 jti → 按库重算权限 → 签发新 token → 吊销旧 jti；旧 token 立即 401，同一旧 token 只能刷新一次；写 `AUTH_REFRESH` 审计；新增 `AuthRefreshTest` 3 例；verify 86 run/1 skip |
 | 2026-11-19 | BE | B-10 隐私授权与遗忘 | V12 增 `privacy:self`；`GET/PUT /v1/me/consents` 默认最小授权、关闭记 `consentRevokedAt` 并写 `CONSENT_REVOKE`；`POST /v1/me/forget` 脱敏姓名/手机/邮箱/院系、保留借阅事实、写 `USER_FORGET`，重复 409；新增 `PrivacyControllerTest` 4 例；verify 83 run/1 skip |
@@ -237,6 +238,7 @@ flutter analyze; flutter test
 | B-05-D1 | BE | 免打扰表 `reader_quiet_hours` 为单窗口（PK=user_id），本期只支持一个时段，跨零点允许、起止相同返回 422；「窗口重叠 422」在多窗口落地前无可触发路径，是否需要多时段请确认 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-06-D1 | BE | FR-11 接口为自定契约（`/v1/me/notify-topics`、`/v1/me/notify-preferences`、`/v1/admin/notify-topics`），规格文档缺失；DAILY/WEEKLY 本期只落库与快照、**不做频率聚合**；P0 判定为「渠道必须含 INBOX」，P2 禁 REALTIME | FE/APP 待确认 | ⬜ 待裁决 |
 | B-01-D1 | BE | 书目检索 `size>200` 按 B-01 验收返回 422（`RULE_VIOLATION`），而全站其它列表经 `PageQuery` 返回 400；请确认是否统一为 400 | FE/APP 待确认 | ⬜ 待裁决 |
+| X-03-D1 | BE | `project/spec/技术架构.md` 不存在（todolist 与三个 AGENT.md 仍引用其 §7/§7.1），当前契约真源为 `project/后端的交互接口文档.md`；是否补写该文档或改为引用新文档 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-07-D1 | BE | 校历写接口 `term` 强校验为 `四位年份-大写字母/数字`（如 `2026-FALL`），同学期同场景闭区间不允许重叠（422）；规格文档缺失，若实际学期编码为 `2026-2027-1` 之类请提供格式 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-10-D1 | BE | 关闭「计算缓存」授权时，已写入 Redis 的宽限快照不做即时删除（键为 `readdue:grace:snap:{orderId}`，跨上下文枚举成本高），按 24h TTL 自然过期；遗忘为不可撤销的脱敏，账号仍可登录但无姓名/手机/邮箱 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-09-D1 | BE | 审计新增 `trace_id`/`before_json`/`after_json`：`traceId` 取请求头 `X-Trace-Id`（无头时由过滤器生成，与响应 `traceId` 一致）；前后值 JSON 字符串只覆盖宽限审批、申诉处理、规则调整三类；CSV 导出追加 3 列。前端如需把旧行也展示为结构化对象，请按 `null` 处理 | FE 待确认 | ⬜ 待裁决 |
