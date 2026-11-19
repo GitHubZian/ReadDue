@@ -2,13 +2,17 @@ package com.zian.backend.notify.application;
 
 import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.borrow.application.BorrowQueryService;
+import com.zian.backend.notify.domain.model.NotifyPreference;
 import com.zian.backend.notify.domain.model.NotifyTask;
 import com.zian.backend.notify.domain.model.NotifyTaskStatus;
+import com.zian.backend.notify.domain.model.NotifyTopic;
 import com.zian.backend.notify.domain.port.EmailNotifier;
 import com.zian.backend.notify.domain.model.ChannelPreferences;
 import com.zian.backend.notify.domain.repository.ChannelPrefRepository;
 import com.zian.backend.notify.domain.repository.NotifyDeliveryRepository;
+import com.zian.backend.notify.domain.repository.NotifyPreferenceRepository;
 import com.zian.backend.notify.domain.repository.NotifyTaskRepository;
+import com.zian.backend.notify.domain.repository.NotifyTopicRepository;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.time.LocalDate;
@@ -51,6 +55,8 @@ public class NotifyService {
     private final ChannelPrefRepository channelPrefRepository;
     private final QuietHoursService quietHoursService;
     private final EmailNotifier emailNotifier;
+    private final NotifyTopicRepository topicRepository;
+    private final NotifyPreferenceRepository preferenceRepository;
 
 // region 计划
 
@@ -194,6 +200,8 @@ public class NotifyService {
         }
         LocalDateTime shifted = bypassQuiet ? planAt : shiftOutOfQuiet(readerId, planAt);
         boolean quietShifted = !shifted.equals(planAt);
+        String topicCode = topicOf(level);
+        NotifyTopic topic = topicCode == null ? null : topicRepository.findByCode(topicCode).orElse(null);
         NotifyTask task = new NotifyTask(
                 null,
                 dedupKey,
@@ -204,8 +212,43 @@ public class NotifyService {
                 quietShifted,
                 NotifyTaskStatus.PLANNED,
                 payload,
+                topic == null ? null : topic.code(),
+                snapshot(readerId, topic),
                 null);
         return taskRepository.insert(task);
+    }
+
+    /**
+     * 通知等级对应的 FR-11 主题；未知等级归入一般通知。
+     */
+    private static String topicOf(String level) {
+        return switch (level) {
+            case LEVEL_L1, LEVEL_L2 -> "BORROW_DUE";
+            case LEVEL_L3 -> "BORROW_OVERDUE";
+            case LEVEL_GRACE -> "GRACE_RESULT";
+            case LEVEL_APPEAL -> "APPEAL_SLA";
+            case LEVEL_READY -> "RESERVATION_READY";
+            default -> "NOTICE_GENERAL";
+        };
+    }
+
+    /**
+     * 取排程时生效的偏好快照：读者自定义优先，否则主题默认。
+     *
+     * @param readerId 读者 ID
+     * @param topic    主题；主题未配置时返回 null
+     * @return {frequency, channels, priority}
+     */
+    private Map<String, Object> snapshot(Long readerId, NotifyTopic topic) {
+        if (topic == null) {
+            return null;
+        }
+        NotifyPreference preference = preferenceRepository.find(readerId, topic.id()).orElse(null);
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("frequency", preference == null ? topic.defaultFrequency() : preference.frequency());
+        snapshot.put("channels", preference == null ? topic.defaultChannels() : preference.channels());
+        snapshot.put("priority", topic.priority());
+        return snapshot;
     }
 
     private Map<String, Object> payload(Long orderId, Integer overdueDays) {
@@ -305,21 +348,43 @@ public class NotifyService {
                 task.quietShifted(),
                 NotifyTaskStatus.SENT,
                 task.payload(),
+                task.topicCode(),
+                task.prefSnapshot(),
                 task.createdAt());
         if (taskRepository.update(sent) == 0) {
             return;
         }
         ChannelPreferences preferences = channelPrefRepository.load(task.readerId());
-        if (preferences.inbox()) {
+        List<String> planned = plannedChannels(task);
+        if (preferences.inbox() && includes(planned, "INBOX")) {
             deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
         }
-        if (preferences.email()) {
+        if (preferences.email() && includes(planned, "EMAIL")) {
             emailNotifier.enqueue(
                     task.id(),
                     task.readerId(),
                     NotifyCopy.title(task.level()),
                     NotifyCopy.body(task.level(), task.borrowOrderId(), null, null));
         }
+    }
+
+    /**
+     * 排程快照里的渠道；老任务没有快照时返回 null，表示沿用渠道开关。
+     */
+    @SuppressWarnings("unchecked")
+    private static List<String> plannedChannels(NotifyTask task) {
+        if (task.prefSnapshot() == null) {
+            return null;
+        }
+        Object value = task.prefSnapshot().get("channels");
+        return value instanceof List<?> list ? (List<String>) list : null;
+    }
+
+    /**
+     * 快照渠道是否包含指定渠道；无快照视为包含。
+     */
+    private static boolean includes(List<String> planned, String channel) {
+        return planned == null || planned.contains(channel);
     }
 
 // endregion

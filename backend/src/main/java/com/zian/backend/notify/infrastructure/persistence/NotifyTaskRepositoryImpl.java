@@ -32,6 +32,8 @@ public class NotifyTaskRepositoryImpl implements NotifyTaskRepository {
         po.setQuietShifted(task.quietShifted() ? 1 : 0);
         po.setStatus(task.status().name());
         po.setPayload(task.payload());
+        po.setTopicCode(task.topicCode());
+        po.setPrefSnapshot(task.prefSnapshot());
         mapper.insert(po);
         return po.getId();
     }
@@ -108,6 +110,8 @@ public class NotifyTaskRepositoryImpl implements NotifyTaskRepository {
                 po.getQuietShifted() != null && po.getQuietShifted() == 1,
                 NotifyTaskStatus.valueOf(po.getStatus()),
                 po.getPayload(),
+                po.getTopicCode(),
+                po.getPrefSnapshot(),
                 po.getCreatedAt());
     }
 }

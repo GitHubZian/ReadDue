@@ -44,6 +44,13 @@ public class NotifyTaskPO {
     @TableField(value = "payload", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> payload;
 
+    /** FR-11 主题编码，老数据为 null */
+    private String topicCode;
+
+    /** 排程时生效偏好快照：{frequency, channels, priority} */
+    @TableField(value = "pref_snapshot", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> prefSnapshot;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

@@ -5,6 +5,9 @@ import java.util.Map;
 
 /**
  * 通知任务（贫血）：一条待投递的站内信/邮件。
+ *
+ * <p>{@code topicCode} 与 {@code prefSnapshot} 记录排程时刻主题生效的偏好快照，
+ * 后续读者改偏好不会追溯已排程任务（FR-11）。
  */
 public record NotifyTask(
         Long id,
@@ -16,5 +19,7 @@ public record NotifyTask(
         boolean quietShifted,
         NotifyTaskStatus status,
         Map<String, Object> payload,
+        String topicCode,
+        Map<String, Object> prefSnapshot,
         LocalDateTime createdAt) {
 }
