@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock3, Download, FileText, Search, X } from "lucide-react";
+import { ArrowRight, Check, Clock3, Download, FileText, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { PageHeader } from "@/app/layout/PageHeader";
 import { SectionCard } from "@/components/common/SectionCard";
 import { SegmentedFilter } from "@/components/common/SegmentedFilter";
 import { StatusPill } from "@/components/common/StatusPill";
-import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
 import { useGraces, useApproveGrace, useRejectGrace } from "@/features/grace/queries";
 import { fetchEvidenceBlob } from "@/features/grace/api";
@@ -29,8 +28,7 @@ function fileSize(size?: number) {
 
 function evidenceId(file: { id?: string; url?: string }) {
   if (file.id) return file.id;
-  const match = file.url?.match(/\/files\/([^/?#]+)/);
-  return match?.[1];
+  return file.url?.match(/\/files\/([^/?#]+)/)?.[1];
 }
 
 export function GracePage() {
@@ -57,6 +55,7 @@ export function GracePage() {
 
   const pending = selected?.status === "PENDING";
   const sla = selected ? slaRemaining(selected.slaDeadline) : null;
+  const overdueCount = items.filter((item) => slaRemaining(item.slaDeadline).overdue).length;
 
   const onApprove = () => {
     if (!selected) return;
@@ -76,106 +75,127 @@ export function GracePage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title="宽限审批"
-        description="按剩余 SLA 排队，超时单置顶标记；裁决后自动延长到期日并通知读者。"
+        description="按剩余 SLA 排队；裁决后自动延长到期日并通知读者。"
       />
 
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-7">
-          <SectionCard
-            title="待裁决队列"
-            description={`共 ${query.data?.total ?? 0} 条申请`}
-            action={
-              <span className="flex items-center gap-2 text-[9px] text-ink-3">
-                <span className="flex items-center gap-1">
-                  <i className="size-1.5 rounded-full bg-danger" /> 超时
-                </span>
-                <span className="flex items-center gap-1">
-                  <i className="size-1.5 rounded-full bg-warn" /> ≤1h
-                </span>
+      <div className="grid grid-cols-1 gap-4 xl:h-[calc(100dvh-9.5rem)] xl:grid-cols-12">
+        {/* 左：队列。窄列只承载「挑一条」，宽列留给材料与裁决。 */}
+        <SectionCard
+          className="flex min-h-0 flex-col xl:col-span-5"
+          bodyClassName="flex min-h-0 flex-1 flex-col p-0"
+          title={
+            <span className="flex items-baseline gap-2">
+              {status === "PENDING" ? "待裁决队列" : status === "APPROVED" ? "已通过" : "已驳回"}
+              <span className="tabular text-[10px] font-normal text-ink-3">
+                {query.data?.total ?? 0} 条
               </span>
-            }
-            bodyClassName="px-4 pb-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-2 pb-3">
-              <SegmentedFilter
-                value={status}
-                onChange={(value) => {
-                  setStatus(value);
+            </span>
+          }
+          action={
+            status === "PENDING" ? (
+            <span className="flex items-center gap-2.5 text-[9px] text-ink-3">
+              <span className="flex items-center gap-1">
+                <i className="size-1.5 rounded-full bg-danger" /> 超时 {overdueCount}
+              </span>
+              <span className="flex items-center gap-1">
+                <i className="size-1.5 rounded-full bg-warn" /> 临期
+              </span>
+            </span>
+            ) : null
+          }
+        >
+          <div className="space-y-2 border-b border-line-2 px-4 pb-3">
+            <SegmentedFilter
+              value={status}
+              onChange={(value) => {
+                setStatus(value);
+                setPage(1);
+                setSelectedId(undefined);
+              }}
+              items={[
+                { value: "PENDING", label: "待裁决" },
+                { value: "APPROVED", label: "已通过" },
+                { value: "REJECTED", label: "已驳回" },
+              ]}
+            />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+              <Input
+                value={keyword}
+                onChange={(event) => {
+                  setKeyword(event.target.value);
                   setPage(1);
-                  setSelectedId(undefined);
                 }}
-                items={[
-                  { value: "PENDING", label: "待裁决" },
-                  { value: "APPROVED", label: "已通过" },
-                  { value: "REJECTED", label: "已驳回" },
-                ]}
+                placeholder="搜索读者、书目或工单号"
+                className="h-[34px] pl-9 pr-3 text-[11px]"
               />
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
-                <Input
-                  value={keyword}
-                  onChange={(event) => {
-                    setKeyword(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="搜索读者、书目或工单号"
-                  className="h-[34px] w-[228px] pl-9 pr-3 text-[11px]"
-                />
-              </div>
             </div>
+          </div>
 
-            <div className="mt-2 space-y-1">
-              {query.isLoading
-                ? Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="h-[62px] animate-pulse rounded-xl bg-wash" />
-                  ))
-                : items.map((item) => {
-                    const itemSla = slaRemaining(item.slaDeadline);
-                    const active = selected?.id === item.id;
-                    const urgent = itemSla.overdue
-                      ? "border-l-danger"
-                      : itemSla.minutes !== null && itemSla.minutes <= 60
-                        ? "border-l-warn"
-                        : "border-l-transparent";
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedId(item.id)}
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-xl border border-l-2 px-3 py-2.5 text-left transition-colors",
-                          urgent,
-                          active
-                            ? "border-mint-deep/25 bg-mint-soft/45"
-                            : "border-transparent hover:border-line hover:bg-wash/70",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold ring-1",
-                            itemSla.overdue
-                              ? "bg-danger-soft text-danger ring-danger/20"
-                              : "bg-card text-mint-deep ring-line",
-                          )}
-                        >
-                          {item.reader.name.slice(0, 1)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-[12px] font-semibold text-ink">{item.reader.name}</p>
-                            <span className="tabular text-[9px] text-ink-3">{item.code}</span>
-                          </div>
-                          <p className="mt-0.5 truncate text-[10px] text-ink-3">
-                            {item.book.title} · {graceSceneLabel(item.scene)}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-right">
+          <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            {query.isLoading ? (
+              <div className="space-y-1.5 px-1">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="h-[64px] animate-pulse rounded-lg bg-wash" />
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex h-full min-h-[160px] flex-col items-center justify-center gap-1 text-center">
+                <p className="text-[11px] font-medium text-ink-2">队列是空的</p>
+                <p className="text-[9.5px] text-ink-3">当前筛选下没有申请，切换状态或稍后再看。</p>
+              </div>
+            ) : (
+              items.map((item) => {
+                const itemSla = slaRemaining(item.slaDeadline);
+                const urgent = itemSla.overdue
+                  ? "border-l-danger"
+                  : itemSla.minutes !== null && itemSla.minutes <= 60
+                    ? "border-l-warn"
+                    : "border-l-transparent";
+                const active = selected?.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedId(item.id)}
+                    className={cn(
+                      "mb-1 flex w-full items-center gap-2.5 rounded-lg border border-l-2 px-2.5 py-2 text-left transition-colors",
+                      urgent,
+                      active
+                        ? "border-mint-deep/25 bg-mint-soft/50"
+                        : "border-transparent hover:border-line hover:bg-wash/70",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold ring-1",
+                        itemSla.overdue
+                          ? "bg-danger-soft text-danger ring-danger/20"
+                          : "bg-card text-mint-deep ring-line",
+                      )}
+                    >
+                      {item.reader.name.slice(0, 1)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="truncate text-[11.5px] font-semibold text-ink">
+                          {item.reader.name}
+                        </p>
+                        <span className="tabular shrink-0 text-[8.5px] text-ink-3">{item.code}</span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[9.5px] text-ink-3">
+                        {item.book.title} · {graceSceneLabel(item.scene)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {item.status === "PENDING" ? (
+                        <>
                           <p
                             className={cn(
-                              "tabular text-[10.5px] font-semibold",
+                              "tabular text-[10px] font-semibold",
                               itemSla.overdue
                                 ? "text-danger"
                                 : itemSla.minutes !== null && itemSla.minutes <= 60
@@ -185,84 +205,90 @@ export function GracePage() {
                           >
                             {itemSla.text}
                           </p>
-                          <p className="text-[9px] text-ink-3">申请 {item.requestedDays} 天</p>
-                        </div>
-                        <StatusPill tone={graceStatusMeta[item.status].tone}>
-                          {graceStatusMeta[item.status].label}
-                        </StatusPill>
-                      </button>
-                    );
-                  })}
-            </div>
+                          <p className="text-[8.5px] text-ink-3">申请 {item.requestedDays} 天</p>
+                        </>
+                      ) : (
+                        <>
+                          <p
+                            className={cn(
+                              "text-[9.5px] font-medium",
+                              item.status === "APPROVED" ? "text-mint-deep" : "text-danger",
+                            )}
+                          >
+                            {graceStatusMeta[item.status].label}
+                          </p>
+                          <p className="text-[8.5px] text-ink-3">
+                            {item.approvedDays ? `延长 ${item.approvedDays} 天` : "已归档"}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
 
-            {!query.isLoading && items.length === 0 ? (
-              <EmptyState
-                title="队列是空的"
-                description="当前筛选下没有宽限申请，切换状态或稍后再看。"
-              />
-            ) : null}
+          <div className="border-t border-line-2 px-4 py-2.5">
+            <Pager
+              page={page}
+              size={10}
+              total={query.data?.total ?? 0}
+              onChange={(next) => {
+                setPage(next);
+                setSelectedId(undefined);
+              }}
+            />
+          </div>
+        </SectionCard>
 
-            <div className="mt-3">
-              <Pager
-                page={page}
-                size={10}
-                total={query.data?.total ?? 0}
-                onChange={(next) => {
-                  setPage(next);
-                  setSelectedId(undefined);
-                }}
-              />
-            </div>
-          </SectionCard>
-        </div>
-
-        <div className="xl:col-span-5">
+        {/* 右：单一详情面板。材料滚动，裁决条固定在面板底部。 */}
+        <SectionCard
+          className="flex min-h-0 flex-col xl:col-span-7"
+          bodyClassName="flex min-h-0 flex-1 flex-col p-0"
+        >
           {selected ? (
-            <div className="space-y-4 xl:sticky xl:top-4">
-              <SectionCard
-                title="申请详情"
-                description={
-                  <span className="flex flex-wrap items-center gap-2">
-                    <code className="font-mono text-[9px] text-ink-3">{selected.code}</code>
-                    <span className="text-[9.5px] text-ink-3">
-                      提交于 {formatDateTime(selected.createdAt)}
+            <>
+              <div className="border-b border-line-2 px-6 pb-4 pt-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-mint-soft text-[14px] font-bold text-mint-deep">
+                      {selected.reader.name.slice(0, 1)}
                     </span>
-                  </span>
-                }
-                action={
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="truncate text-[15px] font-bold text-ink">
+                          {selected.reader.name}
+                        </h2>
+                        <span className="tabular text-[10px] text-ink-3">
+                          {selected.reader.studentNo}
+                        </span>
+                        <span className="text-[10px] text-ink-3">· {selected.reader.college}</span>
+                      </div>
+                      <p className="mt-1 flex items-center gap-2 text-[9.5px] text-ink-3">
+                        <code className="rounded bg-wash px-1.5 py-0.5 font-mono text-[8.5px]">
+                          {selected.code}
+                        </code>
+                        <span>提交于 {formatDateTime(selected.createdAt)}</span>
+                      </p>
+                    </div>
+                  </div>
                   <StatusPill tone={graceStatusMeta[selected.status].tone} dot>
                     {graceStatusMeta[selected.status].label}
                   </StatusPill>
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid size-10 place-items-center rounded-full bg-mint-soft text-[14px] font-bold text-mint-deep">
-                    {selected.reader.name.slice(0, 1)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-ink">
-                      {selected.reader.name}
-                      <span className="ml-1.5 text-[10px] font-normal text-ink-3">
-                        {selected.reader.studentNo}
-                      </span>
-                    </p>
-                    <p className="text-[10px] text-ink-3">{selected.reader.college}</p>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1.5 rounded-lg bg-wash px-2 py-1 text-[9.5px] text-ink-3">
-                    <FileText className="size-3" />
-                    {selected.evidence.length} 份材料
-                  </div>
                 </div>
+              </div>
 
-                {sla ? (
+              <div className="scrollbar-slim flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-4">
+                {sla && pending ? (
                   <div
                     className={cn(
-                      "mt-4 flex items-center justify-between rounded-xl border px-3.5 py-2.5",
+                      "flex items-center justify-between rounded-lg border px-3.5 py-2.5",
                       sla.overdue
-                        ? "border-danger/20 bg-danger-soft/70"
+                        ? "border-danger/20 bg-danger-soft/60"
                         : sla.minutes !== null && sla.minutes <= 60
-                          ? "border-warn/25 bg-warn-soft/70"
-                          : "border-line-2 bg-wash/70",
+                          ? "border-warn/25 bg-warn-soft/60"
+                          : "border-line-2 bg-wash/60",
                     )}
                   >
                     <span className="flex items-center gap-1.5 text-[9.5px] text-ink-3">
@@ -284,7 +310,7 @@ export function GracePage() {
                   </div>
                 ) : null}
 
-                <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3.5">
+                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
                   {[
                     { label: "书目", value: selected.book.title },
                     { label: "场景", value: graceSceneLabel(selected.scene) },
@@ -295,29 +321,27 @@ export function GracePage() {
                     },
                   ].map((item) => (
                     <div key={item.label} className="min-w-0">
-                      <dt className="text-[9px] font-medium uppercase tracking-wider text-ink-3">
-                        {item.label}
-                      </dt>
-                      <dd className="mt-1 truncate text-[11px] font-medium text-ink">{item.value}</dd>
+                      <dt className="text-[9px] uppercase tracking-wider text-ink-3">{item.label}</dt>
+                      <dd className="mt-0.5 truncate text-[11px] font-medium text-ink">{item.value}</dd>
                     </div>
                   ))}
                 </dl>
 
-                <div className="mt-4 border-t border-line-2 pt-3">
-                  <p className="text-[9px] font-medium uppercase tracking-wider text-ink-3">申请理由</p>
+                <div className="mt-4 border-t border-line-2 pt-3.5">
+                  <p className="text-[9px] uppercase tracking-wider text-ink-3">申请理由</p>
                   <p className="mt-1.5 text-[10.5px] leading-5 text-ink-2">{selected.reason}</p>
                 </div>
 
-                {selected.evidence.length ? (
-                  <div className="mt-3 border-t border-line-2 pt-3">
-                    <p className="text-[9px] font-medium uppercase tracking-wider text-ink-3">
-                      证据材料
-                    </p>
+                <div className="mt-4 border-t border-line-2 pt-3.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] uppercase tracking-wider text-ink-3">证据材料</p>
+                    <span className="text-[9px] text-ink-3">{selected.evidence.length} 份</span>
+                  </div>
+                  {selected.evidence.length ? (
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {selected.evidence.map((file, index) => {
                         const name = file.name ?? file.label ?? `附件 ${index + 1}`;
-                        const remote =
-                          file.url && /^https?:\/\//i.test(file.url) ? file.url : undefined;
+                        const remote = file.url && /^https?:\/\//i.test(file.url) ? file.url : undefined;
                         const id = evidenceId(file);
                         const className =
                           "inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[9.5px] text-ink-2";
@@ -369,69 +393,66 @@ export function GracePage() {
                         );
                       })}
                     </div>
-                  </div>
-                ) : null}
-              </SectionCard>
+                  ) : (
+                    <p className="mt-1.5 text-[10px] text-ink-3">该申请没有上传材料。</p>
+                  )}
+                </div>
 
-              <SectionCard title="流转记录" description={`${selected.history.length} 条状态变更`}>
-                <ol className="space-y-3">
-                  {selected.history.map((entry, index) => (
-                    <li key={`${entry.at}-${index}`} className="flex gap-2.5">
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-mint-deep/60" />
-                      <div className="min-w-0">
-                        <p className="text-[10.5px] leading-4 text-ink-2">
-                          <b className="font-semibold text-ink">{entry.actor}</b> {entry.text}
-                        </p>
-                        <p className="tabular mt-0.5 text-[9px] text-ink-3">{formatDateTime(entry.at)}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </SectionCard>
+                <div className="mt-auto border-t border-line-2 pt-3.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] uppercase tracking-wider text-ink-3">流转记录</p>
+                    <span className="text-[9px] text-ink-3">{selected.history.length} 条</span>
+                  </div>
+                  <ol className="mt-2 space-y-2">
+                    {selected.history.map((entry, index) => (
+                      <li key={`${entry.at}-${index}`} className="flex gap-2.5">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-mint-deep/50" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] leading-4 text-ink-2">
+                            <b className="font-semibold text-ink">{entry.actor}</b> {entry.text}
+                          </p>
+                          <p className="tabular text-[8.5px] text-ink-3">{formatDateTime(entry.at)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
 
               {pending ? (
-                <SectionCard
-                  title="裁决"
-                  description="通过后自动延长到期日并通知读者；驳回需说明理由。"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-medium uppercase tracking-wider text-ink-3">延长天数</p>
+                <div className="border-t border-line-2 bg-wash/40 px-6 py-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-[9px] uppercase tracking-wider text-ink-3">延长天数</span>
+                    <div className="flex gap-1.5">
+                      {DAY_OPTIONS.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setDays(option)}
+                          aria-pressed={days === option}
+                          className={cn(
+                            "tabular rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
+                            days === option
+                              ? "border-mint-deep bg-mint-soft text-mint-deep"
+                              : "border-line bg-card text-ink-2 hover:border-mint-deep/30",
+                          )}
+                        >
+                          {option} 天
+                        </button>
+                      ))}
+                    </div>
                     <span className="text-[9px] text-ink-3">读者申请 {selected.requestedDays} 天</span>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {DAY_OPTIONS.map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => setDays(option)}
-                        aria-pressed={days === option}
-                        className={cn(
-                          "rounded-xl border py-3 text-center transition-colors",
-                          days === option
-                            ? "border-mint-deep bg-mint-soft text-mint-deep"
-                            : "border-line bg-card text-ink-2 hover:border-mint-deep/30",
-                        )}
-                      >
-                        <span className="tabular block text-[16px] font-bold">{option}</span>
-                        <span className="text-[9px]">天</span>
-                      </button>
-                    ))}
+                    <span className="tabular ml-auto text-[9px] text-ink-3">{note.trim().length} / 200</span>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-[9px] font-medium uppercase tracking-wider text-ink-3">
-                      备注 <span className="font-normal normal-case">（驳回必填，≥10 字）</span>
-                    </p>
-                    <span className="tabular text-[9px] text-ink-3">{note.trim().length} / 200</span>
-                  </div>
                   <Textarea
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    placeholder="例如：已核对实习证明，同意延长 6 天。"
-                    className="mt-1.5 min-h-[76px] resize-none text-[11px] leading-5"
+                    placeholder="核对依据（驳回必填，≥10 字）：如已核对实习证明，同意延长 6 天。"
+                    className="mt-2 min-h-[52px] resize-none text-[10.5px] leading-5"
                   />
 
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-2 flex gap-2">
                     <Button size="sm" className="flex-1" disabled={approve.isPending} onClick={onApprove}>
                       <Check className="size-3.5" />
                       通过并延长 {days} 天
@@ -447,27 +468,25 @@ export function GracePage() {
                       驳回
                     </Button>
                   </div>
-                </SectionCard>
+                </div>
               ) : (
-                <SectionCard title="裁决结果">
-                  <div className="flex items-center gap-2 text-[11px] text-ink-2">
-                    <StatusPill tone={graceStatusMeta[selected.status].tone} dot>
-                      {graceStatusMeta[selected.status].label}
-                    </StatusPill>
-                    {selected.approvedDays ? `延长 ${selected.approvedDays} 天` : null}
-                  </div>
-                  <p className="mt-2 text-[10.5px] leading-5 text-ink-3">
-                    该工单已归档，如需调整请通过「申诉工单」发起二次核对。
-                  </p>
-                </SectionCard>
+                <div className="flex items-center gap-2 border-t border-line-2 bg-wash/40 px-6 py-3 text-[10.5px] text-ink-2">
+                  <StatusPill tone={graceStatusMeta[selected.status].tone} dot>
+                    {graceStatusMeta[selected.status].label}
+                  </StatusPill>
+                  {selected.approvedDays ? <span>延长 {selected.approvedDays} 天</span> : null}
+                  <span className="text-ink-3">已归档；如需调整请从「申诉工单」发起二次核对。</span>
+                </div>
               )}
-            </div>
+            </>
           ) : (
-            <SectionCard>
-              <EmptyState title="选择一条申请" description="左侧列表点选后展示读者材料与裁决操作。" />
-            </SectionCard>
+            <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-1.5 px-6 text-center">
+              <ArrowRight className="size-4 text-ink-3" />
+              <p className="text-[11px] font-medium text-ink-2">选择一条申请</p>
+              <p className="text-[9.5px] text-ink-3">左侧点选后，这里展示读者材料与裁决操作。</p>
+            </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );
