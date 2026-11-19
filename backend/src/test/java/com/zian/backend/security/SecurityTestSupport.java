@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-abstract class SecurityTestSupport {
+public abstract class SecurityTestSupport {
 
     protected static final String JSON = "application/json";
     protected static final String DEMO_PASSWORD = "123456";
