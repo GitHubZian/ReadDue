@@ -28,6 +28,16 @@ export class ApiError extends Error {
   get isForbidden() {
     return this.status === 403 || this.code === 403;
   }
+
+  /** 409：并发冲突（如规则版本被他人更新）。 */
+  get isConflict() {
+    return this.status === 409 || this.code === 40900;
+  }
+
+  /** 422：业务规则拒绝（如读者证号不存在、宽限天数超限）。 */
+  get isValidation() {
+    return this.status === 422 || this.code === 42200;
+  }
 }
 
 export function toApiError(error: unknown): ApiError {

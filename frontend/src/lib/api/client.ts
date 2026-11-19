@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from "axios";
+import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { clearSession, getToken } from "@/lib/auth/session";
 import { ApiError } from "./errors";
@@ -13,6 +13,27 @@ const traceId = () =>
     ? crypto.randomUUID()
     : `trace-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+/**
+ * 同一写操作（方法 + 地址 + 请求体）在成功前复用同一个 Idempotency-Key：
+ * 网络失败后重试、或用户再点一次，都不会被后端当成第二笔业务。
+ */
+const pendingKeys = new Map<string, string>();
+const MAX_PENDING_KEYS = 200;
+
+interface IdempotentConfig extends InternalAxiosRequestConfig {
+  idempotencySignature?: string;
+}
+
+function signatureOf(config: AxiosRequestConfig) {
+  let body = "";
+  try {
+    body = typeof config.data === "string" ? config.data : JSON.stringify(config.data ?? null);
+  } catch {
+    body = "";
+  }
+  return `${(config.method ?? "get").toUpperCase()} ${config.url ?? ""} ${body}`;
+}
+
 const http = axios.create({ baseURL, timeout: 20_000 });
 
 http.interceptors.request.use((config) => {
@@ -22,13 +43,28 @@ http.interceptors.request.use((config) => {
   if (token) config.headers.set("Authorization", `Bearer ${token}`);
   const method = (config.method ?? "get").toUpperCase();
   if (WRITE_METHODS.has(method)) {
-    config.headers.set("Idempotency-Key", traceId());
+    const signature = signatureOf(config);
+    let key = pendingKeys.get(signature);
+    if (!key) {
+      key = traceId();
+      pendingKeys.set(signature, key);
+      if (pendingKeys.size > MAX_PENDING_KEYS) {
+        const oldest = pendingKeys.keys().next().value;
+        if (oldest) pendingKeys.delete(oldest);
+      }
+    }
+    (config as IdempotentConfig).idempotencySignature = signature;
+    config.headers.set("Idempotency-Key", key);
   }
   return config;
 });
 
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const signature = (response.config as IdempotentConfig).idempotencySignature;
+    if (signature) pendingKeys.delete(signature);
+    return response;
+  },
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
@@ -73,9 +109,17 @@ function notify(error: ApiError, silent?: boolean) {
   if (lastToast.message === error.message && now - lastToast.at < 2500) return;
   lastToast.message = error.message;
   lastToast.at = now;
-  toast.error(error.message, {
-    description: error.traceId ? `trace: ${error.traceId}` : undefined,
-  });
+
+  const trace = error.traceId ? `trace: ${error.traceId}` : undefined;
+  if (error.isConflict) {
+    toast.error("数据已被他人修改", { description: `${error.message}${error.traceId ? ` · ${trace}` : ""}` });
+    return;
+  }
+  if (error.isValidation) {
+    toast.error("操作未通过校验", { description: `${error.message}${error.traceId ? ` · ${trace}` : ""}` });
+    return;
+  }
+  toast.error(error.message, { description: trace });
 }
 
 export async function request<T>(options: RequestOptions): Promise<T> {
