@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock3, FileText, Search, X } from "lucide-react";
+import { Check, Clock3, Download, FileText, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,20 @@ import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
 import { useGraces, useApproveGrace, useRejectGrace } from "@/features/grace/queries";
+import { fetchEvidenceBlob } from "@/features/grace/api";
 import { graceSceneLabel, graceStatusMeta } from "@/features/grace/labels";
 import { formatDateTime, slaRemaining } from "@/lib/format/date";
 import { formatCNY } from "@/lib/format/money";
 import type { GraceRecord, GraceStatus } from "@/lib/api/models";
 
 const DAY_OPTIONS = [3, 6, 9];
+
+function fileSize(size?: number) {
+  if (!size) return "";
+  return size >= 1024 * 1024
+    ? `${(size / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(size / 1024))} KB`;
+}
 
 export function GracePage() {
   const [status, setStatus] = useState<GraceStatus>("PENDING");
@@ -231,25 +239,58 @@ export function GracePage() {
 
                 {selected.evidence.length ? (
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {selected.evidence.map((file) => {
-                      // 读者上传的地址不可信：只放行 http(s)，其余按纯文本展示
-                      const href = /^https?:\/\//i.test(file.url) ? file.url : undefined;
+                    {selected.evidence.map((file, index) => {
+                      const name = file.name ?? file.label ?? `附件 ${index + 1}`;
+                      // 读者填的外部链接不可信：只放行 http(s)，其余一律走受控下载
+                      const remote = file.url && /^https?:\/\//i.test(file.url) ? file.url : undefined;
                       const className =
                         "inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[9.5px] text-ink-2";
-                      return href ? (
-                        <a
-                          key={file.label}
-                          href={href}
-                          target="_blank"
-                          rel="noreferrer"
+                      if (remote) {
+                        return (
+                          <a
+                            key={`${name}-${index}`}
+                            href={remote}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`${className} hover:border-mint-deep/30 hover:text-mint-deep`}
+                          >
+                            <FileText className="size-3" /> {name}
+                          </a>
+                        );
+                      }
+                      const id = file.id;
+                      if (!id) {
+                        return (
+                          <span key={`${name}-${index}`} className={className}>
+                            <FileText className="size-3" /> {name}
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={`${name}-${index}`}
+                          type="button"
                           className={`${className} hover:border-mint-deep/30 hover:text-mint-deep`}
+                          onClick={async () => {
+                            try {
+                              const blob = await fetchEvidenceBlob(id);
+                              const url = URL.createObjectURL(blob);
+                              const anchor = document.createElement("a");
+                              anchor.href = url;
+                              anchor.download = name;
+                              anchor.click();
+                              URL.revokeObjectURL(url);
+                            } catch {
+                              toast.error("附件下载失败，请稍后重试");
+                            }
+                          }}
                         >
-                          <FileText className="size-3" /> {file.label}
-                        </a>
-                      ) : (
-                        <span key={file.label} className={className}>
-                          <FileText className="size-3" /> {file.label}
-                        </span>
+                          <FileText className="size-3" /> {name}
+                          {file.size ? (
+                            <span className="tabular text-ink-3">{fileSize(file.size)}</span>
+                          ) : null}
+                          <Download className="size-3" />
+                        </button>
                       );
                     })}
                   </div>

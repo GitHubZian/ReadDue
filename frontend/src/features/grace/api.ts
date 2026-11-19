@@ -1,4 +1,4 @@
-import { api } from "@/lib/api/client";
+import { api, request } from "@/lib/api/client";
 import { endpoints } from "@/lib/api/endpoints";
 import type { PageParams, PageResult } from "@/lib/api/types";
 import type { GraceDecision, GraceRecord } from "@/lib/api/models";
@@ -16,3 +16,11 @@ export const approveGrace = (id: string, payload: GraceDecision) =>
 
 export const rejectGrace = (id: string, payload: { note: string }) =>
   api.post<GraceRecord>(endpoints.graces.reject(id), payload);
+
+/** 附件走受控下载：带 JWT 取 blob，避免把受保护文件暴露成公开链接。 */
+export const fetchEvidenceBlob = (id: string) =>
+  request<Blob>({
+    url: endpoints.files.download(id),
+    method: "GET",
+    responseType: "blob",
+  });
