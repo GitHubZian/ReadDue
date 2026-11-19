@@ -245,9 +245,9 @@ flutter analyze; flutter test
 
 | 编号 | 发起方 | 契约摘要 | 配合方确认 | 状态 |
 | --- | --- | --- | --- | --- |
-| C-05-D1 | APP | 申诉详情：后端当前只有 `GET /v1/appeals/self`，无 `GET /v1/appeals/{id}`；客户端「查看进度」复用列表数据，是否需要详情端点请 BE 确认 | BE 待确认 | ⬜ 待裁决 |
+| C-05-D1 | APP | 申诉详情：`GET /v1/appeals/self` 已含客户端「查看进度」所需全部字段（状态、SLA、处理结果、时间线），不新增 `GET /v1/appeals/{id}`；后续确需独立详情（如多附件/长文本）再加 | BE 已裁决 | ✅ 已解决 |
 | B-05-D1 | BE | 免打扰表 `reader_quiet_hours` 为单窗口（PK=user_id），本期只支持一个时段，跨零点允许、起止相同返回 422；「窗口重叠 422」在多窗口落地前无可触发路径，是否需要多时段请确认 | FE/APP 待确认 | ⬜ 待裁决 |
-| B-06-D1 | BE | FR-11 接口为自定契约（`/v1/me/notify-topics`、`/v1/me/notify-preferences`、`/v1/admin/notify-topics`），规格文档缺失；DAILY/WEEKLY 本期只落库与快照、**不做频率聚合**；P0 判定为「渠道必须含 INBOX」，P2 禁 REALTIME | FE/APP 待确认 | ⬜ 待裁决 |
+| B-06-D1 | BE | FR-11 接口为自定契约（`/v1/me/notify-topics`、`/v1/me/notify-preferences`、`/v1/admin/notify-topics`），规格文档缺失；DAILY/WEEKLY 本期只落库与快照、**不做频率聚合**；P0 判定为「渠道必须含 INBOX」，P2 禁 REALTIME。**渠道仅 INBOX + EMAIL（邮件已接通），SMS/微信不接入**（2026-11-19 产品决定） | FE/APP 待确认 | ⬜ 待裁决 |
 | B-01-D1 | BE | 书目检索 `size>200` 已统一为全站口径 **HTTP 400 / code 40000**（删除私有 422 分支，测试同步改 400） | BE 已裁决 | ✅ 已解决 |
 | X-03-D1 | BE | `project/spec/技术架构.md` 不存在（todolist 与三个 AGENT.md 仍引用其 §7/§7.1），当前契约真源为 `project/后端的交互接口文档.md`；是否补写该文档或改为引用新文档 | FE/APP 待确认 | ⬜ 待裁决 |
 | B-07-D1 | BE | 校历写接口 `term` 强校验为 `四位年份-大写字母/数字`（如 `2026-FALL`），同学期同场景闭区间不允许重叠（422）；规格文档缺失，若实际学期编码为 `2026-2027-1` 之类请提供格式 | FE/APP 待确认 | ⬜ 待裁决 |
