@@ -12,20 +12,18 @@
 ```bash
 flutter pub get
 
-# 模拟器 / 真机直接运行（默认注入本地 mock 数据，可完整点通九屏）
-flutter run
-
 # 连接已启动的后端（端口 8125，context-path /api；注意路径不带 /v1）
 flutter run \
   --dart-define=USE_MOCK=false \
   --dart-define=API_BASE_URL=http://10.0.2.2:8125/api
+
+# 纯界面验收：强制走本地 mock（固定“现在”为 2026-04-16 19:00）
+flutter run --dart-define=USE_MOCK=true
 ```
 
-`10.0.2.2` 是 Android 模拟器访问宿主机的地址；真机请改成电脑在局域网内的 IP。
+`10.0.2.2` 是 Android 模拟器访问宿主机的地址；真机请改成电脑在局域网内的 IP（例如 `192.168.123.115`）。
 
-> 默认 `USE_MOCK=true`，各 feature 的 Repository 使用 `lib/core/mock/mock_backend.dart` 的假数据（固定“现在”为 2026-04-16 19:00），便于在接口未就绪时验收界面与四态。
->
-> 设为 `false` 后，登录、我的借阅、借阅详情、宽限申请、申诉、预约走真实接口；检索、通知、我的仍为 mock（后端暂无对应接口），切换只发生在 `features/*/presentation/*_providers.dart`，页面与状态层不动。
+> `USE_MOCK` 默认 `false`，登录、借阅、详情、宽限、检索、预约、通知、我的、申诉全部走真实接口；mock 仅作为离线演示开关保留在 `features/*/presentation/*_providers.dart`。
 >
 > 种子账号：`2021001` / `123456`（陈昊）；拉黑账号 `2021005`。登录态失效（401）会自动清除本地 token 并回到登录页。
 
@@ -34,9 +32,19 @@ flutter run \
 ```bash
 dart format --set-exit-if-changed lib test
 flutter analyze          # 0 warning
-flutter test             # 23 条：每屏正常/错误 + 拉黑、404、幂等键、返回与表单校验
+flutter test             # 26 条：每屏正常/错误 + 拉黑、404、幂等键、返回与表单校验
 flutter build apk --debug
 ```
+
+## 真机安装包
+
+```bash
+flutter build apk --release \
+  --dart-define=USE_MOCK=false \
+  --dart-define=API_BASE_URL=http://192.168.123.115:8125/api
+```
+
+产物 `build/app/outputs/flutter-apk/app-release.apk`（约 23.5 MB）。手机与电脑需在同一局域网；首次连接时 Windows 防火墙若弹窗，请允许 Java 的 8125 入站，否则登录会提示网络不可用。
 
 ## 目录
 
