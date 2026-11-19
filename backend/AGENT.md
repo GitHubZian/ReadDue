@@ -169,7 +169,10 @@ mybatis-plus:
 - SQL 只允许出现在 `infrastructure` 或只读 `mapper` 接口里；`application`/`interfaces` 不得出现 SQL 片段。
 - 动态 SQL 写在 `<script>` 中，`<`、`>` 必须转义为 `&lt;`、`&gt;`；字符串比较写 `status == 'PENDING'`（OGNL），不要写 `status == "PENDING"`。
 - 统一用 `LIMIT #{limit} OFFSET #{offset}` 分页，禁止 `last("limit " + n)` 这类字符串拼接；`${}` 只允许接白名单常量（如本地重建脚本的固定表名），且必须来自代码内 `List.of(...)` 常量而非外部入参。
-- 返回 `Map<String, Object>` 的读模型必须在服务层显式转换：MySQL 驱动可能把 `DATETIME` 给成 `LocalDateTime`，`TINYINT(1)` 给成 `Boolean`，`DECIMAL` 给成 `BigDecimal`；统一走 `reporting/application/AdminQueryService` 里的 `str/integer/truthy/decimal/date/dateTime/iso` 工具，不要假设单一类型。
+- 管理端读模型用 **record 行对象**，不用 `Map<String, Object>`：`@Mapper` 方法直接返回 `List<XxxRow>` / `XxxRow`（`reporting/domain/model/*Row.java`），由 MyBatis 按构造器参数名自动映射（`mybatis-plus.configuration.arg-name-based-constructor-auto-mapping: true`，依赖编译期 `-parameters`）。SQL 必须为每个结果列写 **与 record 组件同名的 camelCase 别名**（如 `u.name AS readerName`），不依赖下划线转换；record 组件改名而 SQL 别名未同步会静默映射成 `null`，改字段时两处一起改。
+- 读模型 record 只放在 `domain/model`，不得带 MyBatis/Jackson 注解；服务层直接读组件构造 `AdminViews`，不再写 `str/integer/truthy/decimal/date/dateTime` 这类转换器；时间统一 `Times.iso(...)` 输出 `+08:00`。
+- 仍保留 `Map` 的只有 `tiers()`/`calendar()` 这类 Controller 契约本身就是 Map 的接口；新增接口不要再返回 Map。
+- 主键统一由应用侧雪花 id 生成（MP `id-type: assign_id`）；`V4__drop_auto_increment.sql` 已移除所有 `id` 列的 `AUTO_INCREMENT`，**新增表或手写 `INSERT` 必须显式提供 id**，不要再写 `AUTO_INCREMENT`；Flyway 迁移只追加新版本，不改已执行的 `V1`–`V4`。
 - 跨上下文只读聚合集中在 `reporting`，禁止为了写 SQL 去注入别的上下文的 `XxxMapper`（分层与上下文边界仍然有效）。
 - 事务：写操作在 `application` 上加 `@Transactional`；只读查询加 `@Transactional(readOnly = true)`。
 
@@ -179,12 +182,12 @@ BookCopyPO po = copyMapper.selectOne(Wrappers.<BookCopyPO>lambdaQuery()
         .eq(BookCopyPO::getBarcode, barcode)
         .eq(BookCopyPO::getDeleted, 0));
 
-// 只读联表：@Mapper + <script>
+// 只读联表：@Mapper + <script> + record 行对象（别名与组件同名）
 @Select("""
         <script>
-        SELECT o.id, o.effective_due_at, u.name AS reader_name
+        SELECT o.id, o.effective_due_at AS effectiveDueAt, u.name AS readerName
           FROM borrow_order o
-          JOIN sys_user u ON u.id = o.reader_id
+          JOIN sys_user u ON u.id = o.reader_id AND u.deleted = 0
          WHERE o.status IN ('BORROWED','OVERDUE')
          <if test="keyword != null and keyword != ''">
            AND (u.name LIKE CONCAT('%', #{keyword}, '%'))
@@ -193,15 +196,15 @@ BookCopyPO po = copyMapper.selectOne(Wrappers.<BookCopyPO>lambdaQuery()
          LIMIT #{limit} OFFSET #{offset}
         </script>
         """)
-List<Map<String, Object>> overdue(@Param("keyword") String keyword,
-                                  @Param("limit") int limit,
-                                  @Param("offset") long offset);
+List<OverdueRow> overdue(@Param("keyword") String keyword,
+                         @Param("limit") int limit,
+                         @Param("offset") long offset);
 ```
 
 ## 7. 接口规范
 
 - 前缀 `/api/v1`，资源用复数，动作用子资源：`POST /borrow-orders/{id}/return`。
-- 分页：`page`（从 1 起）、`size`（≤200）、`sort`；响应 `{items,total,page,size}`。
+- 分页：`page`（从 1 起）、`size`（≤200）；**不接收 `sort`**，顺序由各查询 SQL 固定（避免 `ORDER BY` 拼注入）；响应 `{items,total,page,size}`。
 - 幂等：写接口支持 `Idempotency-Key`，24 小时内同键返回首次结果。
 - 错误体：`{code,message,traceId,details?}`；HTTP 语义：400 参数、401 未认证、403 越权、404 不存在或他人资源、409 冲突/乐观锁、422 业务规则拒绝。
 - 时间统一 `Instant` + ISO-8601（UTC），展示层再转本地时区。
@@ -303,7 +306,8 @@ STORAGE_ENDPOINT / STORAGE_BUCKET / STORAGE_KEY / STORAGE_SECRET  # 课表原图
 
 - 不要拆微服务、不要引注册中心/网关组件（Nginx 在部署层）。
 - 不要用 `@Autowired` 字段注入，构造器注入。
-- 不要在 `domain` 里用 Lombok 的 `@Data`（会破坏不变量），用 `@Getter` + 显式构造。
+- 领域聚合统一用 Lombok `@Data @Builder @NoArgsConstructor @AllArgsConstructor`，不再手写 getter/setter/构造器；状态变更仍必须走聚合内的业务方法（`approve`、`lend`、`renew` 等），禁止在 application 层直接 set 字段。
+- 不可变视图/DTO 用 `record`；Spring 组件用 `@RequiredArgsConstructor` 构造器注入；PO 用 `@Data`。
 - 不要把 `deleted` 改成 `is_deleted`，不要用 0/1。
 - 不要为「以后可能要用」提前抽象（多租户、多语言、插件化）。
 - 不要在没有测试的情况下改 `schema.sql`；表结构改动一律新增 Flyway 迁移。

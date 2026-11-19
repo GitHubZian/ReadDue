@@ -103,7 +103,7 @@ $env:APP_DEMO_RESET = 'true'; mvn -B spring-boot:run
 | 审计 | `GET /v1/admin/audit-logs[/{id}]`、`GET /v1/admin/audit-logs/export`（CSV） | `audit:read` |
 | 流通 | `GET /v1/admin/circulation/today` | `borrow:read:all` |
 
-列表接口统一 `page` / `size` / `sort`（`size` 上限 200），返回 `{items,total,page,size}`；`total/page/size` 是 JSON 数字，其余 `Long` 字段（含主键）序列化为字符串。
+列表接口统一 `page` / `size`（`size` 上限 200；不支持 `sort`，顺序由后端固定），返回 `{items,total,page,size}`；`total/page/size` 是 JSON 数字，其余 `Long` 字段（含主键）序列化为字符串。
 
 管理端读接口的时间统一为带 `+08:00` 偏移的 ISO-8601 字符串（`AdminViews`/`NotifyDtos` 的时间字段是 `String`，由 `AdminQueryService.iso()` 生成），不使用 `OffsetDateTime` 直接序列化，避免被全局 `spring.jackson.time-zone=UTC` 转成 `Z`。
 
@@ -164,8 +164,8 @@ com.zian.backend
 
 ## 关键实现约定
 
-- **数据访问**：禁止 `JdbcTemplate`。单表用 `BaseMapper` / `LambdaQueryWrapper` / `selectPage`；跨表只读用 `@Mapper` + `@Select`（端口在 `reporting/domain/repository`，实现放 `infrastructure`），动态条件用 `<script>` 且 `<` 转义为 `&lt;`，分页统一 `LIMIT #{limit} OFFSET #{offset}`；`${}` 只用于代码内白名单常量。
-- **主键 / 逻辑删除**：雪花 `ASSIGN_ID`；`deleted=0` 未删除，删除写本行主键；`reader_profile` / `reader_credit` / `reader_quiet_hours` 用 `user_id` 作主键。
+- **数据访问**：禁止 `JdbcTemplate`。单表用 `BaseMapper` / `LambdaQueryWrapper` / `selectPage`；跨表只读用 `@Mapper` + `@Select`（端口在 `reporting/domain/repository`，实现放 `infrastructure`），动态条件用 `<script>` 且 `<` 转义为 `&lt;`，分页统一 `LIMIT #{limit} OFFSET #{offset}`；`${}` 只用于代码内白名单常量。管理端读模型返回 `reporting/domain/model/*Row` record，SQL 必须写与 record 组件同名的 camelCase 别名（`arg-name-based-constructor-auto-mapping`）。
+- **主键 / 逻辑删除**：雪花 `ASSIGN_ID`；`deleted=0` 未删除，删除写本行主键；`reader_profile` / `reader_credit` / `reader_quiet_hours` 用 `user_id` 作主键。**自 V4 起所有 `id` 列已去掉 `AUTO_INCREMENT`**（`V4__drop_auto_increment.sql`），新增表/新增手写 `INSERT` 必须显式提供雪花 id，不要再写 `AUTO_INCREMENT`。
 - **乐观锁**：`@Version` 冲突映射为 409；规则参数用手写 `lambdaUpdate`（旧 version 作 WHERE，新 version 作 SET），避免 MP 把同一字段同时用于 SET/WHERE。
 - **JSON 列**（`event_outbox.payload` / `notify_task.payload` / `audit_log.detail`）只写字符串/数字/布尔，`java.time` 一律先 `toString()`，否则 `JacksonTypeHandler` 会抛 `InvalidDefinitionException`。
 - **审计**：`AuditRecorder` 记录操作者、角色、用途、IP；`object_id` 无默认值，空值写 0。
@@ -183,7 +183,7 @@ $env:JAVA_HOME = 'C:\JDK\jdk21'
 mvn -B test
 ```
 
-当前 24 个测试全绿：
+当前 42 个测试全绿（`mvn -B clean verify`）：
 
 - `BackendApplicationTests`：上下文启动；
 - `JsonConfigTest`：Long → 字符串；
@@ -194,7 +194,13 @@ mvn -B test
 - `security/AuthenticationBoundaryTest`：匿名 401、跨角色 403、分页越界 400；
 - `security/BlacklistBorrowGateTest`：黑名单读者借阅 422，归还仍放行；
 - `security/RuleVersionConflictTest`：过期 `expectedVersion` → 409；
-- `security/SecurityTestSupport`：真实登录 + MockMvc 基类。
+- `security/SecurityTestSupport`：真实登录 + MockMvc 基类；
+- `bootstrap/demo/DemoSeedMapperTest`：演示种子显式雪花 id 可回查；
+- `notify/application/EmailDeliveryServiceTest`：MAIL_DISABLED / NO_EMAIL / SENT / FAILED 四种投递结果；
+- `notify/infrastructure/mail/SmtpMailGatewayTest`：未配置时 `available()=false`、邮箱脱敏；
+- `notify/infrastructure/mail/SmtpMailGatewayIntegrationTest`：真实 SMTP，未设置 `MAIL_PASSWORD` 时自动跳过；
+- `shared/common/MasksTest`：邮箱/文本脱敏、CRLF 清洗、截断边界；
+- `reporting/AdminQueryMapperSmokeTest`：13 个 record 行对象与 SQL 别名的一致性。
 
 ## 前端联调
 
