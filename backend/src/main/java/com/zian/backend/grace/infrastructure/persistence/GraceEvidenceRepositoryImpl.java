@@ -38,13 +38,7 @@ public class GraceEvidenceRepositoryImpl implements GraceEvidenceRepository {
 
     @Override
     public List<Long> fileIdsOf(long graceId) {
-        return mapper
-                .selectList(com.baomidou.mybatisplus.core.toolkit.Wrappers.<GraceEvidencePO>lambdaQuery()
-                        .eq(GraceEvidencePO::getGraceId, graceId)
-                        .orderByAsc(GraceEvidencePO::getCreatedAt))
-                .stream()
-                .map(GraceEvidencePO::getFileId)
-                .toList();
+        return fileIdsOf(List.of(graceId)).getOrDefault(graceId, List.of());
     }
 
     @Override

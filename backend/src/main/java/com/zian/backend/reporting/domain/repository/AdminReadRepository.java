@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
 import com.zian.backend.reporting.domain.model.NoticeRow;
 import com.zian.backend.reporting.domain.model.NotifyTaskRow;
@@ -122,6 +123,22 @@ public interface AdminReadRepository {
      * @return 总条数
      */
     long countGraces(String status, String keyword);
+
+    /**
+     * 按主键查询宽限单（管理端详情，含读者与书目）。
+     *
+     * @param id 宽限申请 id
+     * @return 宽限单行；不存在时返回 null
+     */
+    GraceRow findGrace(long id);
+
+    /**
+     * 批量查询宽限单的证据附件，用于管理端列表与详情避免 N+1。
+     *
+     * @param graceIds 宽限申请 id 集合，不能为空
+     * @return 附件行（按关联时间升序）
+     */
+    List<GraceEvidenceRow> graceEvidence(List<Long> graceIds);
 
     /**
      * 申诉工单分页查询。

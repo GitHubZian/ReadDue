@@ -83,6 +83,18 @@ public class AdminQueryController {
             @RequestParam(required = false) Integer size) {
         return ResultUtils.success(queryService.graces(status, keyword, PageQuery.of(page, size)));
     }
+
+    /**
+     * 宽限单详情，含证据附件与审批历史，供管理端审批弹层使用。
+     *
+     * @param id 宽限申请 id
+     * @return 宽限单视图
+     */
+    @GetMapping("/graces/{id}")
+    @PreAuthorize("hasAuthority('grace:approve')")
+    public BaseResponse<AdminViews.GraceRecordView> grace(@PathVariable long id) {
+        return ResultUtils.success(queryService.grace(id));
+    }
     /**
      * 申诉工单列表，含分类、SLA、时间线与结论。
      *

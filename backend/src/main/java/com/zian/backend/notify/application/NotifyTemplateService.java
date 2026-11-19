@@ -58,6 +58,15 @@ public class NotifyTemplateService {
     }
 
     /**
+     * 全部通知模板（按编码排序），供管理端模板页展示。
+     *
+     * @return 模板视图列表
+     */
+    public List<NotifyDtos.TemplateView> list() {
+        return repository.findAll().stream().map(this::view).toList();
+    }
+
+    /**
      * 把模板实体转换为前端视图（渠道与场景做枚举映射）。
      *
      * @param template 模板实体

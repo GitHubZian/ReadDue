@@ -50,6 +50,7 @@ class GraceEvidenceTest extends SecurityTestSupport {
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
         long graceId = objectMapper.readTree(applied).path("data").path("id").asLong();
+        String applyNo = objectMapper.readTree(applied).path("data").path("code").asText();
 
         mockMvc.perform(get("/v1/graces/{id}", graceId).header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
@@ -62,6 +63,20 @@ class GraceEvidenceTest extends SecurityTestSupport {
                 .getResponse()
                 .getContentAsByteArray();
         assertThat(downloaded).isEqualTo(PNG);
+
+        String staffNo = newAccount("lib");
+        createUser(staffNo, "LIBRARIAN", "NORMAL", null);
+        String staffToken = login(staffNo);
+        mockMvc.perform(get("/v1/admin/graces/{id}", graceId).header("Authorization", bearer(staffToken)))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.evidence[0].label").value("evidence.png"))
+                .andExpect(jsonPath("$.data.evidence[0].url").value("/v1/files/" + fileId));
+        mockMvc.perform(get("/v1/admin/graces")
+                        .param("keyword", applyNo)
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].evidence[0].label").value("evidence.png"));
     }
 
     @Test

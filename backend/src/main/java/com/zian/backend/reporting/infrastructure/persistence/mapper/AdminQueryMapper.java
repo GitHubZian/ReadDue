@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
 import com.zian.backend.reporting.domain.model.NoticeRow;
 import com.zian.backend.reporting.domain.model.NotifyTaskRow;
@@ -210,6 +211,47 @@ public interface AdminQueryMapper {
             </script>
             """)
     long countGraces(@Param("status") String status, @Param("keyword") String keyword);
+
+    /**
+     * 按主键查询一条宽限单（管理端详情）。
+     *
+     * @param id 宽限申请 id
+     * @return 宽限单行；不存在时返回 null
+     */
+    @Select("""
+            SELECT g.id, g.apply_no AS applyNo, g.scene_code AS sceneCode, g.evidence_text AS evidenceText,
+                   g.status, g.computed_days AS computedDays, g.granted_days AS grantedDays,
+                   g.created_at AS createdAt, g.decided_at AS decidedAt, g.decided_by AS decidedBy,
+                   g.reject_code AS rejectCode,
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode
+              FROM grace_application g
+              JOIN sys_user u ON u.id = g.reader_id AND u.deleted = 0
+              LEFT JOIN reader_profile rp ON rp.user_id = u.id
+              JOIN borrow_order o ON o.id = g.borrow_order_id
+              JOIN book b ON b.id = o.book_id AND b.deleted = 0
+              LEFT JOIN book_copy c ON c.id = o.copy_id AND c.deleted = 0
+             WHERE g.id = #{id}
+            """)
+    GraceRow findGrace(@Param("id") long id);
+
+    /**
+     * 批量查询宽限单的证据附件。
+     *
+     * @param graceIds 宽限申请 id 集合
+     * @return 附件行
+     */
+    @Select("""
+            <script>
+            SELECT ge.grace_id AS graceId, ge.file_id AS fileId, f.original_name AS name
+              FROM grace_evidence ge
+              JOIN file_object f ON f.id = ge.file_id
+             WHERE ge.grace_id IN
+             <foreach collection="graceIds" item="gid" open="(" separator="," close=")">#{gid}</foreach>
+             ORDER BY ge.created_at, ge.id
+            </script>
+            """)
+    List<GraceEvidenceRow> graceEvidence(@Param("graceIds") List<Long> graceIds);
 
 // endregion
 

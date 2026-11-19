@@ -236,6 +236,7 @@ flutter analyze; flutter test
 | 2026-11-19 | BE | B-10 隐私授权与遗忘 | V12 增 `privacy:self`；`GET/PUT /v1/me/consents` 默认最小授权、关闭记 `consentRevokedAt` 并写 `CONSENT_REVOKE`；`POST /v1/me/forget` 脱敏姓名/手机/邮箱/院系、保留借阅事实、写 `USER_FORGET`，重复 409；新增 `PrivacyControllerTest` 4 例；verify 83 run/1 skip |
 | 2026-11-19 | BE | B-09 审计可追溯 | V11 增 `trace_id`/`before_json`/`after_json`；宽限审批、申诉处理、规则调整写前后值；列表/详情/CSV 导出返回；`X-Trace-Id` 落库；新增 `AuditTraceTest`；verify 79 run/1 skip |
 | 2026-11-19 | BE | B-08 宽限证据附件 | `POST/GET /v1/files` + `POST /graces` 收 `evidenceIds`（≤5 个）+ `GET /graces/{id}` 详情；V10 `file_object`/`grace_evidence`；5MB、png/jpg/pdf、魔数校验、越权 404；verify 77 run/1 skip |
+| 2026-11-19 | BE | F-03 管理端证据补齐 | `AdminQueryService#graceView` 不再固定空数组：管理端列表批量装配 `evidence[{label,url}]`；新增 `GET /v1/admin/graces/{id}`（`grace:approve`）返回同结构，不存在 404；`GraceEvidenceTest` 增管理端断言；verify 90 run/1 skip。顺带 ponytail 清理：`GraceEvidenceRepositoryImpl.fileIdsOf(long)` 复用批量实现、`NotifyTemplateService.list()` 收口模板列表，`AdminQueryService` 不再直连 `notify.domain.repository` |
 
 ---
 

@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
 import com.zian.backend.reporting.domain.model.NoticeRow;
 import com.zian.backend.reporting.domain.model.NotifyTaskRow;
@@ -92,6 +93,16 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     @Override
     public long countGraces(String status, String keyword) {
         return mapper.countGraces(status, keyword);
+    }
+
+    @Override
+    public GraceRow findGrace(long id) {
+        return mapper.findGrace(id);
+    }
+
+    @Override
+    public List<GraceEvidenceRow> graceEvidence(List<Long> graceIds) {
+        return mapper.graceEvidence(graceIds);
     }
 
     @Override

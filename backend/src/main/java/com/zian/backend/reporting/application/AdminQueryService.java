@@ -1,13 +1,13 @@
 package com.zian.backend.reporting.application;
 
 import com.zian.backend.notify.application.NotifyTemplateService;
-import com.zian.backend.notify.domain.repository.NotifyTemplateRepository;
 import com.zian.backend.notify.interfaces.dto.NotifyDtos;
 import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
 import com.zian.backend.reporting.domain.model.NoticeRow;
 import com.zian.backend.reporting.domain.model.NotifyTaskRow;
@@ -41,8 +41,10 @@ import com.zian.backend.reporting.interfaces.dto.AdminViews.TimelineItem;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.TrendPoint;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.TrendSummary;
 import com.zian.backend.rule.application.RuleService;
+import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.common.PageQuery;
 import com.zian.backend.shared.common.PageResult;
+import com.zian.backend.shared.exception.BusinessException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -54,6 +56,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -69,7 +72,6 @@ public class AdminQueryService {
 
     private final AdminReadRepository readRepository;
     private final RuleService ruleService;
-    private final NotifyTemplateRepository templateRepository;
     private final NotifyTemplateService templateService;
 
 // region 工作台
@@ -187,15 +189,43 @@ public class AdminQueryService {
      */
     public PageResult<GraceRecordView> graces(String status, String keyword, PageQuery page) {
         long total = readRepository.countGraces(status, keyword);
-        List<GraceRecordView> items = readRepository
-                .graces(status, keyword, page.size(), page.offset())
-                .stream()
-                .map(this::graceView)
+        List<GraceRow> rows = readRepository.graces(status, keyword, page.size(), page.offset());
+        Map<Long, List<AdminViews.Evidence>> evidence = evidenceOf(rows.stream().map(GraceRow::id).toList());
+        List<GraceRecordView> items = rows.stream()
+                .map(row -> graceView(row, evidence.getOrDefault(row.id(), List.of())))
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
     }
 
-    private GraceRecordView graceView(GraceRow row) {
+    /**
+     * 宽限单详情，供管理端查看证据附件与审批历史。
+     *
+     * @param id 宽限申请 id
+     * @return 宽限单视图
+     * @throws BusinessException 申请不存在时抛 404
+     */
+    public GraceRecordView grace(long id) {
+        GraceRow row = readRepository.findGrace(id);
+        if (row == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "宽限申请不存在");
+        }
+        return graceView(row, evidenceOf(List.of(id)).getOrDefault(id, List.of()));
+    }
+
+    private Map<Long, List<AdminViews.Evidence>> evidenceOf(List<Long> graceIds) {
+        if (graceIds.isEmpty()) {
+            return Map.of();
+        }
+        return readRepository.graceEvidence(graceIds).stream()
+                .collect(Collectors.groupingBy(
+                        GraceEvidenceRow::graceId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                row -> new AdminViews.Evidence(row.name(), "/v1/files/" + row.fileId()),
+                                Collectors.toList())));
+    }
+
+    private GraceRecordView graceView(GraceRow row, List<AdminViews.Evidence> evidence) {
         String dbStatus = row.status();
         Integer approved = row.grantedDays();
         List<TimelineItem> history = new ArrayList<>();
@@ -231,7 +261,7 @@ public class AdminQueryService {
                 approved,
                 isoPlusHours(row.createdAt(), ruleService.intValue("APPEAL.SLA_HOURS", 2)),
                 iso(row.createdAt()),
-                List.of(),
+                evidence,
                 history);
     }
 
@@ -431,7 +461,7 @@ public class AdminQueryService {
      * @return 模板视图列表
      */
     public List<NotifyDtos.TemplateView> templates() {
-        return templateRepository.findAll().stream().map(templateService::view).toList();
+        return templateService.list();
     }
 
     /**
