@@ -52,7 +52,6 @@ public class AdminQueryController {
      * @param keyword 姓名或学号关键字
      * @param page    页码，从 1 开始
      * @param size    每页条数，上限 200
-     * @param sort    排序参数，当前仅接收不参与排序
      * @return 分页后的用户视图
      */
     @GetMapping("/users")
@@ -62,9 +61,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.users(role, status, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.users(role, status, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -74,7 +72,6 @@ public class AdminQueryController {
      * @param keyword 姓名、学号或申请单号关键字
      * @param page    页码
      * @param size    每页条数
-     * @param sort    排序参数，当前仅接收不参与排序
      * @return 分页后的宽限单
      */
     @GetMapping("/graces")
@@ -83,9 +80,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.graces(status, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.graces(status, keyword, PageQuery.of(page, size)));
     }
     /**
      * 申诉工单列表，含分类、SLA、时间线与结论。
@@ -95,7 +91,6 @@ public class AdminQueryController {
      * @param keyword  姓名、学号或工单号关键字
      * @param page     页码
      * @param size     每页条数
-     * @param sort     排序参数，当前仅接收不参与排序
      * @return 分页后的工单
      */
     @GetMapping("/appeals")
@@ -105,9 +100,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.appeals(status, category, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.appeals(status, category, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -117,7 +111,6 @@ public class AdminQueryController {
      * @param keyword 姓名、学号或书名关键字
      * @param page    页码
      * @param size    每页条数
-     * @param sort    排序参数，当前仅接收不参与排序
      * @return 分页后的预约
      */
     @GetMapping("/reservations")
@@ -126,9 +119,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.reservations(status, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.reservations(status, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -138,7 +130,6 @@ public class AdminQueryController {
      * @param keyword 姓名、学号或书名关键字
      * @param page    页码
      * @param size    每页条数
-     * @param sort    排序参数，当前仅接收不参与排序
      * @return 分页后的逾期条目
      */
     @GetMapping("/overdue")
@@ -147,9 +138,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.overdue(status, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.overdue(status, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -159,7 +149,6 @@ public class AdminQueryController {
      * @param keyword 读者姓名或去重键关键字
      * @param page    页码
      * @param size    每页条数
-     * @param sort    排序参数，当前仅接收不参与排序
      * @return 分页后的通知任务
      */
     @GetMapping("/notify-tasks")
@@ -168,9 +157,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.notifyTasks(status, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.notifyTasks(status, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -224,7 +212,6 @@ public class AdminQueryController {
      * @param keyword  操作人、动作或对象关键字
      * @param page     页码
      * @param size     每页条数
-     * @param sort     排序参数，当前仅接收不参与排序
      * @return 分页后的审计日志
      */
     @GetMapping("/audit-logs")
@@ -233,9 +220,8 @@ public class AdminQueryController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(queryService.auditLogs(category, keyword, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(queryService.auditLogs(category, keyword, PageQuery.of(page, size)));
     }
 
     /**
@@ -266,7 +252,7 @@ public class AdminQueryController {
     public ResponseEntity<byte[]> exportAuditLogs(
             @RequestParam(required = false) String category, @RequestParam(required = false) String keyword) {
         PageResult<AdminViews.AuditLogView> result =
-                queryService.auditLogs(category, keyword, PageQuery.of(1, PageQuery.MAX_SIZE, null));
+                queryService.auditLogs(category, keyword, PageQuery.of(1, PageQuery.MAX_SIZE));
         StringBuilder csv = new StringBuilder("id,时间,操作人,角色,动作,分类,对象,IP,详情\n");
         result.items().forEach(log -> {
             csv.append(String.join(",",

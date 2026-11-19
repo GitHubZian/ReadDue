@@ -45,7 +45,6 @@ public class GraceController {
      * @param status 状态过滤（PENDING/APPROVED/REJECTED/EXPIRED）
      * @param page   页码
      * @param size   每页条数
-     * @param sort   排序参数，当前仅接收不参与排序
      * @return 分页后的申请
      */
     @GetMapping("/self")
@@ -53,8 +52,7 @@ public class GraceController {
     public BaseResponse<PageResult<GraceDtos.ApplicationView>> myApplications(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(graceService.myApplications(status, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(graceService.myApplications(status, PageQuery.of(page, size)));
     }
 }

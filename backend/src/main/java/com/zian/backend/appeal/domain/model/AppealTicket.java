@@ -4,123 +4,42 @@ import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 申诉工单聚合：SLA 2 小时内必须首次回应，超时自动补偿 3 天。
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AppealTicket {
 
-    private final Long id;
-    private final String ticketNo;
-    private final Long readerId;
-    private final String targetType;
-    private final Long targetId;
-    private final String reason;
+    private Long id;
+    private String ticketNo;
+    private Long readerId;
+    private String targetType;
+    private Long targetId;
+    private String reason;
     private AppealStatus status;
-    private final LocalDateTime slaDueAt;
+    private LocalDateTime slaDueAt;
     private LocalDateTime firstReplyAt;
     private boolean slaBreached;
     private Long assigneeId;
     private String assigneeName;
     private int compensationDays;
     private String resolution;
-    private final LocalDateTime createdAt;
-
-    public AppealTicket(
-            Long id,
-            String ticketNo,
-            Long readerId,
-            String targetType,
-            Long targetId,
-            String reason,
-            AppealStatus status,
-            LocalDateTime slaDueAt,
-            LocalDateTime firstReplyAt,
-            boolean slaBreached,
-            Long assigneeId,
-            String assigneeName,
-            int compensationDays,
-            String resolution,
-            LocalDateTime createdAt) {
-        this.id = id;
-        this.ticketNo = ticketNo;
-        this.readerId = readerId;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.reason = reason;
-        this.status = status;
-        this.slaDueAt = slaDueAt;
-        this.firstReplyAt = firstReplyAt;
-        this.slaBreached = slaBreached;
-        this.assigneeId = assigneeId;
-        this.assigneeName = assigneeName;
-        this.compensationDays = compensationDays;
-        this.resolution = resolution;
-        this.createdAt = createdAt;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getTicketNo() {
-        return ticketNo;
-    }
-
-    public Long getReaderId() {
-        return readerId;
-    }
-
-    public String getTargetType() {
-        return targetType;
-    }
-
-    public Long getTargetId() {
-        return targetId;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public AppealStatus getStatus() {
-        return status;
-    }
-
-    public LocalDateTime getSlaDueAt() {
-        return slaDueAt;
-    }
-
-    public LocalDateTime getFirstReplyAt() {
-        return firstReplyAt;
-    }
-
-    public boolean isSlaBreached() {
-        return slaBreached;
-    }
-
-    public Long getAssigneeId() {
-        return assigneeId;
-    }
-
-    public String getAssigneeName() {
-        return assigneeName;
-    }
-
-    public int getCompensationDays() {
-        return compensationDays;
-    }
-
-    public String getResolution() {
-        return resolution;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    private LocalDateTime createdAt;
 
     /**
      * 受理：OPEN → ACKED 并记录首次回应时间。
+     *
+     * @param operatorId   受理人 ID
+     * @param operatorName 受理人姓名
+     * @param now          受理时间
      */
     public void ack(Long operatorId, String operatorName, LocalDateTime now) {
         if (!status.isOpen()) {
@@ -138,6 +57,10 @@ public class AppealTicket {
 
     /**
      * 出结论：置为 RESOLVED 并记录说明。
+     *
+     * @param note         结案说明
+     * @param operatorId   处理人 ID
+     * @param operatorName 处理人姓名
      */
     public void resolve(String note, Long operatorId, String operatorName) {
         requireOpen();
@@ -149,6 +72,10 @@ public class AppealTicket {
 
     /**
      * 驳回：置为 REJECTED。
+     *
+     * @param note         驳回说明
+     * @param operatorId   处理人 ID
+     * @param operatorName 处理人姓名
      */
     public void reject(String note, Long operatorId, String operatorName) {
         requireOpen();
@@ -160,6 +87,11 @@ public class AppealTicket {
 
     /**
      * 补偿：置为 AUTO_COMPENSATED 并累加补偿天数。
+     *
+     * @param days         本次补偿天数
+     * @param note         处理说明
+     * @param operatorId   处理人 ID
+     * @param operatorName 处理人姓名
      */
     public void compensate(int days, String note, Long operatorId, String operatorName) {
         requireOpen();
@@ -175,6 +107,10 @@ public class AppealTicket {
 
     /**
      * SLA 超时处理：超时且未补偿时自动补偿，返回是否发生。
+     *
+     * @param now               当前时间
+     * @param compensationDays  自动补偿天数
+     * @return 是否触发了自动补偿
      */
     public boolean breachSla(LocalDateTime now, int compensationDays) {
         if (!status.isOpen() || slaBreached) {

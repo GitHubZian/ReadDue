@@ -1,8 +1,20 @@
 package com.zian.backend.reporting.infrastructure.persistence.mapper;
 
+import com.zian.backend.reporting.domain.model.AppealRow;
+import com.zian.backend.reporting.domain.model.AuditLogRow;
+import com.zian.backend.reporting.domain.model.CalendarRow;
+import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceRow;
+import com.zian.backend.reporting.domain.model.NoticeRow;
+import com.zian.backend.reporting.domain.model.NotifyTaskRow;
+import com.zian.backend.reporting.domain.model.OverdueRow;
+import com.zian.backend.reporting.domain.model.ReservationRow;
+import com.zian.backend.reporting.domain.model.TierRow;
+import com.zian.backend.reporting.domain.model.TrendRow;
+import com.zian.backend.reporting.domain.model.UserRow;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -11,6 +23,9 @@ import org.apache.ibatis.annotations.Select;
  * 管理端只读查询的 MyBatis 映射。跨上下文联表与聚合集中在这里，宿主上下文不直连其他上下文的 Mapper。
  *
  * <p>由 {@code AdminReadRepositoryImpl} 适配成应用层端口。
+ *
+ * <p>结果列一律显式写成与 {@code *Row} 构造器参数同名的 camelCase 别名，配合
+ * {@code arg-name-based-constructor-auto-mapping} 直接映射成 record，不依赖下划线转换。
  */
 @Mapper
 public interface AdminQueryMapper {
@@ -55,35 +70,57 @@ public interface AdminQueryMapper {
             """)
     long sumOverdueDays();
 
+    /**
+     * 按日统计借出量。
+     *
+     * @param from 统计起始时刻（含）
+     * @return 每日一行的借出量
+     */
     @Select("""
-            SELECT DATE(borrowed_at) AS d, COUNT(*) AS c
+            SELECT DATE(borrowed_at) AS day, COUNT(*) AS total
               FROM borrow_order
              WHERE borrowed_at >= #{from}
              GROUP BY DATE(borrowed_at)
             """)
-    List<Map<String, Object>> borrowTrend(@Param("from") LocalDateTime from);
+    List<TrendRow> borrowTrend(@Param("from") LocalDateTime from);
 
+    /**
+     * 按日统计归还量。
+     *
+     * @param from 统计起始时刻（含）
+     * @return 每日一行的归还量
+     */
     @Select("""
-            SELECT DATE(returned_at) AS d, COUNT(*) AS c
+            SELECT DATE(returned_at) AS day, COUNT(*) AS total
               FROM borrow_order
              WHERE returned_at >= #{from}
              GROUP BY DATE(returned_at)
             """)
-    List<Map<String, Object>> returnTrend(@Param("from") LocalDateTime from);
+    List<TrendRow> returnTrend(@Param("from") LocalDateTime from);
 
+    /**
+     * 最近 5 条已发送的通知。
+     *
+     * @return 通知行
+     */
     @Select("""
-            SELECT t.id, t.level, t.plan_at, u.name AS reader_name
+            SELECT t.id, t.level, t.plan_at AS planAt, u.name AS readerName
               FROM notify_task t
               LEFT JOIN sys_user u ON u.id = t.reader_id AND u.deleted = 0
              WHERE t.status = 'SENT'
              ORDER BY t.plan_at DESC
              LIMIT 5
             """)
-    List<Map<String, Object>> notices();
+    List<NoticeRow> notices();
 
+    /**
+     * 今日到期的借阅明细（最多 8 条）。
+     *
+     * @return 到期借阅行
+     */
     @Select("""
-            SELECT o.id, o.reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author, c.barcode, o.effective_due_at
+            SELECT o.id, o.reader_id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode, o.effective_due_at AS effectiveDueAt
               FROM borrow_order o
               JOIN sys_user u ON u.id = o.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -93,19 +130,30 @@ public interface AdminQueryMapper {
              ORDER BY o.effective_due_at
              LIMIT 8
             """)
-    List<Map<String, Object>> dueTodayItems();
+    List<DueTodayRow> dueTodayItems();
 
 // endregion
 
 // region 宽限
 
 
+    /**
+     * 宽限单分页查询。
+     *
+     * @param status  状态过滤，ALL/空表示不过滤
+     * @param keyword 姓名、学号、书名或单号关键字
+     * @param limit   每页条数
+     * @param offset  偏移量
+     * @return 宽限单行
+     */
     @Select("""
             <script>
-            SELECT g.id, g.apply_no, g.scene_code, g.evidence_text, g.status, g.computed_days,
-                   g.granted_days, g.created_at, g.decided_at, g.decided_by, g.reject_code,
-                   u.id AS reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author, c.barcode
+            SELECT g.id, g.apply_no AS applyNo, g.scene_code AS sceneCode, g.evidence_text AS evidenceText,
+                   g.status, g.computed_days AS computedDays, g.granted_days AS grantedDays,
+                   g.created_at AS createdAt, g.decided_at AS decidedAt, g.decided_by AS decidedBy,
+                   g.reject_code AS rejectCode,
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode
               FROM grace_application g
               JOIN sys_user u ON u.id = g.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -131,7 +179,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> graces(
+    List<GraceRow> graces(
             @Param("status") String status,
             @Param("keyword") String keyword,
             @Param("limit") int limit,
@@ -168,12 +216,24 @@ public interface AdminQueryMapper {
 // region 申诉
 
 
+    /**
+     * 申诉工单分页查询。
+     *
+     * @param status   状态过滤，ALL/空表示不过滤
+     * @param category 分类过滤，ALL/空表示不过滤
+     * @param keyword  姓名、学号、书名、工单号或陈述关键字
+     * @param limit    每页条数
+     * @param offset   偏移量
+     * @return 工单行
+     */
     @Select("""
             <script>
-            SELECT a.id, a.ticket_no, a.target_type, a.reason, a.status, a.created_at, a.updated_at,
-                   a.sla_due_at, a.first_reply_at, a.resolution, a.compensation_days, a.assignee_name,
-                   u.id AS reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author, c.barcode
+            SELECT a.id, a.ticket_no AS ticketNo, a.target_type AS targetType, a.reason, a.status,
+                   a.created_at AS createdAt, a.updated_at AS updatedAt, a.sla_due_at AS slaDueAt,
+                   a.first_reply_at AS firstReplyAt, a.resolution, a.compensation_days AS compensationDays,
+                   a.assignee_name AS assigneeName,
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode
               FROM appeal_ticket a
               JOIN sys_user u ON u.id = a.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -210,7 +270,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> appeals(
+    List<AppealRow> appeals(
             @Param("status") String status,
             @Param("category") String category,
             @Param("keyword") String keyword,
@@ -260,11 +320,21 @@ public interface AdminQueryMapper {
 // region 预约
 
 
+    /**
+     * 预约分页查询。
+     *
+     * @param status  状态过滤，ALL/空表示不过滤
+     * @param keyword 姓名、学号或书名关键字
+     * @param limit   每页条数
+     * @param offset  偏移量
+     * @return 预约行
+     */
     @Select("""
             <script>
-            SELECT r.id, r.queue_no, r.status, r.created_at, r.ready_at, r.expires_at,
-                   u.id AS reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author
+            SELECT r.id, r.queue_no AS queueNo, r.status, r.created_at AS createdAt,
+                   r.ready_at AS readyAt, r.expires_at AS expiresAt,
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author
               FROM reservation r
               JOIN sys_user u ON u.id = r.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -282,7 +352,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> reservations(
+    List<ReservationRow> reservations(
             @Param("status") String status,
             @Param("keyword") String keyword,
             @Param("limit") int limit,
@@ -312,14 +382,25 @@ public interface AdminQueryMapper {
 // region 逾期
 
 
+    /**
+     * 逾期看板分页查询。
+     *
+     * @param status  状态过滤，ALL/空表示未丢书的逾期
+     * @param keyword 姓名、学号或书名关键字
+     * @param limit   每页条数
+     * @param offset  偏移量
+     * @return 逾期行
+     */
     @Select("""
             <script>
-            SELECT v.order_id, v.reader_id, v.reader_name, v.student_no, v.book_id, v.book_title,
-                   v.effective_due_at, v.overdue_days, v.l3_sent, o.status,
+            SELECT v.order_id AS orderId, v.reader_id AS readerId, v.reader_name AS readerName,
+                   v.student_no AS studentNo, v.book_id AS bookId, v.book_title AS bookTitle,
+                   v.effective_due_at AS effectiveDueAt, v.overdue_days AS overdueDays, v.l3_sent AS l3Sent,
+                   o.status,
                    (SELECT MAX(t.created_at) FROM notify_task t
-                     WHERE t.borrow_order_id = v.order_id AND t.level = 'L3') AS last_reminded,
+                     WHERE t.borrow_order_id = v.order_id AND t.level = 'L3') AS lastReminded,
                    (SELECT p.department FROM reader_profile p WHERE p.user_id = v.reader_id) AS department,
-                   c.barcode, (SELECT b.author FROM book b WHERE b.id = v.book_id) AS author
+                   c.barcode, (SELECT b.author FROM book b WHERE b.id = v.book_id AND b.deleted = 0) AS author
               FROM v_overdue_board v
               JOIN borrow_order o ON o.id = v.order_id
               LEFT JOIN book_copy c ON c.id = o.copy_id AND c.deleted = 0
@@ -339,7 +420,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> overdue(
+    List<OverdueRow> overdue(
             @Param("status") String status,
             @Param("keyword") String keyword,
             @Param("limit") int limit,
@@ -371,10 +452,19 @@ public interface AdminQueryMapper {
 // region 提醒任务
 
 
+    /**
+     * 通知任务分页查询。
+     *
+     * @param status  状态过滤，PLANNED 会展开为 PLANNED/CANCELED/MERGED
+     * @param keyword 读者姓名或去重键关键字
+     * @param limit   每页条数
+     * @param offset  偏移量
+     * @return 通知任务行
+     */
     @Select("""
             <script>
-            SELECT t.id, t.level, t.status, t.created_at, t.plan_at, t.updated_at, t.dedup_key,
-                   u.name AS reader_name
+            SELECT t.id, t.level, t.status, t.created_at AS createdAt, t.plan_at AS planAt,
+                   t.updated_at AS updatedAt, t.dedup_key AS dedupKey, u.name AS readerName
               FROM notify_task t
               LEFT JOIN sys_user u ON u.id = t.reader_id AND u.deleted = 0
              WHERE 1 = 1
@@ -394,7 +484,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> notifyTasks(
+    List<NotifyTaskRow> notifyTasks(
             @Param("status") String status,
             @Param("keyword") String keyword,
             @Param("limit") int limit,
@@ -427,14 +517,25 @@ public interface AdminQueryMapper {
 // region 用户
 
 
+    /**
+     * 用户分页查询。
+     *
+     * @param role    角色过滤，ALL/空表示不过滤
+     * @param status  状态过滤，ALL/空表示不过滤
+     * @param keyword 姓名、学号或手机号关键字
+     * @param limit   每页条数
+     * @param offset  偏移量
+     * @return 用户行
+     */
     @Select("""
             <script>
-            SELECT u.id, u.name, u.user_no, u.role, u.status, u.phone, u.email, u.created_at, u.last_login_at,
-                   u.blacklist_reason, rp.department,
-                   (SELECT COUNT(*) FROM borrow_order o WHERE o.reader_id = u.id) AS borrow_count,
+            SELECT u.id, u.name, u.user_no AS userNo, u.role, u.status, u.phone, u.email,
+                   u.created_at AS createdAt, u.last_login_at AS lastLoginAt,
+                   u.blacklist_reason AS blacklistReason, rp.department,
+                   (SELECT COUNT(*) FROM borrow_order o WHERE o.reader_id = u.id) AS borrowCount,
                    (SELECT COALESCE(SUM(GREATEST(DATEDIFF(CURDATE(), o.effective_due_at), 0)), 0)
                       FROM borrow_order o
-                     WHERE o.reader_id = u.id AND o.status IN ('BORROWED','OVERDUE')) AS overdue_days
+                     WHERE o.reader_id = u.id AND o.status IN ('BORROWED','OVERDUE')) AS overdueDays
               FROM sys_user u
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
              WHERE u.deleted = 0
@@ -453,7 +554,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> users(
+    List<UserRow> users(
             @Param("role") String role,
             @Param("status") String status,
             @Param("keyword") String keyword,
@@ -486,10 +587,20 @@ public interface AdminQueryMapper {
 // region 审计
 
 
+    /**
+     * 审计日志分页查询。
+     *
+     * @param category 动作前缀过滤，ALL/空表示不过滤
+     * @param keyword  操作人、动作或对象关键字
+     * @param limit    每页条数
+     * @param offset   偏移量
+     * @return 审计日志行
+     */
     @Select("""
             <script>
-            SELECT a.id, a.action, a.object_type, a.object_id, a.purpose, a.detail, a.ip, a.actor_role,
-                   a.created_at, u.name AS actor_name
+            SELECT a.id, a.action, a.object_type AS objectType, a.object_id AS objectId, a.purpose,
+                   a.detail, a.ip, a.actor_role AS actorRole, a.created_at AS createdAt,
+                   u.name AS actorName
               FROM audit_log a
               LEFT JOIN sys_user u ON u.id = a.actor_id
              WHERE 1 = 1
@@ -505,7 +616,7 @@ public interface AdminQueryMapper {
              LIMIT #{limit} OFFSET #{offset}
             </script>
             """)
-    List<Map<String, Object>> auditLogs(
+    List<AuditLogRow> auditLogs(
             @Param("category") String category,
             @Param("keyword") String keyword,
             @Param("limit") int limit,
@@ -529,24 +640,36 @@ public interface AdminQueryMapper {
             """)
     long countAuditLogs(@Param("category") String category, @Param("keyword") String keyword);
 
+    /**
+     * 按主键查审计日志详情。
+     *
+     * @param id 日志 ID
+     * @return 审计日志行，不存在时为 null
+     */
     @Select("""
-            SELECT a.id, a.action, a.object_type, a.object_id, a.purpose, a.detail, a.ip, a.actor_role,
-                   a.created_at, u.name AS actor_name
+            SELECT a.id, a.action, a.object_type AS objectType, a.object_id AS objectId, a.purpose,
+                   a.detail, a.ip, a.actor_role AS actorRole, a.created_at AS createdAt,
+                   u.name AS actorName
               FROM audit_log a
               LEFT JOIN sys_user u ON u.id = a.actor_id
              WHERE a.id = #{id}
             """)
-    Map<String, Object> auditLog(@Param("id") Long id);
+    AuditLogRow auditLog(@Param("id") Long id);
 
 // endregion
 
 // region 借还台
 
 
+    /**
+     * 今日借出流水。
+     *
+     * @return 流通流水行
+     */
     @Select("""
             SELECT o.id, o.borrowed_at AS at, 'BORROW' AS type,
-                   u.id AS reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author, c.barcode
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode
               FROM borrow_order o
               JOIN sys_user u ON u.id = o.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -554,12 +677,17 @@ public interface AdminQueryMapper {
               LEFT JOIN book_copy c ON c.id = o.copy_id AND c.deleted = 0
              WHERE DATE(o.borrowed_at) = CURDATE()
             """)
-    List<Map<String, Object>> circulationBorrows();
+    List<CirculationRow> circulationBorrows();
 
+    /**
+     * 今日归还流水。
+     *
+     * @return 流通流水行
+     */
     @Select("""
             SELECT o.id, o.returned_at AS at, 'RETURN' AS type,
-                   u.id AS reader_id, u.name AS reader_name, u.user_no, rp.department,
-                   b.id AS book_id, b.title, b.author, c.barcode
+                   u.id AS readerId, u.name AS readerName, u.user_no AS userNo, rp.department,
+                   b.id AS bookId, b.title, b.author, c.barcode
               FROM borrow_order o
               JOIN sys_user u ON u.id = o.reader_id AND u.deleted = 0
               LEFT JOIN reader_profile rp ON rp.user_id = u.id
@@ -567,7 +695,7 @@ public interface AdminQueryMapper {
               LEFT JOIN book_copy c ON c.id = o.copy_id AND c.deleted = 0
              WHERE DATE(o.returned_at) = CURDATE()
             """)
-    List<Map<String, Object>> circulationReturns();
+    List<CirculationRow> circulationReturns();
 
     @Select("SELECT COUNT(*) FROM borrow_order WHERE DATE(borrowed_at) = CURDATE()")
     int countBorrowsToday();
@@ -580,6 +708,11 @@ public interface AdminQueryMapper {
 // region 规则附表
 
 
+    /**
+     * 逾期分档表。
+     *
+     * @return 分档行
+     */
     @Select("""
             SELECT tier_code AS code, tier_name AS name, min_days AS minDays,
                    max_days AS maxDays, action_code AS actionCode, tone_code AS toneCode,
@@ -587,15 +720,20 @@ public interface AdminQueryMapper {
               FROM overdue_tier
              ORDER BY min_days
             """)
-    List<Map<String, Object>> tiers();
+    List<TierRow> tiers();
 
+    /**
+     * 校历列表。
+     *
+     * @return 校历行
+     */
     @Select("""
             SELECT id, term, scene_code AS scene, start_date AS startDate, end_date AS endDate, source, note
               FROM academic_calendar
              WHERE deleted = 0
              ORDER BY start_date DESC
             """)
-    List<Map<String, Object>> calendar();
+    List<CalendarRow> calendar();
 
 // endregion
 

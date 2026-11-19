@@ -3,85 +3,30 @@ package com.zian.backend.reservation.domain.model;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 预约聚合：队列号 + 到书保留 48 小时 + 过期顺延。
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Reservation {
 
-    private final Long id;
-    private final Long bookId;
-    private final Long readerId;
-    private final int queueNo;
+    private Long id;
+    private Long bookId;
+    private Long readerId;
+    private int queueNo;
     private ReservationStatus status;
     private LocalDateTime readyAt;
     private LocalDateTime expiresAt;
     private LocalDateTime fulfilledAt;
     private String cancelReason;
-    private final Integer version;
-
-    public Reservation(
-            Long id,
-            Long bookId,
-            Long readerId,
-            int queueNo,
-            ReservationStatus status,
-            LocalDateTime readyAt,
-            LocalDateTime expiresAt,
-            LocalDateTime fulfilledAt,
-            String cancelReason,
-            Integer version) {
-        this.id = id;
-        this.bookId = bookId;
-        this.readerId = readerId;
-        this.queueNo = queueNo;
-        this.status = status;
-        this.readyAt = readyAt;
-        this.expiresAt = expiresAt;
-        this.fulfilledAt = fulfilledAt;
-        this.cancelReason = cancelReason;
-        this.version = version;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getBookId() {
-        return bookId;
-    }
-
-    public Long getReaderId() {
-        return readerId;
-    }
-
-    public int getQueueNo() {
-        return queueNo;
-    }
-
-    public ReservationStatus getStatus() {
-        return status;
-    }
-
-    public LocalDateTime getReadyAt() {
-        return readyAt;
-    }
-
-    public LocalDateTime getExpiresAt() {
-        return expiresAt;
-    }
-
-    public LocalDateTime getFulfilledAt() {
-        return fulfilledAt;
-    }
-
-    public String getCancelReason() {
-        return cancelReason;
-    }
-
-    public Integer getVersion() {
-        return version;
-    }
+    private Integer version;
 
     /**
      * 是否仍在排队。
@@ -92,6 +37,9 @@ public class Reservation {
 
     /**
      * 到书：WAITING → READY，并设置取书截止时间。
+     *
+     * @param now       到书时间
+     * @param holdHours 保留小时数
      */
     public void markReady(LocalDateTime now, int holdHours) {
         if (status != ReservationStatus.WAITING) {
@@ -114,6 +62,8 @@ public class Reservation {
 
     /**
      * 取书完成：READY → FULFILLED。
+     *
+     * @param now 取书时间
      */
     public void fulfill(LocalDateTime now) {
         if (status != ReservationStatus.READY) {
@@ -125,6 +75,8 @@ public class Reservation {
 
     /**
      * 取消预约：仅 WAITING/READY 可取消。
+     *
+     * @param reason 取消原因
      */
     public void cancel(String reason) {
         if (status != ReservationStatus.WAITING && status != ReservationStatus.READY) {

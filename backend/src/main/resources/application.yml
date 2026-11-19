@@ -80,7 +80,7 @@ mybatis-plus:
   global-config:
     banner: false
     db-config:
-      # 全库主键使用雪花 id；schema.sql 的 AUTO_INCREMENT 只作种子数据兜底
+      # 全库主键使用雪花 id；自 V4 起数据库不再有 AUTO_INCREMENT，手写 INSERT 必须显式带 id
       id-type: assign_id
       # 逻辑删除：deleted=0 未删除；删除时写入本行主键，唯一索引带 deleted
       logic-delete-field: deleted
@@ -88,6 +88,8 @@ mybatis-plus:
       logic-not-delete-value: 0
   configuration:
     map-underscore-to-camel-case: true
+    # 读模型用 record 行对象承接 @Select 结果：按构造器参数名与结果列一一匹配
+    arg-name-based-constructor-auto-mapping: true
     # 枚举字段在 PO 中暂以字符串落库，领域枚举在 domain 层转换
     default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
 

@@ -3,7 +3,10 @@ package com.zian.backend.iam.domain.model;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.time.LocalDateTime;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 账号聚合根。
@@ -11,45 +14,27 @@ import lombok.Getter;
  * <p>充血职责：状态机（NORMAL ⇄ BLACKLISTED）、借阅准入判定、登录时间戳。
  * 状态变更必须走本类方法，禁止在 application 层直接 setStatus。
  */
-@Getter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
-    private final Long id;
-    private final String userNo;
-    private final String name;
-    private final UserRole role;
-    private final String phone;
-    private final String email;
-    private final String passwordHash;
-    private final LocalDateTime createdAt;
+    private Long id;
+    private String userNo;
+    private String name;
+    private UserRole role;
+    private String phone;
+    private String email;
+    private String passwordHash;
     private UserStatus status;
     private String blacklistReason;
     private LocalDateTime blacklistedAt;
     private Long blacklistedBy;
     private LocalDateTime blacklistExpiresAt;
     private LocalDateTime lastLoginAt;
-    private final Integer version;
-
-    public User(Long id, String userNo, String name, UserRole role, String phone, String email,
-                String passwordHash, UserStatus status, String blacklistReason, LocalDateTime blacklistedAt,
-                Long blacklistedBy, LocalDateTime blacklistExpiresAt, LocalDateTime lastLoginAt,
-                Integer version, LocalDateTime createdAt) {
-        this.id = id;
-        this.userNo = userNo;
-        this.name = name;
-        this.role = role;
-        this.phone = phone;
-        this.email = email;
-        this.passwordHash = passwordHash;
-        this.status = status;
-        this.blacklistReason = blacklistReason;
-        this.blacklistedAt = blacklistedAt;
-        this.blacklistedBy = blacklistedBy;
-        this.blacklistExpiresAt = blacklistExpiresAt;
-        this.lastLoginAt = lastLoginAt;
-        this.version = version;
-        this.createdAt = createdAt;
-    }
+    private Integer version;
+    private LocalDateTime createdAt;
 
     /**
      * 是否处于拉黑状态。
@@ -67,6 +52,8 @@ public class User {
 
     /**
      * 校验账号可执行借阅类操作，拉黑时抛 422。
+     *
+     * @param action 操作名称，用于拼接提示
      */
     public void assertCanBorrow(String action) {
         if (isBlacklisted()) {
@@ -77,6 +64,10 @@ public class User {
 
     /**
      * 拉黑账号：校验原因与操作人，记录到期时间。
+     *
+     * @param reason     拉黑原因
+     * @param operatorId 操作人，等于本人时拒绝
+     * @param expiresAt  自动解除时间，可空
      */
     public void blacklist(String reason, Long operatorId, LocalDateTime expiresAt) {
         if (reason == null || reason.isBlank()) {
@@ -108,6 +99,8 @@ public class User {
 
     /**
      * 记录最近登录时间。
+     *
+     * @param at 登录时间
      */
     public void touchLogin(LocalDateTime at) {
         this.lastLoginAt = at;

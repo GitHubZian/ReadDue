@@ -1,15 +1,27 @@
 package com.zian.backend.reporting.infrastructure.persistence;
 
+import com.zian.backend.reporting.domain.model.AppealRow;
+import com.zian.backend.reporting.domain.model.AuditLogRow;
+import com.zian.backend.reporting.domain.model.CalendarRow;
+import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceRow;
+import com.zian.backend.reporting.domain.model.NoticeRow;
+import com.zian.backend.reporting.domain.model.NotifyTaskRow;
+import com.zian.backend.reporting.domain.model.OverdueRow;
+import com.zian.backend.reporting.domain.model.ReservationRow;
+import com.zian.backend.reporting.domain.model.TierRow;
+import com.zian.backend.reporting.domain.model.TrendRow;
+import com.zian.backend.reporting.domain.model.UserRow;
 import com.zian.backend.reporting.domain.repository.AdminReadRepository;
 import com.zian.backend.reporting.infrastructure.persistence.mapper.AdminQueryMapper;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /**
- * 读模型端口的 MyBatis 适配器：应用层只看到 {@link AdminReadRepository}，SQL 细节留在 Mapper。
+ * 读模型端口的 MyBatis 适配器：应用层只看到 {@link AdminReadRepository}，SQL 与结果行映射留在 Mapper。
  */
 @Repository
 @RequiredArgsConstructor
@@ -53,27 +65,27 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> borrowTrend(LocalDateTime from) {
+    public List<TrendRow> borrowTrend(LocalDateTime from) {
         return mapper.borrowTrend(from);
     }
 
     @Override
-    public List<Map<String, Object>> returnTrend(LocalDateTime from) {
+    public List<TrendRow> returnTrend(LocalDateTime from) {
         return mapper.returnTrend(from);
     }
 
     @Override
-    public List<Map<String, Object>> notices() {
+    public List<NoticeRow> notices() {
         return mapper.notices();
     }
 
     @Override
-    public List<Map<String, Object>> dueTodayItems() {
+    public List<DueTodayRow> dueTodayItems() {
         return mapper.dueTodayItems();
     }
 
     @Override
-    public List<Map<String, Object>> graces(String status, String keyword, int limit, long offset) {
+    public List<GraceRow> graces(String status, String keyword, int limit, long offset) {
         return mapper.graces(status, keyword, limit, offset);
     }
 
@@ -83,7 +95,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> appeals(
+    public List<AppealRow> appeals(
             String status, String category, String keyword, int limit, long offset) {
         return mapper.appeals(status, category, keyword, limit, offset);
     }
@@ -94,7 +106,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> reservations(String status, String keyword, int limit, long offset) {
+    public List<ReservationRow> reservations(String status, String keyword, int limit, long offset) {
         return mapper.reservations(status, keyword, limit, offset);
     }
 
@@ -104,7 +116,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> overdue(String status, String keyword, int limit, long offset) {
+    public List<OverdueRow> overdue(String status, String keyword, int limit, long offset) {
         return mapper.overdue(status, keyword, limit, offset);
     }
 
@@ -114,7 +126,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> notifyTasks(String status, String keyword, int limit, long offset) {
+    public List<NotifyTaskRow> notifyTasks(String status, String keyword, int limit, long offset) {
         return mapper.notifyTasks(status, keyword, limit, offset);
     }
 
@@ -124,7 +136,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> users(
+    public List<UserRow> users(
             String role, String status, String keyword, int limit, long offset) {
         return mapper.users(role, status, keyword, limit, offset);
     }
@@ -135,7 +147,7 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> auditLogs(String category, String keyword, int limit, long offset) {
+    public List<AuditLogRow> auditLogs(String category, String keyword, int limit, long offset) {
         return mapper.auditLogs(category, keyword, limit, offset);
     }
 
@@ -145,17 +157,17 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public Map<String, Object> auditLog(Long id) {
+    public AuditLogRow auditLog(Long id) {
         return mapper.auditLog(id);
     }
 
     @Override
-    public List<Map<String, Object>> circulationBorrows() {
+    public List<CirculationRow> circulationBorrows() {
         return mapper.circulationBorrows();
     }
 
     @Override
-    public List<Map<String, Object>> circulationReturns() {
+    public List<CirculationRow> circulationReturns() {
         return mapper.circulationReturns();
     }
 
@@ -170,12 +182,12 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     }
 
     @Override
-    public List<Map<String, Object>> tiers() {
+    public List<TierRow> tiers() {
         return mapper.tiers();
     }
 
     @Override
-    public List<Map<String, Object>> calendar() {
+    public List<CalendarRow> calendar() {
         return mapper.calendar();
     }
 }

@@ -1,4 +1,4 @@
-package com.zian.backend.bootstrap.web;
+package com.zian.backend.reporting.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;

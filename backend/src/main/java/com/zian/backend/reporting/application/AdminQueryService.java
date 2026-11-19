@@ -1,9 +1,21 @@
 package com.zian.backend.reporting.application;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zian.backend.notify.application.NotifyTemplateService;
 import com.zian.backend.notify.domain.repository.NotifyTemplateRepository;
 import com.zian.backend.notify.interfaces.dto.NotifyDtos;
+import com.zian.backend.reporting.domain.model.AppealRow;
+import com.zian.backend.reporting.domain.model.AuditLogRow;
+import com.zian.backend.reporting.domain.model.CalendarRow;
+import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DueTodayRow;
+import com.zian.backend.reporting.domain.model.GraceRow;
+import com.zian.backend.reporting.domain.model.NoticeRow;
+import com.zian.backend.reporting.domain.model.NotifyTaskRow;
+import com.zian.backend.reporting.domain.model.OverdueRow;
+import com.zian.backend.reporting.domain.model.ReservationRow;
+import com.zian.backend.reporting.domain.model.TierRow;
+import com.zian.backend.reporting.domain.model.TrendRow;
+import com.zian.backend.reporting.domain.model.UserRow;
 import com.zian.backend.reporting.domain.repository.AdminReadRepository;
 import com.zian.backend.reporting.interfaces.dto.AdminViews;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.AdminUserView;
@@ -35,7 +47,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -60,7 +71,6 @@ public class AdminQueryService {
     private final RuleService ruleService;
     private final NotifyTemplateRepository templateRepository;
     private final NotifyTemplateService templateService;
-    private final ObjectMapper objectMapper;
 
 // region 工作台
 
@@ -126,40 +136,39 @@ public class AdminQueryService {
         return points;
     }
 
-    private void bucket(Map<LocalDate, int[]> buckets, Map<String, Object> row, int index) {
-        LocalDate day = date(row.get("d"));
-        int[] counts = day == null ? null : buckets.get(day);
+    private void bucket(Map<LocalDate, int[]> buckets, TrendRow row, int index) {
+        int[] counts = buckets.get(row.day());
         if (counts != null) {
-            counts[index] = integer(row.get("c"), 0);
+            counts[index] = row.total().intValue();
         }
     }
 
     private List<NoticeItem> notices() {
         return readRepository.notices().stream()
                 .map(row -> new NoticeItem(
-                        String.valueOf(row.get("id")),
-                        tone(str(row, "level")),
-                        levelName(str(row, "level")),
-                        (str(row, "reader_name") == null ? "读者" : str(row, "reader_name")) + " · 已送达站内信",
-                        iso(row.get("plan_at"))))
+                        String.valueOf(row.id()),
+                        tone(row.level()),
+                        levelName(row.level()),
+                        (row.readerName() == null ? "读者" : row.readerName()) + " · 已送达站内信",
+                        iso(row.planAt())))
                 .toList();
     }
 
     private List<DueTodayItem> dueTodayItems() {
         return readRepository.dueTodayItems().stream()
                 .map(row -> new DueTodayItem(
-                        String.valueOf(row.get("id")),
+                        String.valueOf(row.id()),
                         new Person(
-                                str(row, "reader_id"),
-                                str(row, "reader_name"),
-                                str(row, "user_no"),
-                                str(row, "department")),
+                                String.valueOf(row.readerId()),
+                                row.readerName(),
+                                row.userNo(),
+                                row.department()),
                         new BookRef(
-                                String.valueOf(row.get("book_id")),
-                                str(row, "title"),
-                                str(row, "author"),
-                                str(row, "barcode")),
-                        dateText(row.get("effective_due_at")),
+                                String.valueOf(row.bookId()),
+                                row.title(),
+                                row.author(),
+                                row.barcode()),
+                        dateText(row.effectiveDueAt()),
                         false))
                 .toList();
     }
@@ -186,42 +195,42 @@ public class AdminQueryService {
         return new PageResult<>(items, total, page.page(), page.size());
     }
 
-    private GraceRecordView graceView(Map<String, Object> row) {
-        String dbStatus = str(row, "status");
-        Integer approved = row.get("granted_days") == null ? null : integer(row.get("granted_days"), 0);
+    private GraceRecordView graceView(GraceRow row) {
+        String dbStatus = row.status();
+        Integer approved = row.grantedDays();
         List<TimelineItem> history = new ArrayList<>();
         history.add(new TimelineItem(
-                iso(row.get("created_at")),
-                str(row, "reader_name"),
-                "提交宽限申请 · 场景 " + str(row, "scene_code")));
-        if (row.get("decided_at") != null) {
+                iso(row.createdAt()),
+                row.readerName(),
+                "提交宽限申请 · 场景 " + row.sceneCode()));
+        if (row.decidedAt() != null) {
             history.add(new TimelineItem(
-                    iso(row.get("decided_at")),
-                    row.get("decided_by") == null ? "馆员" : String.valueOf(row.get("decided_by")),
+                    iso(row.decidedAt()),
+                    row.decidedBy() == null ? "馆员" : String.valueOf(row.decidedBy()),
                     ("APPROVED".equals(dbStatus) ? "通过" : "驳回")
                             + (approved == null ? "" : "，宽限 " + approved + " 天")));
         }
-        int requested = (int) Math.ceil(decimal(row.get("computed_days"), BigDecimal.ZERO).doubleValue());
+        int requested = (int) Math.ceil(row.computedDays().doubleValue());
         return new GraceRecordView(
-                String.valueOf(row.get("id")),
-                str(row, "apply_no"),
+                String.valueOf(row.id()),
+                row.applyNo(),
                 new Person(
-                        String.valueOf(row.get("reader_id")),
-                        str(row, "reader_name"),
-                        str(row, "user_no"),
-                        str(row, "department")),
+                        String.valueOf(row.readerId()),
+                        row.readerName(),
+                        row.userNo(),
+                        row.department()),
                 new BookRef(
-                        String.valueOf(row.get("book_id")),
-                        str(row, "title"),
-                        str(row, "author"),
-                        str(row, "barcode")),
-                str(row, "scene_code"),
-                str(row, "evidence_text"),
+                        String.valueOf(row.bookId()),
+                        row.title(),
+                        row.author(),
+                        row.barcode()),
+                row.sceneCode(),
+                row.evidenceText(),
                 graceStatus(dbStatus),
                 requested,
                 approved,
-                isoPlusHours(row.get("created_at"), ruleService.intValue("APPEAL.SLA_HOURS", 2)),
-                iso(row.get("created_at")),
+                isoPlusHours(row.createdAt(), ruleService.intValue("APPEAL.SLA_HOURS", 2)),
+                iso(row.createdAt()),
                 List.of(),
                 history);
     }
@@ -258,15 +267,15 @@ public class AdminQueryService {
         return new PageResult<>(items, total, page.page(), page.size());
     }
 
-    private AppealTicketView appealView(Map<String, Object> row) {
-        String dbStatus = str(row, "status");
+    private AppealTicketView appealView(AppealRow row) {
+        String dbStatus = row.status();
         List<TimelineItem> timeline = new ArrayList<>();
         timeline.add(new TimelineItem(
-                iso(row.get("created_at")), str(row, "reader_name"), "提交申诉：" + str(row, "reason")));
-        if (row.get("first_reply_at") != null) {
+                iso(row.createdAt()), row.readerName(), "提交申诉：" + row.reason()));
+        if (row.firstReplyAt() != null) {
             timeline.add(new TimelineItem(
-                    iso(row.get("first_reply_at")),
-                    str(row, "assignee_name") == null ? "馆员" : str(row, "assignee_name"),
+                    iso(row.firstReplyAt()),
+                    row.assigneeName() == null ? "馆员" : row.assigneeName(),
                     "受理工单，进入核查"));
         }
         AppealConclusion conclusion = null;
@@ -278,34 +287,34 @@ public class AdminQueryService {
             };
             conclusion = new AppealConclusion(
                     kind,
-                    row.get("compensation_days") == null ? null : integer(row.get("compensation_days"), 0),
-                    str(row, "resolution") == null ? "" : str(row, "resolution"),
-                    iso(row.get("updated_at")),
-                    str(row, "assignee_name") == null ? "系统" : str(row, "assignee_name"));
+                    row.compensationDays(),
+                    row.resolution() == null ? "" : row.resolution(),
+                    iso(row.updatedAt()),
+                    row.assigneeName() == null ? "系统" : row.assigneeName());
             timeline.add(new TimelineItem(
-                    iso(row.get("updated_at")),
-                    str(row, "assignee_name") == null ? "系统" : str(row, "assignee_name"),
+                    iso(row.updatedAt()),
+                    row.assigneeName() == null ? "系统" : row.assigneeName(),
                     "结论：" + conclusion.note()));
         }
-        Object bookId = row.get("book_id");
+        Long bookId = row.bookId();
         return new AppealTicketView(
-                String.valueOf(row.get("id")),
-                str(row, "ticket_no"),
+                String.valueOf(row.id()),
+                row.ticketNo(),
                 new Person(
-                        String.valueOf(row.get("reader_id")),
-                        str(row, "reader_name"),
-                        str(row, "user_no"),
-                        str(row, "department")),
+                        String.valueOf(row.readerId()),
+                        row.readerName(),
+                        row.userNo(),
+                        row.department()),
                 new BookRef(
                         bookId == null ? null : String.valueOf(bookId),
-                        str(row, "title") == null ? "关联借阅单" : str(row, "title"),
-                        str(row, "author") == null ? "" : str(row, "author"),
-                        str(row, "barcode")),
-                appealCategory(str(row, "target_type")),
+                        row.title() == null ? "关联借阅单" : row.title(),
+                        row.author() == null ? "" : row.author(),
+                        row.barcode()),
+                appealCategory(row.targetType()),
                 appealStatus(dbStatus),
-                str(row, "reason"),
-                iso(row.get("created_at")),
-                iso(row.get("sla_due_at")),
+                row.reason(),
+                iso(row.createdAt()),
+                iso(row.slaDueAt()),
                 conclusion,
                 timeline);
     }
@@ -346,23 +355,23 @@ public class AdminQueryService {
                 .reservations(status, keyword, page.size(), page.offset())
                 .stream()
                 .map(row -> new ReservationView(
-                        String.valueOf(row.get("id")),
+                        String.valueOf(row.id()),
                         new Person(
-                                String.valueOf(row.get("reader_id")),
-                                str(row, "reader_name"),
-                                str(row, "user_no"),
-                                str(row, "department")),
+                                String.valueOf(row.readerId()),
+                                row.readerName(),
+                                row.userNo(),
+                                row.department()),
                         new BookRef(
-                                String.valueOf(row.get("book_id")),
-                                str(row, "title"),
-                                str(row, "author"),
+                                String.valueOf(row.bookId()),
+                                row.title(),
+                                row.author(),
                                 null),
-                        iso(row.get("created_at")),
-                        integer(row.get("queue_no"), 0),
-                        str(row, "status"),
-                        iso(row.get("ready_at")),
-                        iso(row.get("expires_at")),
-                        "READY".equals(str(row, "status")) ? "预约架 A-02" : null))
+                        iso(row.createdAt()),
+                        row.queueNo(),
+                        row.status(),
+                        iso(row.readyAt()),
+                        iso(row.expiresAt()),
+                        "READY".equals(row.status()) ? "预约架 A-02" : null))
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
     }
@@ -386,27 +395,27 @@ public class AdminQueryService {
                 .overdue(status, keyword, page.size(), page.offset())
                 .stream()
                 .map(row -> {
-                    int days = Math.max(integer(row.get("overdue_days"), 0), 0);
+                    int days = Math.max(row.overdueDays(), 0);
                     return new OverdueItemView(
-                            String.valueOf(row.get("order_id")),
+                            String.valueOf(row.orderId()),
                             new Person(
-                                    String.valueOf(row.get("reader_id")),
-                                    str(row, "reader_name"),
-                                    str(row, "student_no"),
-                                    str(row, "department")),
+                                    String.valueOf(row.readerId()),
+                                    row.readerName(),
+                                    row.studentNo(),
+                                    row.department()),
                             new BookRef(
-                                    String.valueOf(row.get("book_id")),
-                                    str(row, "book_title"),
-                                    str(row, "author"),
-                                    str(row, "barcode")),
-                            dateText(row.get("effective_due_at")),
+                                    String.valueOf(row.bookId()),
+                                    row.bookTitle(),
+                                    row.author(),
+                                    row.barcode()),
+                            dateText(row.effectiveDueAt()),
                             days,
                             rate.multiply(BigDecimal.valueOf(days))
                                     .setScale(2, RoundingMode.HALF_UP)
                                     .toPlainString(),
-                            integer(row.get("l3_sent"), 0),
-                            iso(row.get("last_reminded")),
-                            "LOST".equals(str(row, "status")) ? "LOST" : "OVERDUE");
+                            row.l3Sent().intValue(),
+                            iso(row.lastReminded()),
+                            "LOST".equals(row.status()) ? "LOST" : "OVERDUE");
                 })
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
@@ -444,7 +453,7 @@ public class AdminQueryService {
                 .notifyTasks(mapped, keyword, page.size(), page.offset())
                 .stream()
                 .map(row -> {
-                    String dbStatus = str(row, "status");
+                    String dbStatus = row.status();
                     String statusView = switch (dbStatus) {
                         case "PLANNED", "CANCELED", "MERGED" -> "PENDING";
                         case "QUEUED" -> "SENDING";
@@ -452,18 +461,18 @@ public class AdminQueryService {
                     };
                     boolean sent = "SENT".equals(dbStatus);
                     boolean failed = "FAILED".equals(dbStatus);
-                    String levelName = levelName(str(row, "level"));
+                    String levelName = levelName(row.level());
                     return new NotifyTaskView(
-                            String.valueOf(row.get("id")),
-                            levelName + " · " + (str(row, "reader_name") == null ? "读者" : str(row, "reader_name")),
+                            String.valueOf(row.id()),
+                            levelName + " · " + (row.readerName() == null ? "读者" : row.readerName()),
                             levelName,
                             "INAPP",
                             1,
                             sent ? 1 : 0,
                             failed ? 1 : 0,
                             statusView,
-                            iso(row.get("created_at")),
-                            sent ? iso(row.get("updated_at")) : null,
+                            iso(row.createdAt()),
+                            sent ? iso(row.updatedAt()) : null,
                             failed ? "投递失败，可重试" : null);
                 })
                 .toList();
@@ -493,24 +502,24 @@ public class AdminQueryService {
                 .users(role, mappedStatus, keyword, page.size(), page.offset())
                 .stream()
                 .map(row -> {
-                    int overdueDays = integer(row.get("overdue_days"), 0);
-                    String statusView = "BLACKLISTED".equals(str(row, "status")) ? "BLACKLISTED" : "ACTIVE";
+                    int overdueDays = row.overdueDays().intValue();
+                    String statusView = "BLACKLISTED".equals(row.status()) ? "BLACKLISTED" : "ACTIVE";
                     return new AdminUserView(
-                            String.valueOf(row.get("id")),
-                            str(row, "name"),
-                            str(row, "user_no"),
-                            str(row, "role"),
+                            String.valueOf(row.id()),
+                            row.name(),
+                            row.userNo(),
+                            row.role(),
                             statusView,
-                            valueOr(row, "department"),
-                            valueOr(row, "phone"),
-                            valueOr(row, "email"),
-                            integer(row.get("borrow_count"), 0),
+                            valueOr(row.department()),
+                            valueOr(row.phone()),
+                            valueOr(row.email()),
+                            row.borrowCount().intValue(),
                             rate.multiply(BigDecimal.valueOf(overdueDays))
                                     .setScale(2, RoundingMode.HALF_UP)
                                     .toPlainString(),
-                            iso(row.get("created_at")),
-                            iso(row.get("last_login_at")),
-                            str(row, "blacklist_reason"));
+                            iso(row.createdAt()),
+                            iso(row.lastLoginAt()),
+                            row.blacklistReason());
                 })
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
@@ -545,22 +554,22 @@ public class AdminQueryService {
      * @return 日志视图，不存在时为 null
      */
     public AuditLogView auditLog(Long id) {
-        Map<String, Object> row = readRepository.auditLog(id);
+        AuditLogRow row = readRepository.auditLog(id);
         return row == null ? null : auditView(row);
     }
 
-    private AuditLogView auditView(Map<String, Object> row) {
+    private AuditLogView auditView(AuditLogRow row) {
         return new AuditLogView(
-                String.valueOf(row.get("id")),
-                iso(row.get("created_at")),
+                String.valueOf(row.id()),
+                iso(row.createdAt()),
                 new AuditActor(
-                        str(row, "actor_name") == null ? "系统" : str(row, "actor_name"),
-                        str(row, "actor_role") == null ? "SYSTEM" : str(row, "actor_role")),
-                str(row, "action"),
-                auditCategory(str(row, "action")),
-                str(row, "object_type") + " #" + row.get("object_id"),
-                detailText(row.get("detail")),
-                str(row, "ip") == null ? "" : str(row, "ip"),
+                        row.actorName() == null ? "系统" : row.actorName(),
+                        row.actorRole() == null ? "SYSTEM" : row.actorRole()),
+                row.action(),
+                auditCategory(row.action()),
+                row.objectType() + " #" + row.objectId(),
+                detailText(row.detail()),
+                row.ip() == null ? "" : row.ip(),
                 "",
                 null,
                 null);
@@ -580,18 +589,8 @@ public class AdminQueryService {
         return "SYSTEM";
     }
 
-    private String detailText(Object detail) {
-        if (detail == null) {
-            return "";
-        }
-        if (detail instanceof String s) {
-            return s;
-        }
-        try {
-            return objectMapper.writeValueAsString(detail);
-        } catch (Exception e) {
-            return String.valueOf(detail);
-        }
+    private static String detailText(String detail) {
+        return detail == null ? "" : detail;
     }
 
 // endregion
@@ -614,21 +613,21 @@ public class AdminQueryService {
                 readRepository.countReturnsToday());
     }
 
-    private CirculationFlowView flow(Map<String, Object> row, String operator) {
+    private CirculationFlowView flow(CirculationRow row, String operator) {
         return new CirculationFlowView(
-                String.valueOf(row.get("id")),
-                iso(row.get("at")),
-                str(row, "type"),
+                String.valueOf(row.id()),
+                iso(row.at()),
+                row.type(),
                 new Person(
-                        String.valueOf(row.get("reader_id")),
-                        str(row, "reader_name"),
-                        str(row, "user_no"),
-                        str(row, "department")),
+                        String.valueOf(row.readerId()),
+                        row.readerName(),
+                        row.userNo(),
+                        row.department()),
                 new BookRef(
-                        String.valueOf(row.get("book_id")),
-                        str(row, "title"),
-                        str(row, "author"),
-                        str(row, "barcode")),
+                        String.valueOf(row.bookId()),
+                        row.title(),
+                        row.author(),
+                        row.barcode()),
                 operator,
                 "COUNTER");
     }
@@ -646,14 +645,14 @@ public class AdminQueryService {
         return readRepository.tiers().stream()
                 .map(row -> {
                     Map<String, Object> view = new LinkedHashMap<>();
-                    view.put("code", str(row, "code"));
-                    view.put("name", str(row, "name"));
-                    view.put("minDays", integer(row.get("minDays"), 0));
-                    view.put("maxDays", row.get("maxDays") == null ? null : integer(row.get("maxDays"), 0));
-                    view.put("actionCode", str(row, "actionCode"));
-                    view.put("toneCode", str(row, "toneCode"));
-                    view.put("allowRenew", truthy(row.get("allowRenew")));
-                    view.put("description", str(row, "description"));
+                    view.put("code", row.code());
+                    view.put("name", row.name());
+                    view.put("minDays", row.minDays());
+                    view.put("maxDays", row.maxDays());
+                    view.put("actionCode", row.actionCode());
+                    view.put("toneCode", row.toneCode());
+                    view.put("allowRenew", Boolean.TRUE.equals(row.allowRenew()));
+                    view.put("description", row.description());
                     return view;
                 })
                 .toList();
@@ -771,13 +770,13 @@ public class AdminQueryService {
         return readRepository.calendar().stream()
                 .map(row -> {
                     Map<String, Object> view = new LinkedHashMap<>();
-                    view.put("id", String.valueOf(row.get("id")));
-                    view.put("term", str(row, "term"));
-                    view.put("scene", str(row, "scene"));
-                    view.put("startDate", dateText(row.get("startDate")));
-                    view.put("endDate", dateText(row.get("endDate")));
-                    view.put("source", str(row, "source"));
-                    view.put("note", str(row, "note"));
+                    view.put("id", String.valueOf(row.id()));
+                    view.put("term", row.term());
+                    view.put("scene", row.scene());
+                    view.put("startDate", dateText(row.startDate()));
+                    view.put("endDate", dateText(row.endDate()));
+                    view.put("source", row.source());
+                    view.put("note", row.note());
                     return view;
                 })
                 .toList();
@@ -788,91 +787,19 @@ public class AdminQueryService {
 // region 值转换
 
 
-    private static String str(Map<String, Object> row, String key) {
-        Object value = row.get(key);
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static String valueOr(Map<String, Object> row, String key) {
-        String value = str(row, key);
+    private static String valueOr(String value) {
         return value == null ? "" : value;
     }
 
-    private static int integer(Object value, int fallback) {
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return value == null ? fallback : Integer.parseInt(String.valueOf(value));
-    }
-
-    private static boolean truthy(Object value) {
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        if (value instanceof Number number) {
-            return number.intValue() != 0;
-        }
-        return value != null && "true".equalsIgnoreCase(String.valueOf(value));
-    }
-
-    private static BigDecimal decimal(Object value, BigDecimal fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        return value instanceof BigDecimal decimal ? decimal : new BigDecimal(String.valueOf(value));
-    }
-
-    private static LocalDate date(Object value) {
-        if (value instanceof LocalDate localDate) {
-            return localDate;
-        }
-        if (value instanceof java.sql.Date sqlDate) {
-            return sqlDate.toLocalDate();
-        }
-        if (value instanceof LocalDateTime localDateTime) {
-            return localDateTime.toLocalDate();
-        }
-        if (value instanceof java.sql.Timestamp timestamp) {
-            return timestamp.toLocalDateTime().toLocalDate();
-        }
-        if (value == null) {
-            return null;
-        }
-        String text = String.valueOf(value);
-        return text.length() >= 10 ? LocalDate.parse(text.substring(0, 10)) : null;
-    }
-
-    private static String dateText(Object value) {
-        LocalDate date = date(value);
+    private static String dateText(LocalDate date) {
         return date == null ? "" : date.toString();
     }
 
-    private static LocalDateTime dateTime(Object value) {
-        if (value instanceof LocalDateTime localDateTime) {
-            return localDateTime;
-        }
-        if (value instanceof java.sql.Timestamp timestamp) {
-            return timestamp.toLocalDateTime();
-        }
-        if (value instanceof OffsetDateTime offsetDateTime) {
-            return offsetDateTime.atZoneSameInstant(ZONE).toLocalDateTime();
-        }
-        if (value instanceof java.sql.Date sqlDate) {
-            return sqlDate.toLocalDate().atStartOfDay();
-        }
-        if (value instanceof LocalDate localDate) {
-            return localDate.atStartOfDay();
-        }
-        return value == null ? null : LocalDateTime.parse(String.valueOf(value));
-    }
-
-    private static String iso(Object value) {
-        LocalDateTime time = dateTime(value);
+    private static String iso(LocalDateTime time) {
         return time == null ? null : time.atZone(ZONE).toOffsetDateTime().toString();
     }
 
-    private static String isoPlusHours(Object value, int hours) {
-        LocalDateTime time = dateTime(value);
+    private static String isoPlusHours(LocalDateTime time, int hours) {
         return time == null ? null : time.plusHours(hours).atZone(ZONE).toOffsetDateTime().toString();
     }
 

@@ -31,7 +31,6 @@ public class ReaderBorrowController {
      * @param status 状态过滤（BORROWED/OVERDUE/RETURNED，空表示全部）
      * @param page   页码，从 1 开始
      * @param size   每页条数，默认 20，上限 200
-     * @param sort   排序参数，当前仅接收不参与排序
      * @return 分页后的借阅记录
      */
     @GetMapping("/self")
@@ -39,9 +38,8 @@ public class ReaderBorrowController {
     public BaseResponse<PageResult<BorrowDtos.BorrowItem>> myBorrows(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(borrowService.myBorrows(status, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(borrowService.myBorrows(status, PageQuery.of(page, size)));
     }
 
     /**

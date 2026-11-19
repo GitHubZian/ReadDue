@@ -58,7 +58,6 @@ public class ReservationController {
      * @param status 状态过滤（WAITING/READY/FULFILLED/EXPIRED/CANCELLED）
      * @param page   页码
      * @param size   每页条数
-     * @param sort   排序参数，当前仅接收不参与排序
      * @return 分页后的预约
      */
     @GetMapping("/self")
@@ -66,10 +65,9 @@ public class ReservationController {
     public BaseResponse<PageResult<ReservationDtos.ReservationItem>> myReservations(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(required = false) Integer size) {
         return ResultUtils.success(
-                reservationService.myReservations(status, PageQuery.of(page, size, sort)));
+                reservationService.myReservations(status, PageQuery.of(page, size)));
     }
 
     /**

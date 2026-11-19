@@ -2,51 +2,26 @@ package com.zian.backend.catalog.domain.model;
 
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 馆藏副本聚合：负责副本在「可借 / 在借 / 待取 / 损坏」之间的状态迁移。
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BookCopy {
 
-    private final Long id;
-    private final Long bookId;
-    private final String barcode;
-    private final String location;
+    private Long id;
+    private Long bookId;
+    private String barcode;
+    private String location;
     private CopyStatus status;
-    private final Integer version;
-
-    public BookCopy(Long id, Long bookId, String barcode, String location, CopyStatus status, Integer version) {
-        this.id = id;
-        this.bookId = bookId;
-        this.barcode = barcode;
-        this.location = location;
-        this.status = status;
-        this.version = version;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getBookId() {
-        return bookId;
-    }
-
-    public String getBarcode() {
-        return barcode;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public CopyStatus getStatus() {
-        return status;
-    }
-
-    public Integer getVersion() {
-        return version;
-    }
+    private Integer version;
 
     /**
      * 副本是否可借（仅 AVAILABLE）。
@@ -67,6 +42,8 @@ public class BookCopy {
 
     /**
      * 归还：ON_LOAN → AVAILABLE（损坏则 DAMAGED）。
+     *
+     * @param damaged 归还时是否损坏
      */
     public void receive(boolean damaged) {
         if (status != CopyStatus.ON_LOAN) {

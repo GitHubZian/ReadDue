@@ -4,176 +4,56 @@ import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 宽限申请聚合：审批只能发生在 PENDING，批准天数受 Dmax 约束。
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class GraceApplication {
 
-    private final Long id;
-    private final String applyNo;
-    private final Long borrowOrderId;
-    private final Long readerId;
-    private final String sceneCode;
-    private final String sceneSource;
-    private final boolean calendarHit;
-    private final BigDecimal baseDays;
-    private final BigDecimal kt;
-    private final BigDecimal kq;
-    private final int dmax;
-    private final BigDecimal computedDays;
+    private Long id;
+    private String applyNo;
+    private Long borrowOrderId;
+    private Long readerId;
+    private String sceneCode;
+    private String sceneSource;
+    private boolean calendarHit;
+    private BigDecimal baseDays;
+    private BigDecimal kt;
+    private BigDecimal kq;
+    private int dmax;
+    private BigDecimal computedDays;
     private Integer grantedDays;
-    private final String evidenceText;
-    private final String formulaVersion;
-    private final int queueLen;
-    private final LocalDateTime snapshotExpiresAt;
+    private String evidenceText;
+    private String formulaVersion;
+    private int queueLen;
+    private LocalDateTime snapshotExpiresAt;
     private GraceStatus status;
     private Long decidedBy;
     private LocalDateTime decidedAt;
     private String rejectCode;
-    private final Integer version;
+    private Integer version;
 
-    public GraceApplication(
-            Long id,
-            String applyNo,
-            Long borrowOrderId,
-            Long readerId,
-            String sceneCode,
-            String sceneSource,
-            boolean calendarHit,
-            BigDecimal baseDays,
-            BigDecimal kt,
-            BigDecimal kq,
-            int dmax,
-            BigDecimal computedDays,
-            Integer grantedDays,
-            String evidenceText,
-            String formulaVersion,
-            int queueLen,
-            LocalDateTime snapshotExpiresAt,
-            GraceStatus status,
-            Long decidedBy,
-            LocalDateTime decidedAt,
-            String rejectCode,
-            Integer version) {
-        this.id = id;
-        this.applyNo = applyNo;
-        this.borrowOrderId = borrowOrderId;
-        this.readerId = readerId;
-        this.sceneCode = sceneCode;
-        this.sceneSource = sceneSource;
-        this.calendarHit = calendarHit;
-        this.baseDays = baseDays;
-        this.kt = kt;
-        this.kq = kq;
-        this.dmax = dmax;
-        this.computedDays = computedDays;
-        this.grantedDays = grantedDays;
-        this.evidenceText = evidenceText;
-        this.formulaVersion = formulaVersion;
-        this.queueLen = queueLen;
-        this.snapshotExpiresAt = snapshotExpiresAt;
-        this.status = status;
-        this.decidedBy = decidedBy;
-        this.decidedAt = decidedAt;
-        this.rejectCode = rejectCode;
-        this.version = version;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getApplyNo() {
-        return applyNo;
-    }
-
-    public Long getBorrowOrderId() {
-        return borrowOrderId;
-    }
-
-    public Long getReaderId() {
-        return readerId;
-    }
-
-    public String getSceneCode() {
-        return sceneCode;
-    }
-
-    public String getSceneSource() {
-        return sceneSource;
-    }
-
-    public boolean isCalendarHit() {
-        return calendarHit;
-    }
-
-    public BigDecimal getBaseDays() {
-        return baseDays;
-    }
-
-    public BigDecimal getKt() {
-        return kt;
-    }
-
-    public BigDecimal getKq() {
-        return kq;
-    }
-
-    public int getDmax() {
-        return dmax;
-    }
-
-    public BigDecimal getComputedDays() {
-        return computedDays;
-    }
-
-    public Integer getGrantedDays() {
-        return grantedDays;
-    }
-
-    public String getEvidenceText() {
-        return evidenceText;
-    }
-
-    public String getFormulaVersion() {
-        return formulaVersion;
-    }
-
-    public int getQueueLen() {
-        return queueLen;
-    }
-
-    public LocalDateTime getSnapshotExpiresAt() {
-        return snapshotExpiresAt;
-    }
-
-    public GraceStatus getStatus() {
-        return status;
-    }
-
-    public Long getDecidedBy() {
-        return decidedBy;
-    }
-
-    public LocalDateTime getDecidedAt() {
-        return decidedAt;
-    }
-
-    public String getRejectCode() {
-        return rejectCode;
-    }
-
-    public Integer getVersion() {
-        return version;
-    }
-
+    /**
+     * 是否仍在待审批状态。
+     */
     public boolean isPending() {
         return status == GraceStatus.PENDING;
     }
 
     /**
      * 审批通过：校验待审状态与天数上限。
+     *
+     * @param days       批准天数
+     * @param operatorId 审批人
+     * @param now        审批时间
      */
     public void approve(int days, Long operatorId, LocalDateTime now) {
         if (!isPending()) {
@@ -193,6 +73,10 @@ public class GraceApplication {
 
     /**
      * 驳回：记录原因码与审批人。
+     *
+     * @param code       驳回原因码，空则回退 NOT_ELIGIBLE
+     * @param operatorId 审批人
+     * @param now        审批时间
      */
     public void reject(String code, Long operatorId, LocalDateTime now) {
         if (!isPending()) {

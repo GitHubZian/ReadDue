@@ -45,7 +45,6 @@ public class AppealController {
      * @param status 状态过滤（PENDING/PROCESSING/RESOLVED/REJECTED）
      * @param page   页码，从 1 开始
      * @param size   每页条数
-     * @param sort   排序参数，当前仅接收不参与排序
      * @return 分页后的工单
      */
     @GetMapping("/self")
@@ -53,8 +52,7 @@ public class AppealController {
     public BaseResponse<PageResult<AppealDtos.MyTicketView>> myTickets(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return ResultUtils.success(appealService.myTickets(status, PageQuery.of(page, size, sort)));
+            @RequestParam(required = false) Integer size) {
+        return ResultUtils.success(appealService.myTickets(status, PageQuery.of(page, size)));
     }
 }

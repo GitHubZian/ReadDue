@@ -1,8 +1,10 @@
 package com.zian.backend.bootstrap.web;
 
+import com.zian.backend.reporting.domain.repository.SystemHealthRepository;
 import com.zian.backend.shared.common.BaseResponse;
 import com.zian.backend.shared.common.ResultUtils;
-import java.time.Instant;
+import com.zian.backend.shared.common.Times;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SystemController {
 
-    private final SystemHealthMapper healthMapper;
+    private final SystemHealthRepository systemHealthRepository;
     private final StringRedisTemplate redisTemplate;
 
     /**
@@ -35,9 +37,9 @@ public class SystemController {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("status", "UP");
         data.put("application", "readdue-backend");
-        data.put("time", Instant.now().toString());
+        data.put("time", Times.iso(LocalDateTime.now()));
 
-        Integer tableCount = healthMapper.countBaseTables();
+        Integer tableCount = systemHealthRepository.countBaseTables();
         data.put("mysql", "UP");
         data.put("baseTables", tableCount);
 
