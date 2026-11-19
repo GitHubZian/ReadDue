@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Search } from "lucide-react";
+import { Copy, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,27 @@ import { Pager } from "@/components/common/Pager";
 import { useAuditLogs } from "@/features/audit/queries";
 import { exportAuditLogs } from "@/features/audit/api";
 import { formatDateTime } from "@/lib/format/date";
+import { ROLE_LABEL } from "@/lib/auth/permissions";
 import type { AuditCategory, AuditLog } from "@/lib/api/models";
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+const stable = (value: unknown) => JSON.stringify(value ?? null);
+
+/** 只列真正变化的字段；旧数据没有快照时返回空数组。 */
+function diffOf(before: unknown, after: unknown) {
+  const prev = asRecord(before);
+  const next = asRecord(after);
+  return [...new Set([...Object.keys(prev), ...Object.keys(next)])]
+    .filter((field) => stable(prev[field]) !== stable(next[field]))
+    .map((field) => ({ field, before: prev[field], after: next[field] }));
+}
+
+const showValue = (value: unknown) =>
+  value === undefined ? "—" : typeof value === "string" ? value : JSON.stringify(value);
 
 const categoryMeta: Record<AuditCategory, { label: string; tone: "mint" | "amber" | "red" | "slate" }> = {
   APPROVAL: { label: "审批", tone: "mint" },
@@ -60,6 +80,15 @@ const actionLabel = (action: string) =>
     RETURN_CREATE: "归还登记",
     RESERVATION_PROMOTE: "预约到馆",
     RESERVATION_EXPIRE: "预约释放",
+    CALENDAR_CREATE: "新增校历",
+    CALENDAR_UPDATE: "更新校历",
+    CALENDAR_DELETE: "删除校历",
+    ROLE_PERMISSION_UPDATE: "更新角色权限",
+    GRACE_APPLY: "提交宽限申请",
+    NOTIFY_TOPIC_UPDATE: "更新主题策略",
+    FILE_UPLOAD: "上传附件",
+    CONSENT_GRANT: "同意隐私授权",
+    CONSENT_REVOKE: "撤回隐私授权",
   })[action] ?? action;
 
 const targetLabel = (target: string) => {
@@ -75,6 +104,12 @@ const targetLabel = (target: string) => {
         NOTIFY_TASK: "通知任务",
         RESERVATION: "预约",
         BOOK: "书目",
+        ACADEMIC_CALENDAR: "校历",
+        SYS_ROLE: "角色",
+        GRACE_APPLICATION: "宽限申请",
+        NOTIFY_TOPIC: "通知主题",
+        FILE: "附件",
+        CONSENT: "授权记录",
       } as Record<string, string>
     )[prefix] ?? prefix;
   return [mapped, ...rest].join(" ");
@@ -208,7 +243,8 @@ export function AuditPage() {
           <SheetHeader>
             <SheetTitle className="text-[15px]">{detail ? actionLabel(detail.action) : ""}</SheetTitle>
             <SheetDescription className="text-[10.5px] text-ink-3">
-              {detail ? formatDateTime(detail.at) : ""} · {detail?.actor.name}（{detail?.actor.role}）
+              {detail ? formatDateTime(detail.at) : ""} · {detail?.actor.name}（
+              {detail ? ((ROLE_LABEL as Record<string, string>)[detail.actor.role] ?? detail.actor.role) : ""}）
             </SheetDescription>
           </SheetHeader>
 
@@ -227,33 +263,81 @@ export function AuditPage() {
                   <dt className="text-[9px] text-ink-3">IP</dt>
                   <dd className="tabular mt-0.5">{detail.ip}</dd>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <dt className="text-[9px] text-ink-3">traceId</dt>
-                  <dd className="mt-0.5 truncate font-mono text-[9px]">{detail.traceId || "—"}</dd>
+                  <dd className="mt-0.5 flex items-center gap-1">
+                    <code className="truncate font-mono text-[9px]">{detail.traceId || "—"}</code>
+                    {detail.traceId ? (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        title="复制 traceId"
+                        onClick={() => {
+                          navigator.clipboard
+                            .writeText(detail.traceId)
+                            .then(() => toast.success("traceId 已复制"))
+                            .catch(() => toast.error("复制失败，请手动选择"));
+                        }}
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    ) : null}
+                  </dd>
                 </div>
               </dl>
 
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-ink-3">描述</p>
-                <p className="mt-1 leading-5 text-ink-2">{detail.detail && detail.detail !== "{}" ? detail.detail : "—"}</p>
+                <p className="mt-1 leading-5 text-ink-2">
+                  {detail.detail && detail.detail !== "{}" ? detail.detail : "—"}
+                </p>
               </div>
 
               {detail.before || detail.after ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-[9px] font-semibold tracking-wider text-ink-3">变更前</p>
-                    <pre className="mt-1 max-h-[220px] overflow-auto rounded-lg bg-sunken p-2 font-mono text-[9px] leading-4 text-ink-2">
-                      {detail.before ? JSON.stringify(detail.before, null, 2) : "—"}
-                    </pre>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-semibold tracking-wider text-ink-3">变更后</p>
-                    <pre className="mt-1 max-h-[220px] overflow-auto rounded-lg bg-mint-soft/60 p-2 font-mono text-[9px] leading-4 text-ink-2">
-                      {detail.after ? JSON.stringify(detail.after, null, 2) : "—"}
-                    </pre>
-                  </div>
-                </div>
-              ) : null}
+                (() => {
+                  const rows = diffOf(detail.before, detail.after);
+                  if (!rows.length) {
+                    return (
+                      <p className="text-[9.5px] text-ink-3">快照已记录，但没有字段发生变化。</p>
+                    );
+                  }
+                  return (
+                    <div>
+                      <p className="text-[9px] font-semibold tracking-wider text-ink-3">
+                        变更差异 · {rows.length} 项
+                      </p>
+                      <div className="mt-1 overflow-hidden rounded-lg border border-line">
+                        <table className="w-full table-fixed text-[9.5px]">
+                          <thead className="bg-wash text-left text-[9px] text-ink-3">
+                            <tr>
+                              <th className="w-[30%] px-2 py-1 font-medium">字段</th>
+                              <th className="px-2 py-1 font-medium">变更前</th>
+                              <th className="px-2 py-1 font-medium">变更后</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((row) => (
+                              <tr key={row.field} className="border-t border-line-2 align-top">
+                                <td className="break-all px-2 py-1 font-mono text-[9px] text-ink-3">
+                                  {row.field}
+                                </td>
+                                <td className="break-all px-2 py-1 text-ink-2">
+                                  {showValue(row.before)}
+                                </td>
+                                <td className="break-all px-2 py-1 text-mint-deep">
+                                  {showValue(row.after)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <p className="text-[9.5px] text-ink-3">无变更快照：旧记录只保留动作与对象。</p>
+              )}
             </div>
           ) : null}
         </SheetContent>
