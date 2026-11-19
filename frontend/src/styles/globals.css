@@ -105,6 +105,16 @@
   .scrollbar-slim::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  /* 表格统一呼吸感：只改样式层，不动 components/ui 的源码。 */
+  .card-body th {
+    height: 2.25rem;
+    padding-inline: 0.75rem;
+  }
+
+  .card-body td {
+    padding: 0.625rem 0.75rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

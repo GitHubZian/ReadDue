@@ -160,7 +160,7 @@ export function AuditPage() {
         }
       />
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedFilter
             value={category}
@@ -176,7 +176,7 @@ export function AuditPage() {
             ]}
           />
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
             <Input
               value={keyword}
               onChange={(event) => {
@@ -184,7 +184,7 @@ export function AuditPage() {
                 setPage(1);
               }}
               placeholder="搜索操作人、对象或 traceId"
-              className="h-[34px] w-[260px] pl-8 font-mono text-[10.5px]"
+              className="h-[34px] w-[260px] pl-9 pr-3 font-mono text-[10.5px]"
             />
           </div>
         </div>
@@ -192,12 +192,12 @@ export function AuditPage() {
         <Table className="mt-3">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-0">时间</TableHead>
+              <TableHead className="">时间</TableHead>
               <TableHead>操作人</TableHead>
               <TableHead>动作</TableHead>
               <TableHead>分类</TableHead>
               <TableHead>对象</TableHead>
-              <TableHead className="pr-0 text-right">traceId</TableHead>
+              <TableHead className="text-right">traceId</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -207,7 +207,7 @@ export function AuditPage() {
                 className="cursor-pointer"
                 onClick={() => setDetail(log)}
               >
-                <TableCell className="tabular pl-0 text-[10px] text-ink-3">
+                <TableCell className="tabular text-[10px] text-ink-3">
                   {formatDateTime(log.at)}
                 </TableCell>
                 <TableCell>
@@ -221,7 +221,7 @@ export function AuditPage() {
                   </StatusPill>
                 </TableCell>
                 <TableCell className="max-w-[160px] truncate text-ink-3">{targetLabel(log.target)}</TableCell>
-                <TableCell className="pr-0 text-right font-mono text-[9px] text-ink-3">
+                <TableCell className="text-right font-mono text-[9px] text-ink-3">
                   {log.traceId ? log.traceId.slice(0, 12) : "—"}
                 </TableCell>
               </TableRow>

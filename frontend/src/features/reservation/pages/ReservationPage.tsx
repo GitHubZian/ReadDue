@@ -67,7 +67,7 @@ export function ReservationPage() {
         <StatCard label="已过期" value={stats.expired} unit="单" icon={TimerOff} tone="red" hint="已释放或在待释放" />
       </div>
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedFilter
             value={status}
@@ -83,7 +83,7 @@ export function ReservationPage() {
             ]}
           />
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
             <Input
               value={keyword}
               onChange={(event) => {
@@ -91,7 +91,7 @@ export function ReservationPage() {
                 setPage(1);
               }}
               placeholder="搜索读者或书目"
-              className="h-[34px] w-[240px] pl-8 text-[11px]"
+              className="h-[34px] w-[240px] pl-9 pr-3 text-[11px]"
             />
           </div>
         </div>
@@ -99,18 +99,18 @@ export function ReservationPage() {
         <Table className="mt-3">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-0">读者</TableHead>
+              <TableHead className="">读者</TableHead>
               <TableHead>书目</TableHead>
               <TableHead>排队</TableHead>
               <TableHead>提交时间</TableHead>
               <TableHead>状态</TableHead>
-              <TableHead className="pr-0 text-right">操作</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="pl-0">
+                <TableCell className="">
                   <p className="font-medium text-ink">{item.reader.name}</p>
                   <p className="text-[9.5px] text-ink-3">{item.reader.studentNo}</p>
                 </TableCell>
@@ -135,7 +135,7 @@ export function ReservationPage() {
                   </div>
                   {item.shelf ? <p className="mt-0.5 text-[9px] text-ink-3">{item.shelf}</p> : null}
                 </TableCell>
-                <TableCell className="pr-0 text-right">
+                <TableCell className="text-right">
                   {item.status === "WAITING" ? (
                     <Button
                       variant="outline"

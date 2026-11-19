@@ -82,14 +82,14 @@ export function CirculationPage() {
               </label>
               <div className="mt-1 flex gap-2">
                 <div className="relative flex-1">
-                  <ScanLine className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+                  <ScanLine className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
                   <Input
                     id="borrow-barcode"
                     value={borrowBarcode}
                     onChange={(event) => setBorrowBarcode(event.target.value)}
                     onKeyDown={(event) => event.key === "Enter" && onBorrow()}
                     placeholder="扫描或输入条码"
-                    className="h-10 pl-8 font-mono text-[12px]"
+                    className="h-10 pl-9 pr-3 font-mono text-[12px]"
                   />
                 </div>
                 <Button size="sm" className="h-10" onClick={onBorrow} disabled={borrow.isPending}>
@@ -124,14 +124,14 @@ export function CirculationPage() {
               </label>
               <div className="mt-1 flex gap-2">
                 <div className="relative flex-1">
-                  <ScanLine className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+                  <ScanLine className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
                   <Input
                     id="return-barcode"
                     value={returnBarcode}
                     onChange={(event) => setReturnBarcode(event.target.value)}
                     onKeyDown={(event) => event.key === "Enter" && onReturn()}
                     placeholder="扫描归还条码"
-                    className="h-10 pl-8 font-mono text-[12px]"
+                    className="h-10 pl-9 pr-3 font-mono text-[12px]"
                   />
                 </div>
                 <Button size="sm" variant="outline" className="h-10" onClick={onReturn} disabled={ret.isPending}>
@@ -169,22 +169,21 @@ export function CirculationPage() {
       <SectionCard
         title="今日流水"
         description={`${data?.flows.length ?? 0} 笔 · 按时间倒序`}
-        bodyClassName="px-0 pb-1"
-      >
+        >
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-5">时间</TableHead>
+              <TableHead >时间</TableHead>
               <TableHead>类型</TableHead>
               <TableHead>读者</TableHead>
               <TableHead>书目</TableHead>
-              <TableHead className="pr-5 text-right">操作人</TableHead>
+              <TableHead className="text-right">操作人</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(data?.flows ?? []).map((flow) => (
               <TableRow key={flow.id}>
-                <TableCell className="tabular pl-5 text-ink-3">{formatTime(flow.at)}</TableCell>
+                <TableCell className="tabular text-ink-3">{formatTime(flow.at)}</TableCell>
                 <TableCell>
                   <StatusPill tone={flow.type === "BORROW" ? "mint" : "slate"}>
                     {flow.type === "BORROW" ? "借出" : "归还"}
@@ -192,7 +191,7 @@ export function CirculationPage() {
                 </TableCell>
                 <TableCell className="text-ink">{flow.reader.name}</TableCell>
                 <TableCell className="max-w-[220px] truncate text-ink-2">{flow.book.title}</TableCell>
-                <TableCell className="pr-5 text-right text-ink-3">{flow.operator}</TableCell>
+                <TableCell className=" text-right text-ink-3">{flow.operator}</TableCell>
               </TableRow>
             ))}
           </TableBody>

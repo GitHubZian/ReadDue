@@ -66,7 +66,9 @@ export function WorkbenchPage() {
           label="今日到期"
           value={isLoading ? "—" : (stats?.dueToday ?? 0)}
           unit="册"
-          hint="17:00 自动提醒 · 2 条已发"
+          hint={
+            (stats?.dueToday ?? 0) > 0 ? "17:00 自动提醒" : "今天没有到期的借阅"
+          }
           icon={CalendarClock}
           tone="mint"
         />
@@ -87,7 +89,7 @@ export function WorkbenchPage() {
           label="超时申诉"
           value={isLoading ? "—" : (stats?.slaBreach ?? 0)}
           unit="单"
-          hint="已升级值班主管"
+          hint={(stats?.slaBreach ?? 0) > 0 ? "已升级值班主管" : "暂无超时工单"}
           icon={TriangleAlert}
           tone="red"
         />
@@ -103,16 +105,15 @@ export function WorkbenchPage() {
                 <Link to="/grace">全部</Link>
               </Button>
             }
-            bodyClassName="px-0 pb-1"
-          >
+            >
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-5">读者</TableHead>
+                  <TableHead >读者</TableHead>
                   <TableHead>书目</TableHead>
                   <TableHead>场景</TableHead>
                   <TableHead>剩余 SLA</TableHead>
-                  <TableHead className="pr-5 text-right">操作</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -120,7 +121,7 @@ export function WorkbenchPage() {
                   const sla = slaRemaining(item.slaDeadline);
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="pl-5">
+                      <TableCell >
                         <p className="font-medium text-ink">{item.reader.name}</p>
                         <p className="text-[9.5px] text-ink-3">{item.reader.studentNo}</p>
                       </TableCell>
@@ -141,7 +142,7 @@ export function WorkbenchPage() {
                           {sla.text}
                         </span>
                       </TableCell>
-                      <TableCell className="pr-5 text-right">
+                      <TableCell className="text-right">
                         <Button
                           variant="outline"
                           size="xs"
@@ -163,22 +164,27 @@ export function WorkbenchPage() {
           <SectionCard
             title="今日到期提醒"
             description="22:00–08:00 免打扰，其余时段即时发送"
-            bodyClassName="px-0 pb-1"
           >
+            {(data?.dueTodayItems ?? []).length === 0 ? (
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-line bg-wash/60 px-4 py-4 text-[10.5px] text-ink-2">
+                <CalendarClock className="size-4 shrink-0 text-ink-3" />
+                <span>今天没有到期的借阅。明早再来看，或到「逾期看板」处理已逾期记录。</span>
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-5">读者</TableHead>
+                  <TableHead>读者</TableHead>
                   <TableHead>书目</TableHead>
                   <TableHead>到期时间</TableHead>
                   <TableHead>提醒</TableHead>
-                  <TableHead className="pr-5 text-right">操作</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(data?.dueTodayItems ?? []).map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="pl-5 text-ink">{item.reader.name}</TableCell>
+                    <TableCell className="text-ink">{item.reader.name}</TableCell>
                     <TableCell className="max-w-[140px] truncate text-ink-2">
                       {item.book.title}
                     </TableCell>
@@ -188,7 +194,7 @@ export function WorkbenchPage() {
                         {item.reminded ? "已提醒" : "待提醒"}
                       </StatusPill>
                     </TableCell>
-                    <TableCell className="pr-5 text-right">
+                    <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="xs"
@@ -206,6 +212,7 @@ export function WorkbenchPage() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </SectionCard>
 
           <SectionCard
@@ -216,21 +223,20 @@ export function WorkbenchPage() {
                 <Link to="/appeals">全部</Link>
               </Button>
             }
-            bodyClassName="px-0 pb-1"
-          >
+            >
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-5">工单</TableHead>
+                  <TableHead >工单</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>状态</TableHead>
-                  <TableHead className="pr-5 text-right">详情</TableHead>
+                  <TableHead className="text-right">详情</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(appeals.data?.items ?? []).map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="pl-5">
+                    <TableCell >
                       <p className="tabular font-medium text-ink">{item.code}</p>
                       <p className="text-[9.5px] text-ink-3">
                         {item.reader.name} · {item.book.title}
@@ -242,7 +248,7 @@ export function WorkbenchPage() {
                         {appealStatusMeta[item.status].label}
                       </StatusPill>
                     </TableCell>
-                    <TableCell className="pr-5 text-right">
+                    <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="xs"

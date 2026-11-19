@@ -84,7 +84,7 @@ export function OverduePage() {
         />
       </div>
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedFilter
             value={status}
@@ -116,7 +116,7 @@ export function OverduePage() {
         <Table className="mt-3">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-8 pl-0">
+              <TableHead className="w-8">
                 <Checkbox
                   checked={allChecked}
                   onCheckedChange={(checked) => setSelected(checked ? items.map((item) => item.id) : [])}
@@ -129,13 +129,13 @@ export function OverduePage() {
               <TableHead>逾期</TableHead>
               <TableHead>滞纳金</TableHead>
               <TableHead>催还</TableHead>
-              <TableHead className="pr-0 text-right">状态</TableHead>
+              <TableHead className="text-right">状态</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="pl-0">
+                <TableCell className="">
                   <Checkbox
                     checked={selected.includes(item.id)}
                     onCheckedChange={() => toggle(item.id)}
@@ -161,7 +161,7 @@ export function OverduePage() {
                     {item.lastRemindedAt ? fromNow(item.lastRemindedAt) : "未提醒"}
                   </p>
                 </TableCell>
-                <TableCell className="pr-0 text-right">
+                <TableCell className="text-right">
                   <StatusPill tone={statusMeta[item.status].tone} dot>
                     {statusMeta[item.status].label}
                   </StatusPill>

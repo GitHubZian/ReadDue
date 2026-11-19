@@ -19,7 +19,7 @@ export function SectionCard({
   return (
     <section className={cn("rounded-2xl border border-line bg-card", className)}>
       {title ? (
-        <header className="flex items-start justify-between gap-3 px-5 pb-2.5 pt-4">
+        <header className="flex items-start justify-between gap-3 px-6 pb-3 pt-5">
           <div className="min-w-0">
             <h2 className="text-[13px] font-bold tracking-tight text-ink">{title}</h2>
             {description ? (
@@ -29,7 +29,7 @@ export function SectionCard({
           {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
         </header>
       ) : null}
-      <div className={cn(bodyClassName ?? "px-5 pb-4")}>{children}</div>
+      <div className={cn("card-body", bodyClassName ?? "px-6 pb-5")}>{children}</div>
     </section>
   );
 }

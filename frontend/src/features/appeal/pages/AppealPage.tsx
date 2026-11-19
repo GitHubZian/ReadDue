@@ -89,7 +89,7 @@ export function AppealPage() {
         description="逾期与费用争议在这里二次核对；结论会同步到借阅记录与审计日志。"
       />
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedFilter
             value={status}
@@ -124,7 +124,7 @@ export function AppealPage() {
             </SelectContent>
           </Select>
           <div className="relative ml-auto">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
             <Input
               value={keyword}
               onChange={(event) => {
@@ -132,7 +132,7 @@ export function AppealPage() {
                 setPage(1);
               }}
               placeholder="搜索工单号、读者或书目"
-              className="h-[34px] w-[250px] pl-8 text-[11px]"
+              className="h-[34px] w-[250px] pl-9 pr-3 text-[11px]"
             />
           </div>
         </div>
@@ -142,7 +142,7 @@ export function AppealPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-0">工单</TableHead>
+                  <TableHead className="">工单</TableHead>
                   <TableHead>读者 / 书目</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>状态</TableHead>
@@ -161,7 +161,7 @@ export function AppealPage() {
                         "cursor-pointer " + (active ? "bg-mint-soft/40 hover:bg-mint-soft/40" : "")
                       }
                     >
-                      <TableCell className="pl-0">
+                      <TableCell className="">
                         <p className="tabular font-semibold text-ink">{item.code}</p>
                         <p className="text-[9px] text-ink-3">{formatDateTime(item.createdAt)}</p>
                       </TableCell>

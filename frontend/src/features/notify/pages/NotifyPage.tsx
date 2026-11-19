@@ -64,9 +64,8 @@ const frequencyLabels: Record<string, string> = {
   WEEKLY: "每周",
 };
 
-// 后端目前只放行 INBOX/EMAIL；SMS、WECHAT 提交会 422，先不展示可点项。
+// 只做邮件外发：站内信由读者端消费，短信/微信不接。
 const topicChannelLabels: Record<string, string> = {
-  INBOX: "站内信",
   EMAIL: "邮件",
 };
 
@@ -103,7 +102,7 @@ export function NotifyPage() {
         }
       />
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <SegmentedFilter
           value={tab}
           onChange={(value) => setTab(value)}
@@ -119,18 +118,18 @@ export function NotifyPage() {
             <Table className="mt-3">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-0">任务</TableHead>
+                  <TableHead className="">任务</TableHead>
                   <TableHead>模板 / 渠道</TableHead>
                   <TableHead>触达</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>时间</TableHead>
-                  <TableHead className="pr-0 text-right">操作</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(tasks.data?.items ?? []).map((task) => (
                   <TableRow key={task.id}>
-                    <TableCell className="pl-0">
+                    <TableCell className="">
                       <p className="font-medium text-ink">{task.title}</p>
                       <p className="tabular text-[9.5px] text-ink-3">{task.id}</p>
                     </TableCell>
@@ -160,7 +159,7 @@ export function NotifyPage() {
                         <span className="block text-[9px]">{formatDateTime(task.finishedAt)}</span>
                       ) : null}
                     </TableCell>
-                    <TableCell className="pr-0 text-right">
+                    <TableCell className="text-right">
                       {task.status === "FAILED" || task.status === "PARTIAL" ? (
                         <Button
                           variant="outline"

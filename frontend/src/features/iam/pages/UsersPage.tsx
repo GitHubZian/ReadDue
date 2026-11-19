@@ -100,7 +100,7 @@ export function UsersPage() {
         }
       />
 
-      <SectionCard bodyClassName="px-5 pb-4">
+      <SectionCard bodyClassName="px-6 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedFilter
             value={role}
@@ -117,7 +117,7 @@ export function UsersPage() {
             ]}
           />
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-3" />
             <Input
               value={keyword}
               onChange={(event) => {
@@ -125,7 +125,7 @@ export function UsersPage() {
                 setPage(1);
               }}
               placeholder="搜索姓名、学号或手机号"
-              className="h-[34px] w-[250px] pl-8 text-[11px]"
+              className="h-[34px] w-[250px] pl-9 pr-3 text-[11px]"
             />
           </div>
         </div>
@@ -133,7 +133,7 @@ export function UsersPage() {
         <Table className="mt-3">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-8 pl-0">
+              <TableHead className="w-8">
                 <Checkbox
                   checked={allChecked}
                   onCheckedChange={(checked) => setSelected(checked ? selectable.map((item) => item.id) : [])}
@@ -145,13 +145,13 @@ export function UsersPage() {
               <TableHead>状态</TableHead>
               <TableHead>借阅</TableHead>
               <TableHead>最近活跃</TableHead>
-              <TableHead className="pr-0 text-right">操作</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="pl-0">
+                <TableCell className="">
                   <Checkbox
                     checked={selected.includes(user.id)}
                     disabled={user.role !== "READER"}
@@ -197,7 +197,7 @@ export function UsersPage() {
                   {fromNow(user.lastActiveAt)}
                   <span className="block text-[9px]">加入 {formatDate(user.joinedAt)}</span>
                 </TableCell>
-                <TableCell className="pr-0 text-right">
+                <TableCell className="text-right">
                   {user.role !== "READER" ? (
                     <span className="text-[9.5px] text-ink-3">—</span>
                   ) : user.status === "BLACKLISTED" ? (
