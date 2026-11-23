@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -74,6 +75,16 @@ public class AdminQueryService {
     private final AdminReadRepository readRepository;
     private final RuleService ruleService;
     private final NotifyTemplateService templateService;
+
+    /** 值班信息：由部署方按实际排班覆盖，默认只给岗位不编造姓名。 */
+    @Value("${app.duty.name:前台值班}")
+    private String dutyName;
+
+    @Value("${app.duty.window:08:00–22:00}")
+    private String dutyWindow;
+
+    @Value("${app.duty.phone:内线 8021}")
+    private String dutyPhone;
 
 // region 工作台
 
@@ -119,7 +130,7 @@ public class AdminQueryService {
                 hits,
                 notices(),
                 dueTodayItems(),
-                new Duty("值班馆员 · 王倩", "08:00–22:00", "内线 8021"));
+                new Duty(dutyName, dutyWindow, dutyPhone));
     }
 
     private List<TrendPoint> trend() {

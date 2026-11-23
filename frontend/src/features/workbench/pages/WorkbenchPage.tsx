@@ -331,7 +331,7 @@ export function WorkbenchPage() {
             </ul>
             <div className="mt-3.5 flex items-center justify-between border-t border-line-2 pt-3">
               <p className="text-[9.5px] text-ink-3">
-                值班 {data?.duty.name ?? "王倩"} · {data?.duty.phone ?? "内线 8021"}
+                值班 {data?.duty.name ?? "前台值班"} · {data?.duty.phone ?? "内线 8021"}
               </p>
               {canEditRules ? (
                 <Button variant="ghost" size="xs" asChild>
