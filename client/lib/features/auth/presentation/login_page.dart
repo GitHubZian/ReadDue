@@ -342,8 +342,8 @@ class _LoginField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 60,
-          padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(13),

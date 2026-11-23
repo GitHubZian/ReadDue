@@ -175,16 +175,28 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     index: _filter,
                     onChanged: (index) => setState(() => _filter = index),
                   ),
-                  const Spacer(),
-                  Text(
-                    '找到 $total 本 · ',
-                    style: AppText.caption.copyWith(color: AppColors.ink3),
-                  ),
-                  Text(
-                    '按相关度 ⌄',
-                    style: AppText.caption.copyWith(
-                      color: AppColors.mintDeep,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FittedBox(
+                      alignment: Alignment.centerRight,
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '找到 $total 本 · ',
+                            style:
+                                AppText.caption.copyWith(color: AppColors.ink3),
+                          ),
+                          Text(
+                            '按相关度 ⌄',
+                            style: AppText.caption.copyWith(
+                              color: AppColors.mintDeep,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -483,7 +495,7 @@ class _BookRow extends StatelessWidget {
                     Expanded(
                       child: Text(
                         book.libraryLabel,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.caption.copyWith(color: AppColors.ink3),
                       ),
