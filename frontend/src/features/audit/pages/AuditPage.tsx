@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Copy, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -116,11 +117,19 @@ const targetLabel = (target: string) => {
 };
 
 export function AuditPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlKeyword = searchParams.get("keyword") ?? "";
   const [category, setCategory] = useState<AuditCategory | "ALL">("ALL");
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(urlKeyword);
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<AuditLog | null>(null);
   const [exporting, setExporting] = useState(false);
+
+  // 顶栏搜索无匹配时会带 ?keyword= 跳到这里；地址变化时同步并重新查询。
+  useEffect(() => {
+    setKeyword(urlKeyword);
+    setPage(1);
+  }, [urlKeyword]);
 
   const query = useAuditLogs({
     category: category === "ALL" ? undefined : category,
@@ -230,7 +239,29 @@ export function AuditPage() {
         </Table>
 
         {!query.isLoading && (query.data?.items.length ?? 0) === 0 ? (
-          <EmptyState title="没有相关日志" description="调整分类或关键词后再试。" />
+          <EmptyState
+            title={keyword ? `未找到「${keyword}」` : "没有相关日志"}
+            description={
+              keyword ? "检查单号是否完整（BC 开头 10 位），或换个关键词再试。" : "调整分类或关键词后再试。"
+            }
+            action={
+              keyword ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setKeyword("");
+                    setPage(1);
+                    const next = new URLSearchParams(searchParams);
+                    next.delete("keyword");
+                    setSearchParams(next, { replace: true });
+                  }}
+                >
+                  查看全部日志
+                </Button>
+              ) : undefined
+            }
+          />
         ) : null}
 
         <div className="mt-3">

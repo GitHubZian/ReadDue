@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, Clock3, Download, FileText, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,12 +43,16 @@ function evidenceId(file: { id?: string; url?: string }) {
 }
 
 export function GracePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlId = searchParams.get("id") ?? undefined;
   const [status, setStatus] = useState<GraceStatus>("PENDING");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [selectedId, setSelectedId] = useState<string | undefined>(urlId);
   const [days, setDays] = useState(3);
   const [note, setNote] = useState("");
+  const [confirm, setConfirm] = useState<"approve" | "reject" | null>(null);
+  const invalidIdRef = useRef<string | undefined>(undefined);
 
   const query = useGraces({ status, keyword: keyword || undefined, page, size: 10 });
   const approve = useApproveGrace();
@@ -48,6 +63,23 @@ export function GracePage() {
     () => items.find((item) => item.id === selectedId) ?? items[0],
     [items, selectedId],
   );
+
+  // 工作台「裁决」带 ?id= 进来：先选中该单，而不是默认第一条。
+  useEffect(() => {
+    if (urlId) setSelectedId(urlId);
+  }, [urlId]);
+
+  // 深链失效（已归档/被筛掉）：明确提示后清掉 id，回落到列表。
+  useEffect(() => {
+    if (!urlId || selectedId !== urlId || !query.isSuccess || items.some((item) => item.id === urlId)) return;
+    if (invalidIdRef.current === urlId) return;
+    invalidIdRef.current = urlId;
+    toast.error("该工单已归档或不存在", { description: "已回到宽限列表。" });
+    const next = new URLSearchParams(searchParams);
+    next.delete("id");
+    setSearchParams(next, { replace: true });
+    setSelectedId(undefined);
+  }, [urlId, selectedId, items, query.isSuccess, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (selected) setDays(selected.requestedDays >= 9 ? 9 : selected.requestedDays >= 6 ? 6 : 3);
@@ -63,6 +95,7 @@ export function GracePage() {
       { id: selected.id, days, note: note.trim() || undefined },
       { onSuccess: () => setNote("") },
     );
+    setConfirm(null);
   };
 
   const onReject = () => {
@@ -71,7 +104,13 @@ export function GracePage() {
       toast.error("驳回需要填写不少于 10 字的说明", { description: "说明会进入审计日志并推送给读者。" });
       return;
     }
+    setConfirm("reject");
+  };
+
+  const submitReject = () => {
+    if (!selected) return;
     reject.mutate({ id: selected.id, note: note.trim() }, { onSuccess: () => setNote("") });
+    setConfirm(null);
   };
 
   return (
@@ -258,24 +297,20 @@ export function GracePage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h2 className="truncate text-[15px] font-bold text-ink">
-                          {selected.reader.name}
-                        </h2>
-                        <span className="tabular text-[10px] text-ink-3">
-                          {selected.reader.studentNo}
-                        </span>
-                        <span className="text-[10px] text-ink-3">· {selected.reader.college}</span>
-                      </div>
-                      <p className="mt-1 flex items-center gap-2 text-[9.5px] text-ink-3">
-                        <code className="rounded bg-wash px-1.5 py-0.5 font-mono text-[8.5px]">
                           {selected.code}
-                        </code>
-                        <span>提交于 {formatDateTime(selected.createdAt)}</span>
+                        </h2>
+                        <StatusPill tone={graceStatusMeta[selected.status].tone} dot>
+                          {graceStatusMeta[selected.status].label}
+                        </StatusPill>
+                      </div>
+                      <p className="mt-1 truncate text-[10px] text-ink-3">
+                        {selected.reader.studentNo} · 《{selected.book.title}》 · {selected.reader.name}
+                      </p>
+                      <p className="mt-0.5 text-[9.5px] text-ink-3">
+                        {selected.reader.college} · 提交于 {formatDateTime(selected.createdAt)}
                       </p>
                     </div>
                   </div>
-                  <StatusPill tone={graceStatusMeta[selected.status].tone} dot>
-                    {graceStatusMeta[selected.status].label}
-                  </StatusPill>
                 </div>
               </div>
 
@@ -453,7 +488,7 @@ export function GracePage() {
                   />
 
                   <div className="mt-2 flex gap-2">
-                    <Button size="sm" className="flex-1" disabled={approve.isPending} onClick={onApprove}>
+                    <Button size="sm" className="flex-1" disabled={approve.isPending} onClick={() => setConfirm("approve")}>
                       <Check className="size-3.5" />
                       通过并延长 {days} 天
                     </Button>
@@ -488,6 +523,32 @@ export function GracePage() {
           )}
         </SectionCard>
       </div>
+
+      <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirm === "reject" ? "确认驳回这笔宽限？" : "确认通过这笔宽限？"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selected
+                ? `${selected.reader.name}（${selected.reader.studentNo}）·《${selected.book.title}》· 申请 ${selected.requestedDays} 天。`
+                : ""}
+              {confirm === "reject"
+                ? "驳回后读者会收到通知，说明将写入审计日志。"
+                : `通过后到期日延长 ${days} 天，并通知读者。`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirm === "reject" ? "bg-danger text-white hover:bg-danger/90" : undefined}
+              disabled={approve.isPending || reject.isPending}
+              onClick={confirm === "reject" ? submitReject : onApprove}
+            >
+              {confirm === "reject" ? "确认驳回" : "确认通过"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,12 +1,58 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
-import { clearSession, getToken } from "@/lib/auth/session";
+import { clearSession, getRefreshToken, getToken, saveSession } from "@/lib/auth/session";
+import type { LoginResult } from "@/lib/api/models";
 import { ApiError } from "./errors";
 import type { BaseResponse } from "./types";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+interface RetryConfig extends InternalAxiosRequestConfig {
+  /** 401 后只重放一次，避免刷新失败时无限循环。 */
+  _retry?: boolean;
+}
+
+let refreshPromise: Promise<string | null> | null = null;
+let redirecting = false;
+
+/**
+ * 单飞刷新：并发 401 共用同一个 refresh 请求，避免旧 token 被并发吊销。
+ * 刷新失败返回 null，由调用方决定是否登出。
+ */
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) return null;
+      try {
+        const response = await axios.post<BaseResponse<LoginResult>>(
+          `${baseURL}/auth/refresh`,
+          null,
+          { headers: { Authorization: `Bearer ${refreshToken}` }, timeout: 15_000 },
+        );
+        const body = response.data;
+        if (!body || body.code !== 0 || !body.data?.token) return null;
+        saveSession(body.data);
+        return body.data.token;
+      } catch {
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+  return refreshPromise;
+}
+
+function redirectToLogin() {
+  clearSession();
+  if (redirecting || window.location.pathname.startsWith("/login")) return;
+  redirecting = true;
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.assign(`/login?from=${next}`);
+}
 
 const traceId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -65,20 +111,32 @@ http.interceptors.response.use(
     if (signature) pendingKeys.delete(signature);
     return response;
   },
-  (error: unknown) => {
+  async (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const payload = error.response?.data as
         | { code?: number; message?: string; traceId?: string }
         | undefined;
+      const config = error.config as RetryConfig | undefined;
+      const isAuthCall = (config?.url ?? "").includes("/auth/");
 
-      if (status === 401) {
-        clearSession();
-        const next = encodeURIComponent(window.location.pathname + window.location.search);
-        const isLoginRequest = (error.config?.url ?? "").includes("/auth/login");
-        if (!isLoginRequest && !window.location.pathname.startsWith("/login")) {
-          window.location.assign(`/login?from=${next}`);
+      if (status === 401 && !isAuthCall) {
+        if (config && !config._retry) {
+          config._retry = true;
+          const tokenAtFailure = getToken();
+          const token = await refreshAccessToken();
+          if (token) {
+            config.headers.set("Authorization", `Bearer ${token}`);
+            return http(config);
+          }
+          // 另一个标签页可能刚完成刷新：用最新 token 重放，而不是直接登出。
+          const latest = getToken();
+          if (latest && latest !== tokenAtFailure) {
+            config.headers.set("Authorization", `Bearer ${latest}`);
+            return http(config);
+          }
         }
+        redirectToLogin();
       }
 
       throw new ApiError(

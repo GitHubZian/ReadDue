@@ -5,6 +5,8 @@ const STORAGE_KEY = "readdue.admin.session";
 
 interface StoredSession {
   token: string;
+  /** 刷新凭据：与 access token 分开保存，401 时用它换新 token。 */
+  refreshToken: string;
   expiresAt: number;
   user: SessionUser;
 }
@@ -19,6 +21,8 @@ function readStorage(): StoredSession | null {
       localStorage.removeItem(STORAGE_KEY);
       return null;
     }
+    // 兼容旧会话：没有独立 refreshToken 时沿用 access token。
+    if (!parsed.refreshToken) parsed.refreshToken = parsed.token;
     return parsed;
   } catch {
     return null;
@@ -40,9 +44,14 @@ export function getToken(): string | null {
   return current?.token ?? null;
 }
 
+export function getRefreshToken(): string | null {
+  return current?.refreshToken ?? null;
+}
+
 export function saveSession(result: LoginResult) {
   current = {
     token: result.token,
+    refreshToken: result.refreshToken ?? result.token,
     user: result.user,
     expiresAt: Date.now() + (Number(result.expiresIn) || 8 * 3600) * 1000,
   };

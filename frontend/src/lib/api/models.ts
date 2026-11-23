@@ -18,6 +18,8 @@ export interface LoginPayload {
 
 export interface LoginResult {
   token: string;
+  /** 后端单独下发刷新凭据时使用；当前后端未下发，回退为 token。 */
+  refreshToken?: string;
   expiresIn: number | string;
   user: SessionUser;
 }

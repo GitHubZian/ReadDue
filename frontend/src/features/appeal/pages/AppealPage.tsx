@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCheck, Gavel, Search, Timer, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,14 +39,17 @@ import { SLA_OPTIONS } from "@/features/appeal/constants";
 type ConclusionKind = "REVOKE_OVERDUE" | "COMPENSATE" | "REJECT";
 
 export function AppealPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlId = searchParams.get("id") ?? undefined;
   const [status, setStatus] = useState<AppealStatus | "ALL">("ALL");
   const [category, setCategory] = useState<AppealCategory | "ALL">("ALL");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [selectedId, setSelectedId] = useState<string | undefined>(urlId);
   const [kind, setKind] = useState<ConclusionKind>("REVOKE_OVERDUE");
   const [days, setDays] = useState(3);
   const [note, setNote] = useState("");
+  const invalidIdRef = useRef<string | undefined>(undefined);
 
   const query = useAppeals({
     status: status === "ALL" ? undefined : status,
@@ -62,6 +66,22 @@ export function AppealPage() {
     () => items.find((item) => item.id === selectedId) ?? items[0],
     [items, selectedId],
   );
+
+  // 工作台「查看」带 ?id= 进来：选中该工单，避免落到第一条。
+  useEffect(() => {
+    if (urlId) setSelectedId(urlId);
+  }, [urlId]);
+
+  useEffect(() => {
+    if (!urlId || selectedId !== urlId || !query.isSuccess || items.some((item) => item.id === urlId)) return;
+    if (invalidIdRef.current === urlId) return;
+    invalidIdRef.current = urlId;
+    toast.error("该工单已归档或不存在", { description: "已回到申诉列表。" });
+    const next = new URLSearchParams(searchParams);
+    next.delete("id");
+    setSearchParams(next, { replace: true });
+    setSelectedId(undefined);
+  }, [urlId, selectedId, items, query.isSuccess, searchParams, setSearchParams]);
 
   const canDecide = selected && selected.status !== "RESOLVED" && selected.status !== "REJECTED";
 
@@ -147,6 +167,7 @@ export function AppealPage() {
                   <TableHead>类型</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead className="text-right">SLA</TableHead>
+                  <TableHead className="w-[64px] text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -189,6 +210,19 @@ export function AppealPage() {
                         >
                           {item.status === "RESOLVED" ? "—" : sla.text}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant={item.status === "PENDING" ? "default" : "ghost"}
+                          size="sm"
+                          className="h-7 px-2 text-[10px]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedId(item.id);
+                          }}
+                        >
+                          {item.status === "PENDING" ? "去处理" : "查看"}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
