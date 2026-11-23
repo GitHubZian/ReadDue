@@ -247,6 +247,7 @@ flutter analyze; flutter test
 | 2026-11-23 | APP | API 地址与证据附件 | `app_config.dart` 默认 `http://10.22.127.30:8125/api`；新增 `POST /v1/files` multipart 与 `evidence_upload.dart`；宽限/申诉真实选文件、上限 5、≤5MB、先传后提；`flutter analyze` 0 / `flutter test` 30 绿；APK 构建被离线 Gradle 阻塞（未产生新包） |
 | 2026-11-23 | FE | 权限收敛与工作台文案 | 馆员隐藏借出表单（`borrow:create`）与未授权死链；顶栏搜索先按权限过滤；免打扰卡改真实 `stats.pendingTotal`/`duty.window`，去掉「已延后 14 条」等假状态；`pnpm build` 通过（1864 modules / JS 764.16KB gzip 239.74KB） |
 | 2026-11-23 | Lead | 收口复核 | §11 七条全部裁决；§2 索引与 §4 详表状态校正（F-03/F-06/F-07）；PRD 升至 V1.1、README 重写；X-01 记 🟡（管理端+后端已验，客户端 APK 阻塞） |
+| 2026-11-23 | Lead | 演示数据修复 | 周雨 `reader_profile.department` 乱码 `æ–‡å­¦é™¢` → `文学院`；赵一过期预约（2026-11-16）经 `POST /admin/reservations/{id}/expire` 置 `EXPIRED`；登记 FR-05-D1（缺自动清扫任务） |
 
 ---
 
@@ -263,6 +264,7 @@ flutter analyze; flutter test
 | B-10-D1 | BE | 关闭「计算缓存」授权时，已写入 Redis 的宽限快照不做即时删除（键为 `readdue:grace:snap:{orderId}`，跨上下文枚举成本高），按 24h TTL 自然过期；遗忘为不可撤销的脱敏，账号仍可登录但无姓名/手机/邮箱 | Lead 已裁决 | ✅ 2026-11-23 接受 24h TTL，页面提示「最迟 24 小时内失效」 |
 | B-09-D1 | BE | 审计新增 `trace_id`/`before_json`/`after_json`：`traceId` 取请求头 `X-Trace-Id`（无头时由过滤器生成，与响应 `traceId` 一致）；前后值 JSON 字符串只覆盖宽限审批、申诉处理、规则调整三类；CSV 导出追加 3 列。前端如需把旧行也展示为结构化对象，请按 `null` 处理 | Lead 已裁决 | ✅ 2026-11-23 旧行按 null 降级，不补历史数据 |
 | B-08-D1 | BE | 证据附件为自定契约：`POST /v1/files`（multipart `file`，png/jpg/pdf、≤5MB、按魔数校验，超限 422）、`GET /v1/files/{id}`（本人或馆员可读，他人 404）、单次最多 5 个 `evidenceIds`；新增 `GET /v1/graces/{id}` 详情（此前只有 `/graces/self`）。若前端需要多文件上限调整或图片压缩，请提供口径 | Lead 已裁决 | ✅ 2026-11-23 上限保持 ≤5MB × 5 个；申诉沿用同契约（B-14） |
+| FR-05-D1 | BE | `READY` 预约的 48h 保留期目前只能由管理端 `POST /admin/reservations/{id}/expire` 手动触发，无定时清扫；赵一 2026-11-16 已过期的记录一直显示「待取书」。是否补 `@Scheduled` 清扫（过期 + 顺延下一位 + 通知） | Lead 待排期 | ⬜ 待排期 |
 
 
 
