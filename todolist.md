@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 16/16（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫；X-02/03/04 另计） · 前端 9/9 · 客户端 7/7 + 证据附件真实上传 · 联动 4/5（X-02/03/04/05 ✅；X-01 🟡 客户端 APK 重建中）
+**进度快照（回写时同步此行）**：后端 16/16（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫；X-02/03/04 另计） · 前端 9/9 · 客户端 7/7 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -81,7 +81,7 @@
 | C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
 | C-06 | 真机联调两条链路 | APP | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3、C5→C6→C7 真机走通 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ✅ 2026-11-19 · 无 git 提交 · 隐私授权/6 主题频率/遗忘确认；PUT 真机验证；test 26 绿 | B-06、B-10 |
-| X-01 | 三端冒烟 | **FE 发起** | 🟡 2026-11-23 · 管理端 14 路由双账号验收通过 + 后端读者 API 实测；网络恢复，客户端重建 APK 与实机链路进行中 | F-01…F-06、C-06 |
+| X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
 | X-04 | `.gitattributes` | **BE 发起** | ✅ 2026-11-19 · `* text=auto eol=lf`，279 个文本文件归一化 | 无 |
@@ -256,6 +256,7 @@ flutter analyze; flutter test
 | 2026-11-23 | Lead | 收口复核 | §11 七条全部裁决；§2 索引与 §4 详表状态校正（F-03/F-06/F-07）；PRD 升至 V1.1、README 重写；X-01 记 🟡（管理端+后端已验，客户端 APK 阻塞） |
 | 2026-11-23 | Lead | B-15 预约过期清扫 | `@Scheduled` 每 10 分钟扫 `READY` 过期：置 `EXPIRED` + 审计；队首 `READY`（48h）+ outbox；无人释放 `READY_SHELF` 副本（`releaseHoldForBook`）；`ReservationExpiryTest` 3 例；`mvn test` 98 绿/1 跳；提交 f4b1ce0 |
 | 2026-11-23 | BE+FE | F-09 值班卡去假名 | 后端 `AdminQueryService` 改 `@Value` 注入 `app.duty.name/window/phone`（默认「前台值班」/08:00–22:00/内线 8021），`application.yml` 支持 `DUTY_*` 环境变量；管理端兜底文案同步；接口文档示例更新；`mvn compile` 与 `pnpm build` 通过；运行态 `/admin/dashboard` 返回 `duty.name=前台值班` |
+| 2026-11-23 | APP | X-01 客户端链路 | 网络恢复后重建 debug APK（Gradle 8.14.3 本地包 + AGP 8.11.0/Kotlin 2.1.20/compileSdk 36，471.5s，API 10.0.2.2）；模拟器安装后 C1→C2→C3 无阻断；宽限真实上传 evidence.png 并提交（GA202611232183 / evidence 2124863056660606977）；截图 temp/x01-client/01–09；`client/android` 临时构建改动已在提交前还原，配方写入 client/README |
 | 2026-11-23 | FE | F-08 管理端状态真实性 | 顶栏连接态/通知数取真实查询；批量拉黑走接口并逐人报告；借还台删硬编码「当前在办」；侧栏删假值班行；`pnpm build` 通过、浏览器实测 |
 | 2026-11-23 | Lead | X-05 CI/CD 与容器化 | `.github/workflows/ci.yml`（三端构建/测试）、`release.yml`（tag 制品 + ghcr 镜像 + Release）、`backend|frontend/Dockerfile`、`frontend/nginx.conf`、`deploy/docker-compose.yml`、`.env.example`、`application-prod.yml`；`docker compose config` 与 YAML 校验通过；README 增 CI/CD 段 |
 | 2026-11-23 | Lead | 离线收尾复核 | 后端 98 测试、管理端构建、客户端 30 测试全绿；工作树待提交（B-15/F-08/X-05/文档）；GitHub 仍不可达，未推送 |

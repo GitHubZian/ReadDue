@@ -35,9 +35,20 @@ flutter run --dart-define=USE_MOCK=true
 ```bash
 dart format --set-exit-if-changed lib test
 flutter analyze          # 0 warning
-flutter test             # 26 条：每屏正常/错误 + 拉黑、404、幂等键、返回与表单校验
+flutter test             # 30 条：每屏正常/错误 + 拉黑、404、幂等键、返回与表单校验
 flutter build apk --debug
 ```
+
+## 受限网络下的 APK 构建（本机配方，未提交）
+
+当前网络下 `services.gradle.org` 的 Gradle 8.3 发行包下载会卡在 0 字节，Flutter 默认的 AGP 8.1.0 / Kotlin 1.8.22 也不在本机缓存。本机验证通过的临时改法（**构建前改、构建后还原，仓库保持可移植**）：
+
+1. `android/gradle/wrapper/gradle-wrapper.properties`：`distributionUrl=file\:///C:/Users/Asus/.gradle/wrapper/dists/gradle-8.14.3-bin/cv11ve7ro1n3o1j4so8xd9n66/gradle-8.14.3-bin.zip`（本机已有完整 zip）。
+2. `android/settings.gradle`：AGP `8.11.0`、Kotlin `2.1.20`（本机缓存内已有），需要时给 `pluginManagement.repositories` 加国内 Maven 镜像。
+3. `android/app/build.gradle`：`compileSdk 36`、`ndkVersion "27.0.12077973"`。
+4. `flutter clean` 后 `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8125/api`；Kotlin incremental storage 报错属非致命，Gradle 回退非增量编译后仍可产出 APK（本机实测 471.5s，debug 包 95.5 MB）。
+
+正常网络下不需要以上改动，直接 `flutter build apk` 即可。
 
 ## 真机安装包
 
