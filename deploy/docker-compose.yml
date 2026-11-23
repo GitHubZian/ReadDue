@@ -1,5 +1,8 @@
 name: readdue
 
+# 仅用于本地/演示：默认口令（root / readdue / guest）与示例 JWT 密钥不可用于生产。
+# 生产部署前请复制 deploy/.env.example 为 deploy/.env，替换全部口令并设置强随机 APP_JWT_SECRET。
+
 services:
   mysql:
     image: mysql:8.0

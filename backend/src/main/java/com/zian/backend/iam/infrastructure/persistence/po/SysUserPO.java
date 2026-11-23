@@ -1,6 +1,8 @@
 package com.zian.backend.iam.infrastructure.persistence.po;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
@@ -42,15 +44,19 @@ public class SysUserPO {
     private String status;
 
     /** 拉黑原因（读者可见） */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String blacklistReason;
 
     /** 拉黑时间 */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private LocalDateTime blacklistedAt;
 
     /** 拉黑操作人（仅管理员） */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long blacklistedBy;
 
     /** 到期自动解除；NULL 表示需人工恢复 */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private LocalDateTime blacklistExpiresAt;
 
     private LocalDateTime lastLoginAt;

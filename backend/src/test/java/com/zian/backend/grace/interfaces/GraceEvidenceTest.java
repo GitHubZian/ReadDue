@@ -20,9 +20,8 @@ import org.springframework.mock.web.MockMultipartFile;
  */
 class GraceEvidenceTest extends SecurityTestSupport {
 
-    private static final byte[] PNG = new byte[] {
-        (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4
-    };
+    private static final byte[] PNG = java.util.Base64.getDecoder()
+            .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
     @Test
     void uploadThenAttachToGraceAndReadBack() throws Exception {

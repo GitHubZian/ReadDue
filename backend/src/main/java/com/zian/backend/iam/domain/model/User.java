@@ -37,10 +37,22 @@ public class User {
     private LocalDateTime createdAt;
 
     /**
-     * 是否处于拉黑状态。
+     * 是否处于拉黑状态。到期后即使定时任务尚未回写，也按 NORMAL 处理，避免到期仍被拦截。
      */
     public boolean isBlacklisted() {
-        return status == UserStatus.BLACKLISTED;
+        return status == UserStatus.BLACKLISTED && !isBlacklistExpired(LocalDateTime.now());
+    }
+
+    /**
+     * 拉黑是否已到期（仅 BLACKLISTED 有效；{@code blacklistExpiresAt} 为空表示需人工恢复）。
+     *
+     * @param now 判定时间
+     * @return 已到期为 true
+     */
+    public boolean isBlacklistExpired(LocalDateTime now) {
+        return status == UserStatus.BLACKLISTED
+                && blacklistExpiresAt != null
+                && !blacklistExpiresAt.isAfter(now);
     }
 
     /**
@@ -87,7 +99,7 @@ public class User {
      * 解除拉黑并清空原因与到期时间。
      */
     public void restore() {
-        if (!isBlacklisted()) {
+        if (status != UserStatus.BLACKLISTED) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "账号当前不是限制状态");
         }
         this.status = UserStatus.NORMAL;

@@ -8,6 +8,7 @@ import com.zian.backend.shared.file.domain.port.FileContentStore;
 import com.zian.backend.shared.file.interfaces.dto.FileDtos;
 import com.zian.backend.shared.security.LoginUser;
 import com.zian.backend.shared.security.UserContext;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.security.MessageDigest;
@@ -15,9 +16,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HexFormat;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,7 +82,7 @@ public class FileService {
         if (content.length > MAX_BYTES) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "文件不能超过 5MB");
         }
-        if (!matchesMagic(extension, content)) {
+        if (!matchesContent(extension, content)) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "文件内容与扩展名不一致");
         }
 
@@ -188,17 +193,10 @@ public class FileService {
                 : name.substring(dot + 1).toLowerCase();
     }
 
-    private static boolean matchesMagic(String extension, byte[] bytes) {
+    private static boolean matchesContent(String extension, byte[] bytes) {
         return switch (extension) {
-            case "png" -> bytes.length >= 8
-                    && (bytes[0] & 0xFF) == 0x89
-                    && bytes[1] == 'P'
-                    && bytes[2] == 'N'
-                    && bytes[3] == 'G';
-            case "jpg", "jpeg" -> bytes.length >= 3
-                    && (bytes[0] & 0xFF) == 0xFF
-                    && (bytes[1] & 0xFF) == 0xD8
-                    && (bytes[2] & 0xFF) == 0xFF;
+            case "png" -> isDecodableImage(bytes, "png");
+            case "jpg", "jpeg" -> isDecodableImage(bytes, "jpeg");
             case "pdf" -> bytes.length >= 5
                     && bytes[0] == '%'
                     && bytes[1] == 'P'
@@ -207,6 +205,34 @@ public class FileService {
                     && bytes[4] == '-';
             default -> false;
         };
+    }
+
+    /**
+     * 真实解码校验：仅靠文件头会被 12 字节伪 PNG 绕过；这里要求 ImageIO 能读出
+     * 宽高，并校验实际格式与扩展名一致（png / jpeg）。
+     */
+    private static boolean isDecodableImage(byte[] bytes, String expectedFormat) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            if (input == null) {
+                return false;
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return false;
+            }
+            ImageReader reader = readers.next();
+            try {
+                if (!expectedFormat.equalsIgnoreCase(reader.getFormatName())) {
+                    return false;
+                }
+                reader.setInput(input, true, true);
+                return reader.getWidth(0) > 0 && reader.getHeight(0) > 0;
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException | RuntimeException e) {
+            return false;
+        }
     }
 
     private static String sha256(byte[] content) {

@@ -21,9 +21,8 @@ import org.springframework.mock.web.MockMultipartFile;
  */
 class AppealEvidenceTest extends SecurityTestSupport {
 
-    private static final byte[] PNG = new byte[] {
-        (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4
-    };
+    private static final byte[] PNG = java.util.Base64.getDecoder()
+            .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
     @Test
     void createWithEvidenceAndReadBack() throws Exception {
@@ -39,7 +38,7 @@ class AppealEvidenceTest extends SecurityTestSupport {
                 .andExpect(jsonPath("$.data.evidence[0].id").value(String.valueOf(fileId)))
                 .andExpect(jsonPath("$.data.evidence[0].name").value("appeal.png"))
                 .andExpect(jsonPath("$.data.evidence[0].contentType").value("image/png"))
-                .andExpect(jsonPath("$.data.evidence[0].size").value("12"))
+                .andExpect(jsonPath("$.data.evidence[0].size").value(String.valueOf(PNG.length)))
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);

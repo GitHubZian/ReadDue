@@ -40,3 +40,22 @@ app:
     storage-dir: ${FILE_STORAGE_DIR:/data/uploads}
   mail:
     from: ${MAIL_FROM:no-reply@readdue.local}
+  cors:
+    # 生产默认只允许同源部署的前端；跨域部署时用 CORS_ALLOWED_ORIGINS 显式列出
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS:http://localhost:8080}
+
+# 生产关闭接口文档与指标端点，避免暴露内部结构
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+logging:
+  level:
+    root: INFO
+    com.zian.backend: INFO

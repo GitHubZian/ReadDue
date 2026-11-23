@@ -7,6 +7,8 @@ import com.zian.backend.iam.domain.model.UserStatus;
 import com.zian.backend.iam.domain.repository.UserRepository;
 import com.zian.backend.iam.infrastructure.persistence.mapper.SysUserMapper;
 import com.zian.backend.iam.infrastructure.persistence.po.SysUserPO;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -46,6 +48,18 @@ public class UserRepositoryImpl implements UserRepository {
         po.setLastLoginAt(user.getLastLoginAt());
         po.setVersion(user.getVersion());
         return mapper.updateById(po);
+    }
+
+    @Override
+    public List<User> findExpiredBlacklist(LocalDateTime now, int limit) {
+        return mapper.selectList(Wrappers.<SysUserPO>lambdaQuery()
+                        .eq(SysUserPO::getStatus, UserStatus.BLACKLISTED.name())
+                        .isNotNull(SysUserPO::getBlacklistExpiresAt)
+                        .le(SysUserPO::getBlacklistExpiresAt, now)
+                        .last("limit " + Math.max(1, limit)))
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
 
