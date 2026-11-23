@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 18/18（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料；X-02/03/04 另计） · 前端 9/9 · 客户端 7/7 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 18/18（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料；X-02/03/04 另计） · 前端 9/9 · 客户端 8/8 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -83,6 +83,7 @@
 | C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
 | C-06 | 真机联调两条链路 | APP | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3、C5→C6→C7 真机走通 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ✅ 2026-11-19 · 无 git 提交 · 隐私授权/6 主题频率/遗忘确认；PUT 真机验证；test 26 绿 | B-06、B-10 |
+| C-08 | 个人资料接真实字段 | APP | ✅ 2026-11-23 · 无 git 提交 · analyze 0 / test 34 绿 · 解析 `/me` department/major/grade/totalBorrowed，副标题与累计借阅去假值 | B-17 |
 | X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -143,7 +144,7 @@
 
 ## 5. 客户端 Agent（`project/client`）
 
-> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 30 测试绿 / `useMock` 默认 false / 附件真实上传。
+> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 34 测试绿 / `useMock` 默认 false / 附件真实上传。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -154,6 +155,7 @@
 | **C-05** | 申诉与个人中心 | dio（mock 保留开关） | `appeal/`、`profile/` | 提交/列表/详情接真实接口；徽标与 `/me` 一致 | ✅ 2026-11-19 · 无 git 提交 · `flutter analyze` 0 / `flutter test` 23 绿 / 真机 C8 列表+提交、C7 资料页 · 新增 2 文件（`dio_appeal_repository.dart`、`dio_profile_repository.dart`）+ 3 处改（provider、时间映射、登录默认） |
 | **C-06** | 真机联调 | 真后端 + emulator-5554 | 全端 | C1→C2→C3、C5→C6→C7 全通；`flutter test` 绿 | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3 与 C5→C6→C7 真机走通；摘要/详情/宽限/预约/消息/我的均读真接口；test 26 绿 |
 | **C-07** | 隐私与偏好页 | 已建 `privacy_page.dart` + dio/mock repo | `profile/` | 授权开关、遗忘申请、提醒偏好 | ✅ 2026-11-19 · 无 git 提交 · 设置→隐私与提醒；授权开关、6 主题频率、遗忘确认弹窗；真机 PUT 验证（sceneConsent=true、BORROW_DUE=WEEKLY）；test 26 绿 |
+| **C-08** | 个人资料接真实字段 | `/me` 解析 department/major/grade/totalBorrowed | `profile/`、`core/models/` | 副标题真实、累计借阅取 totalBorrowed、空值省略 | ✅ 2026-11-23 · 无 git 提交 · `dart format` 0 changed / `flutter analyze` 0 / `flutter test` 34 绿 · 8 文件（含 2 生成物，新增 2 测试文件） |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -266,6 +268,7 @@ flutter analyze; flutter test
 | 2026-11-23 | FE | F-08 管理端状态真实性 | 顶栏连接态/通知数取真实查询；批量拉黑走接口并逐人报告；借还台删硬编码「当前在办」；侧栏删假值班行；`pnpm build` 通过、浏览器实测 |
 | 2026-11-23 | Lead | X-05 CI/CD 与容器化 | `.github/workflows/ci.yml`（三端构建/测试）、`release.yml`（tag 制品 + ghcr 镜像 + Release）、`backend|frontend/Dockerfile`、`frontend/nginx.conf`、`deploy/docker-compose.yml`、`.env.example`、`application-prod.yml`；`docker compose config` 与 YAML 校验通过；README 增 CI/CD 段 |
 | 2026-11-23 | Lead | 离线收尾复核 | 后端 98 测试、管理端构建、客户端 30 测试全绿；工作树待提交（B-15/F-08/X-05/文档）；GitHub 仍不可达，未推送 |
+| 2026-11-23 | APP | C-08 个人资料真实字段 | `DioProfileRepository` 解析 `/me` 的 department/major/grade，`totalBorrowed` 用 `asInt` 兼容字符串；删除 `department: ''`、`degree: roleLabel`、`totalBorrowed: borrowed` 假值；副标题改 `studentNo · major · grade` 且空值省略；累计借阅取 totalBorrowed；mock 同步；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 34 绿（新增 2 仓库映射 + 2 页面两态） |
 
 ---
 

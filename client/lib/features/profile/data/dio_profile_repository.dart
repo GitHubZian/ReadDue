@@ -4,10 +4,9 @@ import '../../../core/network/endpoints.dart';
 import '../../../core/network/reader_api.dart';
 import '../domain/profile_repository.dart';
 
-/// 真后端个人资料：/v1/me + 借阅/预约计数。
+/// 真后端个人资料：/v1/me（含 department/major/grade/totalBorrowed）+ 借阅/预约计数。
 ///
-/// 后端暂未提供院系、学历与累计借阅统计，缺失字段留空或按当前借阅数展示，
-/// 不在客户端编造。
+/// 资料字段缺失时按空串展示；累计借阅取 /me 的 totalBorrowed（含已归还）。
 class DioProfileRepository implements ProfileRepository {
   DioProfileRepository(this._client);
 
@@ -54,25 +53,20 @@ class DioProfileRepository implements ProfileRepository {
           ),
         )
         .length;
-    final role = (me['role'] ?? 'READER').toString();
-    final roleLabel = switch (role) {
-      'ADMIN' => '管理员',
-      'LIBRARIAN' => '馆员',
-      _ => '读者',
-    };
 
     return ProfileData(
       name: (me['name'] ?? '读者').toString(),
       studentNo: (me['studentNo'] ?? '').toString(),
-      department: '',
-      degree: roleLabel,
+      department: (me['department'] ?? '').toString(),
+      major: (me['major'] ?? '').toString(),
+      grade: (me['grade'] ?? '').toString(),
       creditLabel:
           (summary['creditLabel'] ?? (overdueCount > 0 ? '有逾期' : '信用良好'))
               .toString(),
       quotaUsed: asInt(summary['borrowed'], borrowItems.length),
       quotaTotal: asInt(summary['quota'], 10),
       borrowingCount: asInt(summary['borrowed'], borrowItems.length),
-      totalBorrowed: asInt(summary['borrowed'], borrowItems.length),
+      totalBorrowed: asInt(me['totalBorrowed'], 0),
       reservationCount: activeReservations,
       returnedThisTerm: asInt(summary['returnedThisTerm'], 0),
       overdueCount: overdueCount,

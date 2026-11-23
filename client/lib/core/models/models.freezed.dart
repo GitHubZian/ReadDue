@@ -7585,7 +7585,8 @@ mixin _$ProfileData {
   String get name => throw _privateConstructorUsedError;
   String get studentNo => throw _privateConstructorUsedError;
   String get department => throw _privateConstructorUsedError;
-  String get degree => throw _privateConstructorUsedError;
+  String get major => throw _privateConstructorUsedError;
+  String get grade => throw _privateConstructorUsedError;
   String get creditLabel => throw _privateConstructorUsedError;
   int get quotaUsed => throw _privateConstructorUsedError;
   int get quotaTotal => throw _privateConstructorUsedError;
@@ -7622,7 +7623,8 @@ abstract class $ProfileDataCopyWith<$Res> {
       {String name,
       String studentNo,
       String department,
-      String degree,
+      String major,
+      String grade,
       String creditLabel,
       int quotaUsed,
       int quotaTotal,
@@ -7658,7 +7660,8 @@ class _$ProfileDataCopyWithImpl<$Res, $Val extends ProfileData>
     Object? name = null,
     Object? studentNo = null,
     Object? department = null,
-    Object? degree = null,
+    Object? major = null,
+    Object? grade = null,
     Object? creditLabel = null,
     Object? quotaUsed = null,
     Object? quotaTotal = null,
@@ -7688,9 +7691,13 @@ class _$ProfileDataCopyWithImpl<$Res, $Val extends ProfileData>
           ? _value.department
           : department // ignore: cast_nullable_to_non_nullable
               as String,
-      degree: null == degree
-          ? _value.degree
-          : degree // ignore: cast_nullable_to_non_nullable
+      major: null == major
+          ? _value.major
+          : major // ignore: cast_nullable_to_non_nullable
+              as String,
+      grade: null == grade
+          ? _value.grade
+          : grade // ignore: cast_nullable_to_non_nullable
               as String,
       creditLabel: null == creditLabel
           ? _value.creditLabel
@@ -7768,7 +7775,8 @@ abstract class _$$ProfileDataImplCopyWith<$Res>
       {String name,
       String studentNo,
       String department,
-      String degree,
+      String major,
+      String grade,
       String creditLabel,
       int quotaUsed,
       int quotaTotal,
@@ -7802,7 +7810,8 @@ class __$$ProfileDataImplCopyWithImpl<$Res>
     Object? name = null,
     Object? studentNo = null,
     Object? department = null,
-    Object? degree = null,
+    Object? major = null,
+    Object? grade = null,
     Object? creditLabel = null,
     Object? quotaUsed = null,
     Object? quotaTotal = null,
@@ -7832,9 +7841,13 @@ class __$$ProfileDataImplCopyWithImpl<$Res>
           ? _value.department
           : department // ignore: cast_nullable_to_non_nullable
               as String,
-      degree: null == degree
-          ? _value.degree
-          : degree // ignore: cast_nullable_to_non_nullable
+      major: null == major
+          ? _value.major
+          : major // ignore: cast_nullable_to_non_nullable
+              as String,
+      grade: null == grade
+          ? _value.grade
+          : grade // ignore: cast_nullable_to_non_nullable
               as String,
       creditLabel: null == creditLabel
           ? _value.creditLabel
@@ -7907,7 +7920,8 @@ class _$ProfileDataImpl implements _ProfileData {
       {required this.name,
       required this.studentNo,
       this.department = '',
-      this.degree = '本科',
+      this.major = '',
+      this.grade = '',
       this.creditLabel = '信用良好',
       this.quotaUsed = 0,
       this.quotaTotal = 0,
@@ -7936,7 +7950,10 @@ class _$ProfileDataImpl implements _ProfileData {
   final String department;
   @override
   @JsonKey()
-  final String degree;
+  final String major;
+  @override
+  @JsonKey()
+  final String grade;
   @override
   @JsonKey()
   final String creditLabel;
@@ -7984,7 +8001,7 @@ class _$ProfileDataImpl implements _ProfileData {
 
   @override
   String toString() {
-    return 'ProfileData(name: $name, studentNo: $studentNo, department: $department, degree: $degree, creditLabel: $creditLabel, quotaUsed: $quotaUsed, quotaTotal: $quotaTotal, borrowingCount: $borrowingCount, totalBorrowed: $totalBorrowed, reservationCount: $reservationCount, returnedThisTerm: $returnedThisTerm, overdueCount: $overdueCount, maxRenew: $maxRenew, loanDays: $loanDays, unreadCount: $unreadCount, version: $version, blacklisted: $blacklisted, blacklistReason: $blacklistReason, isOffline: $isOffline)';
+    return 'ProfileData(name: $name, studentNo: $studentNo, department: $department, major: $major, grade: $grade, creditLabel: $creditLabel, quotaUsed: $quotaUsed, quotaTotal: $quotaTotal, borrowingCount: $borrowingCount, totalBorrowed: $totalBorrowed, reservationCount: $reservationCount, returnedThisTerm: $returnedThisTerm, overdueCount: $overdueCount, maxRenew: $maxRenew, loanDays: $loanDays, unreadCount: $unreadCount, version: $version, blacklisted: $blacklisted, blacklistReason: $blacklistReason, isOffline: $isOffline)';
   }
 
   @override
@@ -7997,7 +8014,8 @@ class _$ProfileDataImpl implements _ProfileData {
                 other.studentNo == studentNo) &&
             (identical(other.department, department) ||
                 other.department == department) &&
-            (identical(other.degree, degree) || other.degree == degree) &&
+            (identical(other.major, major) || other.major == major) &&
+            (identical(other.grade, grade) || other.grade == grade) &&
             (identical(other.creditLabel, creditLabel) ||
                 other.creditLabel == creditLabel) &&
             (identical(other.quotaUsed, quotaUsed) ||
@@ -8036,7 +8054,8 @@ class _$ProfileDataImpl implements _ProfileData {
         name,
         studentNo,
         department,
-        degree,
+        major,
+        grade,
         creditLabel,
         quotaUsed,
         quotaTotal,
@@ -8075,7 +8094,8 @@ abstract class _ProfileData implements ProfileData {
       {required final String name,
       required final String studentNo,
       final String department,
-      final String degree,
+      final String major,
+      final String grade,
       final String creditLabel,
       final int quotaUsed,
       final int quotaTotal,
@@ -8102,7 +8122,9 @@ abstract class _ProfileData implements ProfileData {
   @override
   String get department;
   @override
-  String get degree;
+  String get major;
+  @override
+  String get grade;
   @override
   String get creditLabel;
   @override

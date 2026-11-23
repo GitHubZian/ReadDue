@@ -22,6 +22,18 @@ class _FailingProfileRepository implements ProfileRepository {
   Future<void> logout() async {}
 }
 
+class _StaticProfileRepository implements ProfileRepository {
+  _StaticProfileRepository(this.data);
+
+  final ProfileData data;
+
+  @override
+  Future<ProfileData> fetchProfile() async => data;
+
+  @override
+  Future<void> logout() async {}
+}
+
 void main() {
   setUp(() => MockBackend.instance.resetForTest());
 
@@ -45,5 +57,50 @@ void main() {
 
     expect(find.text('暂时无法加载'), findsOneWidget);
     expect(find.text('重试'), findsOneWidget);
+  });
+
+  testWidgets('C7 有资料时副标题显示专业年级、累计借阅取 totalBorrowed', (tester) async {
+    await pumpPage(
+      tester,
+      const ProfilePage(),
+      overrides: [
+        profileRepositoryProvider.overrideWithValue(
+          _StaticProfileRepository(
+            const ProfileData(
+              name: '陈昊',
+              studentNo: '2021001',
+              department: '计算机学院',
+              major: '软件工程',
+              grade: '2021',
+              quotaUsed: 3,
+              quotaTotal: 5,
+              borrowingCount: 3,
+              totalBorrowed: 42,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('2021001 · 软件工程 · 2021'), findsOneWidget);
+    expect(find.text('42'), findsOneWidget);
+  });
+
+  testWidgets('C7 无资料时副标题只留学号、不出现分隔符尾巴', (tester) async {
+    await pumpPage(
+      tester,
+      const ProfilePage(),
+      overrides: [
+        profileRepositoryProvider.overrideWithValue(
+          _StaticProfileRepository(
+            const ProfileData(name: '陈昊', studentNo: '2021001'),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('2021001'), findsOneWidget);
+    expect(find.text('2021001 · '), findsNothing);
+    expect(find.text('0'), findsWidgets);
   });
 }

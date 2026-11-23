@@ -148,7 +148,7 @@ class ProfilePage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          [data.studentNo, data.department, data.degree]
+                          [data.studentNo, data.major, data.grade]
                               .where((part) => part.trim().isNotEmpty)
                               .join(' · '),
                           style: AppText.caption.copyWith(
