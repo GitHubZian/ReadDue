@@ -14,3 +14,7 @@ final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
 final reservationsProvider = FutureProvider<ReservationsPage>(
   (ref) => ref.watch(reservationRepositoryProvider).fetchReservations(),
 );
+
+final reservationBadgeProvider = FutureProvider<int>(
+  (ref) => ref.watch(reservationRepositoryProvider).activeCount(),
+);

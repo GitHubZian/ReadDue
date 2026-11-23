@@ -92,4 +92,14 @@ class DioSearchRepository implements SearchRepository {
       decode: (_) {},
     );
   }
+
+  @override
+  Future<int> reserve(String bookId) async {
+    final data = await _client.post<Map<String, dynamic>>(
+      Endpoints.reservations,
+      body: {'bookId': int.tryParse(bookId) ?? bookId},
+      decode: (data) => data as Map<String, dynamic>,
+    );
+    return int.tryParse((data['queuePosition'] ?? 0).toString()) ?? 0;
+  }
 }

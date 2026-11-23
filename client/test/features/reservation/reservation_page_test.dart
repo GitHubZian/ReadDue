@@ -20,6 +20,9 @@ class _FailingReservationRepository implements ReservationRepository {
 
   @override
   Future<void> cancel(String reservationId) async {}
+
+  @override
+  Future<int> activeCount() async => 0;
 }
 
 void main() {

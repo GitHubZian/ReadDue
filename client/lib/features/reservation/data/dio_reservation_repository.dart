@@ -64,4 +64,19 @@ class DioReservationRepository implements ReservationRepository {
       decode: (_) {},
     );
   }
+
+  @override
+  Future<int> activeCount() async {
+    final page = await _client.get<Map<String, dynamic>>(
+      Endpoints.myReservations,
+      query: {'page': 1, 'size': 100},
+      decode: (data) => data as Map<String, dynamic>,
+    );
+    return (page['items'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .where((json) {
+      final status = (json['status'] ?? '').toString();
+      return status == 'WAITING' || status == 'READY';
+    }).length;
+  }
 }

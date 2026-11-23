@@ -5,6 +5,9 @@ abstract class ReservationRepository {
   Future<ReservationsPage> fetchReservations();
 
   Future<void> cancel(String reservationId);
+
+  /// 当前活动预约数（排队中 + 待取书），用于底栏角标。
+  Future<int> activeCount();
 }
 
 class MockReservationRepository implements ReservationRepository {
@@ -19,4 +22,7 @@ class MockReservationRepository implements ReservationRepository {
   @override
   Future<void> cancel(String reservationId) =>
       _backend.cancelReservation(reservationId);
+
+  @override
+  Future<int> activeCount() => _backend.activeReservationCount();
 }

@@ -12,6 +12,7 @@ import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/order_detail/presentation/order_detail_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/reservation/presentation/reservation_page.dart';
+import '../../features/reservation/presentation/reservation_providers.dart';
 import '../widgets/app_tab_bar.dart';
 import '../widgets/branch_fade.dart';
 import '../../features/search/presentation/search_page.dart';
@@ -112,13 +113,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final badge = ref.watch(reservationBadgeProvider).value ?? 0;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: BranchFade(
@@ -127,6 +129,7 @@ class AppShell extends StatelessWidget {
       ),
       bottomNavigationBar: AppTabBar(
         index: navigationShell.currentIndex,
+        badgeCount: badge,
         onTap: (index) => navigationShell.goBranch(
           index,
           initialLocation: index == navigationShell.currentIndex,

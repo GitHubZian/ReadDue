@@ -30,6 +30,37 @@ class _FailingSearchRepository implements SearchRepository {
       statusCode: 500,
     );
   }
+
+  @override
+  Future<int> reserve(String bookId) async {
+    throw const ApiException(
+      code: 'SERVER_ERROR',
+      message: '服务暂时不可用，请稍后重试',
+      statusCode: 500,
+    );
+  }
+}
+
+class _RecordingSearchRepository implements SearchRepository {
+  final _delegate = MockSearchRepository();
+  int reserveCalls = 0;
+
+  @override
+  Future<SearchPageData> search(String query, String filter) =>
+      _delegate.search(query, filter);
+
+  @override
+  Future<BookDetailData> fetchDetail(String bookId) =>
+      _delegate.fetchDetail(bookId);
+
+  @override
+  Future<void> borrow(String bookId) => _delegate.borrow(bookId);
+
+  @override
+  Future<int> reserve(String bookId) async {
+    reserveCalls++;
+    return 3;
+  }
 }
 
 void main() {
@@ -68,6 +99,28 @@ void main() {
 
     expect(find.textContaining('已借出《百年孤独》'), findsOneWidget);
     expect(find.text('查看我的借阅'), findsOneWidget);
+  });
+
+  testWidgets('C4 预约走真实接口并回显排位', (tester) async {
+    final repository = _RecordingSearchRepository();
+    await pumpPage(
+      tester,
+      const SearchPage(),
+      overrides: [
+        searchRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+
+    await tester.tap(find.text('预约').first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('预计排在第'), findsOneWidget);
+
+    await tester.tap(find.text('确认预约'));
+    await tester.pumpAndSettle();
+
+    expect(repository.reserveCalls, 1);
+    expect(find.text('已预约 · 排位 3'), findsOneWidget);
+    expect(find.textContaining('已加入预约队列'), findsNothing);
   });
 
   testWidgets('C4 错误态可重试', (tester) async {

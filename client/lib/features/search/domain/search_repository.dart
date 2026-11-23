@@ -7,6 +7,9 @@ abstract class SearchRepository {
   Future<BookDetailData> fetchDetail(String bookId);
 
   Future<void> borrow(String bookId);
+
+  /// 预约在借图书，返回服务端排位；0 表示未返回排位。
+  Future<int> reserve(String bookId);
 }
 
 class MockSearchRepository implements SearchRepository {
@@ -57,4 +60,7 @@ class MockSearchRepository implements SearchRepository {
 
   @override
   Future<void> borrow(String bookId) => _backend.borrowBook(bookId);
+
+  @override
+  Future<int> reserve(String bookId) => _backend.reserveBook(bookId);
 }

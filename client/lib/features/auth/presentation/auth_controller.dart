@@ -106,6 +106,12 @@ class AuthController extends StateNotifier<AuthState> {
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  /// refresh 失败且本地会话已清空：切回未登录，路由守卫会跳登录页。
+  void sessionExpired() {
+    if (state.status == AuthStatus.unauthenticated) return;
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -115,7 +121,13 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
-  (ref) => AuthController(ref.watch(authRepositoryProvider)),
+  (ref) {
+    final controller = AuthController(ref.watch(authRepositoryProvider));
+    ref.read(apiClientProvider).onSessionExpired = () async {
+      controller.sessionExpired();
+    };
+    return controller;
+  },
 );
 
 /// 让 GoRouter 在登录态变化时重新执行 redirect。

@@ -19,6 +19,7 @@ import '../../../core/widgets/small_button.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../borrow/presentation/borrow_providers.dart';
+import '../../reservation/presentation/reservation_providers.dart';
 import 'search_providers.dart';
 
 /// C4 馆藏检索：300ms 防抖、全部/可借/可预约筛选、结果行。
@@ -39,6 +40,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Timer? _debounce;
   late String _query;
   int _filter = 0;
+  final Map<String, int> _reserved = {};
+  bool _reserveBlocked = false;
+  bool _reserving = false;
 
   @override
   void initState() {
@@ -238,6 +242,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       index: index,
                       child: _BookRow(
                         book: data.items[index],
+                        reservedPosition: _reserved[data.items[index].id],
+                        reserveEnabled: !_reserveBlocked,
                         onTap: () => _openDetail(data.items[index]),
                         onAction: () => _onAction(data.items[index]),
                       ),
@@ -261,7 +267,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
-      builder: (_) => _BookDetailSheet(book: book, onBorrow: _borrow),
+      builder: (_) => _BookDetailSheet(
+        book: book,
+        onBorrow: _borrow,
+        onReserve: _reserve,
+        reservedPosition: _reserved[book.id],
+        reserveEnabled: !_reserveBlocked,
+      ),
     );
   }
 
@@ -274,7 +286,96 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       showToast(context, '正在打开电子书阅读器');
       return;
     }
-    if (mounted) showToast(context, '已加入预约队列，排位以服务端为准');
+    await _reserve(book);
+  }
+
+  Future<void> _reserve(BookItem book) async {
+    if (_reserved.containsKey(book.id) || _reserving) return;
+    if (_reserveBlocked) {
+      showToast(context, '预约服务暂不可用，请稍后重试');
+      return;
+    }
+    final ok = await _confirmReserve(book);
+    if (!ok || !mounted) return;
+    _reserving = true;
+    try {
+      final position =
+          await ref.read(searchRepositoryProvider).reserve(book.id);
+      if (!mounted) return;
+      setState(() => _reserved[book.id] = position);
+      ref.invalidate(reservationsProvider);
+      ref.invalidate(reservationBadgeProvider);
+      showToast(
+        context,
+        position > 0 ? '已预约《${book.title}》，排位 $position' : '已预约《${book.title}》',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      if (error is ApiException && (error.isNetwork || error.isServerError)) {
+        setState(() => _reserveBlocked = true);
+      }
+      showToast(context, messageForError(error));
+    } finally {
+      _reserving = false;
+    }
+  }
+
+  Future<bool> _confirmReserve(BookItem book) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('预约《${book.title}》', style: AppText.h3),
+              const SizedBox(height: 8),
+              Text(
+                '预计排在第 ${book.queueLen + 1} 位；到书后保留 48 小时，逾期自动顺延下一位。',
+                style: AppText.caption.copyWith(
+                  color: AppColors.ink2,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: '确认预约',
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                ),
+              ),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: const Text('再想想'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _borrow(BookItem book) async {
@@ -309,22 +410,32 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 class _BookRow extends StatelessWidget {
   const _BookRow({
     required this.book,
+    required this.reservedPosition,
+    required this.reserveEnabled,
     required this.onTap,
     required this.onAction,
   });
 
   final BookItem book;
+  final int? reservedPosition;
+  final bool reserveEnabled;
   final VoidCallback onTap;
   final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
-    final (pillLabel, tone, action) = switch (book.status) {
+    final (baseLabel, tone, action) = switch (book.status) {
       'ON_LOAN' => ('已借出', PillTone.slate, '预约'),
       'EBOOK' => ('电子书', PillTone.amber, '阅读'),
       'RESERVABLE' => ('可预约', PillTone.slate, '预约'),
       _ => ('可借', PillTone.mint, '借阅'),
     };
+    final reserved = reservedPosition != null;
+    final pillLabel = reserved ? '已预约 · 排位 $reservedPosition' : baseLabel;
+    final actionLabel = reserved
+        ? '已预约'
+        : (action == '预约' && !reserveEnabled ? '暂不可预约' : action);
+    final actionEnabled = reserved ? false : (action != '预约' || reserveEnabled);
     return AppCard(
       padding: const EdgeInsets.all(12),
       onTap: onTap,
@@ -379,8 +490,8 @@ class _BookRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     SmallButton(
-                      label: action,
-                      onPressed: onAction,
+                      label: actionLabel,
+                      onPressed: actionEnabled ? onAction : null,
                       filled: action == '借阅',
                     ),
                   ],
@@ -395,10 +506,19 @@ class _BookRow extends StatelessWidget {
 }
 
 class _BookDetailSheet extends ConsumerWidget {
-  const _BookDetailSheet({required this.book, required this.onBorrow});
+  const _BookDetailSheet({
+    required this.book,
+    required this.onBorrow,
+    required this.onReserve,
+    required this.reservedPosition,
+    required this.reserveEnabled,
+  });
 
   final BookItem book;
   final Future<void> Function(BookItem) onBorrow;
+  final Future<void> Function(BookItem) onReserve;
+  final int? reservedPosition;
+  final bool reserveEnabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -546,15 +666,30 @@ class _BookDetailSheet extends ConsumerWidget {
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    child: PrimaryButton(
-                      label: data.detail.availableCopies > 0 ? '借阅' : '预约',
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        if (data.detail.availableCopies > 0) {
-                          await onBorrow(book);
-                        } else {
-                          showToast(context, '已加入预约队列，排位以服务端为准');
-                        }
+                    child: Builder(
+                      builder: (context) {
+                        final canBorrow = data.detail.availableCopies > 0;
+                        final reserved = reservedPosition != null;
+                        final enabled = reserved || canBorrow || reserveEnabled;
+                        return PrimaryButton(
+                          label: reserved
+                              ? '已预约 · 排位 $reservedPosition'
+                              : canBorrow
+                                  ? '借阅'
+                                  : reserveEnabled
+                                      ? '预约'
+                                      : '暂不可预约',
+                          onPressed: !enabled
+                              ? null
+                              : () async {
+                                  Navigator.of(context).pop();
+                                  if (canBorrow) {
+                                    await onBorrow(book);
+                                  } else {
+                                    await onReserve(book);
+                                  }
+                                },
+                        );
                       },
                     ),
                   ),

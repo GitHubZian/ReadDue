@@ -21,10 +21,12 @@ class AppTabBar extends StatelessWidget {
     super.key,
     required this.index,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final int index;
   final ValueChanged<int> onTap;
+  final int badgeCount;
 
   static const items = [
     AppTabItem(
@@ -83,11 +85,49 @@ class AppTabBar extends StatelessWidget {
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(
-                              i == index ? items[i].activeIcon : items[i].icon,
-                              size: 22,
-                              color:
-                                  i == index ? AppColors.ink : AppColors.ink3,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  i == index
+                                      ? items[i].activeIcon
+                                      : items[i].icon,
+                                  size: 22,
+                                  color: i == index
+                                      ? AppColors.ink
+                                      : AppColors.ink3,
+                                ),
+                                if (i == 2 && badgeCount > 0)
+                                  Positioned(
+                                    right: 2,
+                                    top: -3,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                      ),
+                                      height: 15,
+                                      constraints:
+                                          const BoxConstraints(minWidth: 15),
+                                      alignment: Alignment.center,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.red,
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        badgeCount > 99 ? '99+' : '$badgeCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 3),

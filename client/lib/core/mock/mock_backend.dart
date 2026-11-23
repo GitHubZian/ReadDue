@@ -20,6 +20,7 @@ class MockBackend {
   late List<BorrowItem> _borrows;
   late List<ReservationItem> _completedReservations;
   late List<ReservationItem> _cancelledReservations;
+  late List<ReservationItem> _waitingReservations;
   late List<AppNotification> _notifications;
   late List<AppealTicket> _appeals;
   late GraceEstimate _graceEstimate;
@@ -132,6 +133,7 @@ class MockBackend {
       ),
     ];
     _cancelledReservations = [];
+    _waitingReservations = [];
 
     _notifications = [
       AppNotification(
@@ -840,6 +842,54 @@ class MockBackend {
   Future<ReservationsPage> fetchReservations() async {
     await _delay();
     return reservations();
+  }
+
+  Future<int> reserveBook(String bookId) async {
+    await _delay();
+    final matches = _books.where((b) => b.id == bookId);
+    if (matches.isEmpty) {
+      throw const ApiException(
+        code: 'NOT_FOUND',
+        message: '图书不存在或已下架',
+        statusCode: 404,
+      );
+    }
+    final book = matches.first;
+    if (book.availableCopies > 0) {
+      throw const ApiException(
+        code: 'RULE_VIOLATION',
+        message: '该书目有在架副本，可直接借阅',
+        statusCode: 422,
+      );
+    }
+    if (_waitingReservations.any((r) => r.bookTitle == book.title)) {
+      throw const ApiException(
+        code: 'RULE_VIOLATION',
+        message: '你已预约该书，请等待到书',
+        statusCode: 422,
+      );
+    }
+    final position = book.queueLen + 1;
+    _waitingReservations = [
+      ReservationItem(
+        id: 'waiting-$bookId-${_waitingReservations.length}',
+        bookTitle: book.title,
+        author: book.author,
+        publisher: book.publisher,
+        coverLabel: book.coverLabel,
+        coverTone: 'slate',
+        queueNo: position,
+        queueTotal: position,
+        status: 'WAITING',
+      ),
+      ..._waitingReservations,
+    ];
+    return position;
+  }
+
+  Future<int> activeReservationCount() async {
+    await _delay();
+    return _waitingReservations.length + reservations().ready.length;
   }
 
   Future<void> cancelReservation(String id) async {

@@ -4,10 +4,11 @@ import 'package:uuid/uuid.dart';
 import '../config/app_config.dart';
 import '../storage/kv_store.dart';
 import 'api_exception.dart';
+import 'endpoints.dart';
 
-/// 薄封装：统一 envelope、trace、幂等键、GET 重试与错误映射。
+/// 薄封装：统一 envelope、trace、幂等键、401 刷新、GET 重试与错误映射。
 class ApiClient {
-  ApiClient({required KvStore kv, Dio? dio})
+  ApiClient({required KvStore kv, Dio? dio, this.onSessionExpired})
       : _kv = kv,
         _dio = dio ??
             Dio(
@@ -23,6 +24,13 @@ class ApiClient {
 
   final Dio _dio;
   final KvStore _kv;
+
+  /// refresh 失败、本地会话已清空后回调，用于把登录态切到未登录。
+  Future<void> Function()? onSessionExpired;
+
+  /// 并发 401 只发一次 refresh；其余请求等待同一个 future。
+  Future<String?>? _refreshInFlight;
+
   static const _uuid = Uuid();
 
   String get readerNo => _kv.studentNo ?? '';
@@ -86,7 +94,8 @@ class ApiClient {
     }
 
     Object? lastError;
-    for (var attempt = 0; attempt < 2; attempt++) {
+    var refreshed = false;
+    for (var attempt = 0;; attempt++) {
       try {
         final response = await _dio.request<dynamic>(
           path,
@@ -97,13 +106,84 @@ class ApiClient {
         return decode(_unwrap(response.data));
       } catch (error) {
         lastError = error;
-        final retryable = method == 'GET' && _isRetryable(error);
-        if (!retryable || attempt == 1) break;
-        await Future<void>.delayed(const Duration(milliseconds: 300));
+        if (!refreshed && path != Endpoints.refresh && _isUnauthorized(error)) {
+          refreshed = true;
+          final newToken = await _refreshToken();
+          if (newToken == null) break;
+          headers['Authorization'] = 'Bearer $newToken';
+          continue;
+        }
+        if (method == 'GET' && attempt < 1 && _isRetryable(error)) {
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+          continue;
+        }
+        break;
       }
     }
     throw _mapError(lastError, traceId);
   }
+
+  /// 单飞刷新：并发 401 共用同一个 refresh future。
+  Future<String?> _refreshToken() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+    final future = _doRefresh();
+    _refreshInFlight = future;
+    future.whenComplete(() {
+      if (identical(_refreshInFlight, future)) _refreshInFlight = null;
+    });
+    return future;
+  }
+
+  Future<String?> _doRefresh() async {
+    final token = _kv.token;
+    if (token == null || token.isEmpty) {
+      await _expireSession();
+      return null;
+    }
+    try {
+      final response = await _dio.post<dynamic>(
+        Endpoints.refresh,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'X-Trace-Id': _uuid.v4(),
+          },
+        ),
+      );
+      final data = _unwrap(response.data);
+      if (data is! Map<String, dynamic>) {
+        await _expireSession();
+        return null;
+      }
+      final newToken = (data['token'] ?? '').toString();
+      if (newToken.isEmpty) {
+        await _expireSession();
+        return null;
+      }
+      final user = (data['user'] as Map<String, dynamic>?) ?? const {};
+      await _kv.saveSession(
+        token: newToken,
+        userId: (user['id'] ?? _kv.userId ?? '').toString(),
+        name: (user['name'] ?? _kv.name ?? '').toString(),
+        studentNo: (user['studentNo'] ?? _kv.studentNo ?? '').toString(),
+        remember: _kv.rememberMe,
+      );
+      return newToken;
+    } catch (_) {
+      await _expireSession();
+      return null;
+    }
+  }
+
+  Future<void> _expireSession() async {
+    await _kv.clearSession();
+    final callback = onSessionExpired;
+    if (callback != null) await callback();
+  }
+
+  bool _isUnauthorized(Object? error) =>
+      error is DioException && error.response?.statusCode == 401;
 
   dynamic _unwrap(dynamic data) {
     if (data is Map<String, dynamic> && data.containsKey('data')) {

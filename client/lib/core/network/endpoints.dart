@@ -3,6 +3,7 @@
 /// 与后端 `com.zian.backend` 的 reader controller 对齐；baseUrl 只到 `/api`。
 abstract final class Endpoints {
   static const login = '/v1/auth/login';
+  static const refresh = '/v1/auth/refresh';
   static const logout = '/v1/auth/logout';
   static const me = '/v1/me';
 
@@ -18,6 +19,7 @@ abstract final class Endpoints {
   static const appeals = '/v1/appeals';
   static const myAppeals = '/v1/appeals/self';
 
+  static const reservations = '/v1/reservations';
   static const myReservations = '/v1/reservations/self';
   static String reservation(String id) => '/v1/reservations/$id';
 
