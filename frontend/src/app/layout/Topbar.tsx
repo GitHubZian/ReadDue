@@ -17,12 +17,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { can, ROLE_LABEL } from "@/lib/auth/permissions";
 import { clearSession, useSession } from "@/lib/auth/session";
 import { logout as logoutRequest } from "@/features/auth/api";
+import { useDashboard } from "@/features/workbench/queries";
+import { fromNow } from "@/lib/format/date";
 
 export function Topbar() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const dashboard = useDashboard();
+  const stats = dashboard.data?.stats;
+  const notices = dashboard.data?.notices ?? [];
 
   const canViewAudit = can(user, "audit:read");
   const matches = useMemo(() => {
@@ -107,31 +112,42 @@ export function Topbar() {
       </Popover>
 
       <div className="flex items-center gap-2">
-        <StatusPill tone="mint" className="hidden md:inline-flex">
-          8125 已连接
+        <StatusPill
+          tone={dashboard.isError ? "slate" : "mint"}
+          className="hidden md:inline-flex"
+        >
+          {dashboard.isPending ? "连接中" : dashboard.isError ? "服务未连接" : "服务在线"}
         </StatusPill>
 
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label="通知" className="relative">
               <Bell className="size-4" strokeWidth={1.8} />
-              <span className="absolute right-2 top-2 size-1.5 rounded-full bg-danger ring-2 ring-background" />
+              {stats?.pendingTotal ? (
+                <span className="absolute right-2 top-2 size-1.5 rounded-full bg-danger ring-2 ring-background" />
+              ) : null}
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[280px] p-0">
+          <PopoverContent align="end" className="w-[300px] p-0">
             <div className="border-b border-line px-3.5 py-2.5">
               <p className="text-[11.5px] font-semibold text-ink">待处理通知</p>
-              <p className="text-[9.5px] text-ink-3">2 条未读 · 审批与异常</p>
+              <p className="text-[9.5px] text-ink-3">
+                {stats ? `${stats.pendingTotal} 项待处理 · 审批与逾期` : "正在同步待办…"}
+              </p>
             </div>
             <ul className="divide-y divide-line-2">
-              <li className="px-3.5 py-2.5">
-                <p className="text-[11px] font-medium text-ink">1 单宽限已超 SLA</p>
-                <p className="mt-0.5 text-[10px] text-ink-3">GY-3315 · 陈默 · 已升级值班主管</p>
-              </li>
-              <li className="px-3.5 py-2.5">
-                <p className="text-[11px] font-medium text-ink">2 条提醒发送失败</p>
-                <p className="mt-0.5 text-[10px] text-ink-3">NT-2211 · 号码停机，可重试</p>
-              </li>
+              {notices.length ? (
+                notices.slice(0, 4).map((notice) => (
+                  <li key={notice.id} className="px-3.5 py-2.5">
+                    <p className="text-[11px] font-medium text-ink">{notice.title}</p>
+                    <p className="mt-0.5 text-[10px] text-ink-3">
+                      {notice.body} · {fromNow(notice.at)}
+                    </p>
+                  </li>
+                ))
+              ) : (
+                <li className="px-3.5 py-3 text-[10.5px] text-ink-3">暂无新通知</li>
+              )}
             </ul>
             <div className="border-t border-line px-3.5 py-2">
               <button

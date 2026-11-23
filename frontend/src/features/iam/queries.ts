@@ -40,6 +40,24 @@ export function useBlacklistUser() {
   });
 }
 
+export function useBatchBlacklistUsers() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, reason }: { ids: string[]; reason: string }) => {
+      const results = await Promise.allSettled(ids.map((id) => blacklistUser(id, reason)));
+      return {
+        ok: results.filter((result) => result.status === "fulfilled").length,
+        failed: results.filter((result) => result.status === "rejected").length,
+      };
+    },
+    onSuccess: ({ ok, failed }) => {
+      if (ok > 0) toast.success(`已拉黑 ${ok} 位读者，借阅权限即时冻结`);
+      if (failed > 0) toast.warning(`${failed} 位未拉黑，请检查网络或权限后重试`);
+      void client.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
 export function useRestoreUser() {
   const client = useQueryClient();
   return useMutation({

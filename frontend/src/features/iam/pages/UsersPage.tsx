@@ -27,7 +27,7 @@ import { SegmentedFilter } from "@/components/common/SegmentedFilter";
 import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
-import { useUsers, useBlacklistUser, useRestoreUser } from "@/features/iam/queries";
+import { useUsers, useBlacklistUser, useBatchBlacklistUsers, useRestoreUser } from "@/features/iam/queries";
 import { ROLE_LABEL } from "@/lib/auth/permissions";
 import { formatDate, fromNow } from "@/lib/format/date";
 import { formatCNY } from "@/lib/format/money";
@@ -46,6 +46,8 @@ export function UsersPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [target, setTarget] = useState<AdminUser | null>(null);
   const [reason, setReason] = useState("");
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchReason, setBatchReason] = useState("");
 
   const query = useUsers({
     role: role === "ALL" ? undefined : role,
@@ -54,6 +56,7 @@ export function UsersPage() {
     size: 12,
   });
   const blacklist = useBlacklistUser();
+  const batchBlacklist = useBatchBlacklistUsers();
   const restore = useRestoreUser();
   const items = query.data?.items ?? [];
   // 后端只允许拉黑读者，职工行不给批量与操作入口
@@ -78,6 +81,23 @@ export function UsersPage() {
     );
   };
 
+  const submitBatchBlacklist = () => {
+    if (batchReason.trim().length < 6) {
+      toast.error("请填写不少于 6 字的拉黑原因");
+      return;
+    }
+    batchBlacklist.mutate(
+      { ids: selected, reason: batchReason.trim() },
+      {
+        onSuccess: () => {
+          setBatchOpen(false);
+          setBatchReason("");
+          setSelected([]);
+        },
+      },
+    );
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -88,11 +108,10 @@ export function UsersPage() {
             size="sm"
             variant="outline"
             disabled={!selected.length}
-            onClick={() =>
-              toast.info(`已选择 ${selected.length} 位用户`, {
-                description: "批量操作需在规则参数中开启审批流。",
-              })
-            }
+            onClick={() => {
+              setBatchReason("");
+              setBatchOpen(true);
+            }}
           >
             <ShieldCheck className="size-3.5" />
             批量处理{selected.length ? `（${selected.length}）` : ""}
@@ -264,6 +283,36 @@ export function UsersPage() {
               onClick={submitBlacklist}
             >
               确认拉黑
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={batchOpen} onOpenChange={(open) => !open && setBatchOpen(false)}>
+        <DialogContent className="max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle className="text-[15px]">批量拉黑 {selected.length} 位读者</DialogTitle>
+            <DialogDescription className="text-[10.5px] text-ink-3">
+              同一原因会写入每位读者的审计日志；已借图书仍需归还。失败的行会单独提示。
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={batchReason}
+            onChange={(event) => setBatchReason(event.target.value)}
+            placeholder="例如：期末集中逾期且未回应催还（≥6 字）"
+            className="min-h-[72px] resize-none text-[11px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBatchOpen(false)}>
+              取消
+            </Button>
+            <Button
+              size="sm"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={batchBlacklist.isPending}
+              onClick={submitBatchBlacklist}
+            >
+              确认拉黑 {selected.length} 位
             </Button>
           </DialogFooter>
         </DialogContent>

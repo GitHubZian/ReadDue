@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeftRight, BookUp2, CheckCircle2, ScanLine } from "lucide-react";
+import { ArrowLeftRight, BookUp2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,17 +56,9 @@ export function CirculationPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard label="今日借出" value={data?.borrows ?? 0} unit="册" icon={BookUp2} tone="mint" />
         <StatCard label="今日归还" value={data?.returns ?? 0} unit="册" icon={ArrowLeftRight} tone="mint" />
-        <StatCard
-          label="当前在办"
-          value={0}
-          unit="笔"
-          hint="柜台无排队"
-          icon={CheckCircle2}
-          tone="slate"
-        />
       </div>
 
       <div className={canBorrow ? "grid grid-cols-1 gap-4 lg:grid-cols-2" : "grid grid-cols-1 gap-4"}>

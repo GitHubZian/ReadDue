@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { MoonStar, ShieldCheck } from "lucide-react";
+import { MoonStar } from "lucide-react";
 import { NAV } from "@/app/nav";
 import { useSession } from "@/lib/auth/session";
 import { can } from "@/lib/auth/permissions";
@@ -63,10 +63,6 @@ export function Sidebar() {
           <p className="mt-1 text-[9.5px] leading-4 text-white/55">
             22:00–08:00 暂停外部推送，站内信正常送达。
           </p>
-          <div className="mt-2 flex items-center gap-1 text-[9.5px] text-white/45">
-            <ShieldCheck className="size-3" strokeWidth={1.8} />
-            值班 · 王倩 · 内线 8021
-          </div>
         </div>
       </div>
     </aside>
