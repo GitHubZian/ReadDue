@@ -19,9 +19,18 @@ public final class AuthDtos {
             @NotBlank(message = "密码不能为空") String password) {
     }
 
-    /** 当前会话用户（前端 SessionUser） */
+    /** 当前会话用户（前端 SessionUser）；department/major/grade 无档案时为空字符串，totalBorrowed 含已归还 */
     public record SessionUser(
-            Long id, String name, String role, String studentNo, String avatarUrl, List<String> permissions) {
+            Long id,
+            String name,
+            String role,
+            String studentNo,
+            String avatarUrl,
+            List<String> permissions,
+            String department,
+            String major,
+            String grade,
+            long totalBorrowed) {
     }
 
     /** 登录结果（前端 LoginResult） */

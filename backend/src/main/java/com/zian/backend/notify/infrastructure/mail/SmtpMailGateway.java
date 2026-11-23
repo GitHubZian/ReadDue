@@ -6,8 +6,10 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 /**
@@ -57,25 +59,35 @@ public class SmtpMailGateway implements MailGateway {
     }
 
     /**
-     * 发送纯文本邮件。
+     * 发送纯文本邮件并返回 Message-ID，供投递记录溯源。
      *
      * @param to      收件人
      * @param subject 主题
      * @param body    正文
+     * @return 本次邮件的 Message-ID
      */
     @Override
-    public void send(String to, String subject, String body) {
+    public String send(String to, String subject, String body) {
         JavaMailSender sender = mailSenderProvider.getIfAvailable();
         if (sender == null) {
             throw new IllegalStateException("邮件服务未配置");
         }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
+        MimeMessage message = sender.createMimeMessage();
+        String messageId;
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body);
+            message.saveChanges();
+            messageId = message.getMessageID();
+        } catch (MessagingException e) {
+            throw new IllegalStateException("邮件内容构造失败", e);
+        }
         sender.send(message);
         log.info("邮件已发送 to={} subject={}", Masks.email(to), Masks.text(subject, 120));
+        return messageId;
     }
 
     private boolean configured() {

@@ -7,5 +7,10 @@ public interface MailGateway {
 
     boolean available();
 
-    void send(String to, String subject, String body);
+    /**
+     * 发送纯文本邮件。
+     *
+     * @return 本次邮件的 Message-ID（用于投递记录溯源），无法获取时为 null
+     */
+    String send(String to, String subject, String body);
 }

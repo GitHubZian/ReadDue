@@ -17,7 +17,14 @@ public class NotifyDeliveryRepositoryImpl implements NotifyDeliveryRepository {
     private final NotifyDeliveryMapper mapper;
 
     @Override
-    public void append(Long taskId, String channel, String status, int attempt, String errorCode, String errorMsg) {
+    public void append(
+            Long taskId,
+            String channel,
+            String status,
+            int attempt,
+            String errorCode,
+            String errorMsg,
+            String providerMsgId) {
         NotifyDeliveryPO po = new NotifyDeliveryPO();
         po.setTaskId(taskId);
         po.setChannel(channel);
@@ -25,6 +32,7 @@ public class NotifyDeliveryRepositoryImpl implements NotifyDeliveryRepository {
         po.setAttempt(attempt);
         po.setErrorCode(errorCode);
         po.setErrorMsg(errorMsg);
+        po.setProviderMsgId(providerMsgId);
         po.setSentAt("SENT".equals(status) ? LocalDateTime.now() : null);
         mapper.insert(po);
     }

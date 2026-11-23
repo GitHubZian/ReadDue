@@ -4,6 +4,7 @@ import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.iam.domain.model.User;
 import com.zian.backend.iam.domain.model.UserRole;
 import com.zian.backend.iam.domain.repository.PermissionRepository;
+import com.zian.backend.iam.domain.repository.ReaderSelfRepository;
 import com.zian.backend.iam.domain.repository.UserRepository;
 import com.zian.backend.iam.interfaces.dto.AuthDtos;
 import com.zian.backend.shared.common.ErrorCode;
@@ -30,6 +31,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PermissionRepository permissionRepository;
+    private final ReaderSelfRepository readerSelfRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuditRecorder auditRecorder;
@@ -140,13 +142,18 @@ public class AuthService {
     }
 
     private AuthDtos.SessionUser toView(User user, Set<String> permissions) {
+        ReaderSelfRepository.Profile profile = readerSelfRepository.profile(user.getId());
         return new AuthDtos.SessionUser(
                 user.getId(),
                 user.getName(),
                 user.getRole().name(),
                 user.getUserNo(),
                 null,
-                List.copyOf(permissions));
+                List.copyOf(permissions),
+                profile.department(),
+                profile.major(),
+                profile.grade(),
+                readerSelfRepository.totalBorrowed(user.getId()));
     }
 }
 

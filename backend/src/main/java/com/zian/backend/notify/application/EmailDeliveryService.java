@@ -43,12 +43,12 @@ public class EmailDeliveryService {
             return;
         }
         try {
-            mailGateway.send(email, subject, body);
-            deliveryRepository.append(taskId, "EMAIL", "SENT", 1, null, null);
+            String providerMsgId = mailGateway.send(email, subject, body);
+            deliveryRepository.append(taskId, "EMAIL", "SENT", 1, null, null, providerMsgId);
         } catch (RuntimeException e) {
             String reason = Masks.text(e.getMessage(), 200);
             log.warn("邮件发送失败 taskId={} to={}: {}", taskId, Masks.email(email), reason);
-            deliveryRepository.append(taskId, "EMAIL", "FAILED", 1, "SEND_FAILED", reason);
+            deliveryRepository.append(taskId, "EMAIL", "FAILED", 1, "SEND_FAILED", reason, null);
             throw e;
         }
     }

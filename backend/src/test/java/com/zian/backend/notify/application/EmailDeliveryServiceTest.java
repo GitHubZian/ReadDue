@@ -57,11 +57,13 @@ class EmailDeliveryServiceTest {
     void recordsSentWhenSendSucceeds() {
         when(userQueryService.requireById(READER_ID)).thenReturn(reader("chen@example.com"));
         when(mailGateway.available()).thenReturn(true);
+        when(mailGateway.send("chen@example.com", "图书逾期提醒", "请尽快归还"))
+                .thenReturn("<msg-1@qq.com>");
 
         service.deliver(TASK_ID, READER_ID, "图书逾期提醒", "请尽快归还");
 
         verify(mailGateway).send("chen@example.com", "图书逾期提醒", "请尽快归还");
-        verify(deliveryRepository).append(TASK_ID, "EMAIL", "SENT", 1, null, null);
+        verify(deliveryRepository).append(TASK_ID, "EMAIL", "SENT", 1, null, null, "<msg-1@qq.com>");
     }
 
     @Test
@@ -75,7 +77,7 @@ class EmailDeliveryServiceTest {
         assertThatThrownBy(() -> service.deliver(TASK_ID, READER_ID, "图书逾期提醒", "请尽快归还"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Authentication failed");
-        verify(deliveryRepository).append(TASK_ID, "EMAIL", "FAILED", 1, "SEND_FAILED", "454 Authentication failed");
+        verify(deliveryRepository).append(TASK_ID, "EMAIL", "FAILED", 1, "SEND_FAILED", "454 Authentication failed", null);
     }
 
     private static User reader(String email) {

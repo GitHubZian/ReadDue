@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 16/16（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫；X-02/03/04 另计） · 前端 9/9 · 客户端 7/7 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 18/18（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料；X-02/03/04 另计） · 前端 9/9 · 客户端 7/7 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -65,6 +65,8 @@
 | B-13 | sort 移除 + 幂等 | BE | ✅ 2026-11-19 · 未提交 · `IdempotencyFilter` 已生效 · 42 测试绿 | — |
 | B-14 | 申诉证据附件 | BE | ✅ 2026-11-23 · 见 §3 | B-08 |
 | B-15 | 预约过期自动清扫 | BE | ✅ 2026-11-23 · 见 §3 | B-08、FR-05-D1 |
+| B-16 | SMTP 邮件通道恢复 | BE | ✅ 2026-11-23 · 见 §3 | — |
+| B-17 | `/me` 资料字段扩展 | BE | ✅ 2026-11-23 · 见 §3 | — |
 | F-01 | 校历管理（A9） | FE | ✅ 2026-11-19 · 7b140e0 | B-07 |
 | F-02 | 角色权限页 | FE | ✅ 2026-11-19 · 1da9f4c | B-12 |
 | F-03 | 宽限证据展示 | FE | ✅ 2026-11-19 · 663e8a1 · 管理端 evidence 由 3d79e35 补齐 | B-08 |
@@ -112,6 +114,8 @@
 | **B-13** | sort + 幂等 | 已完成 | `PageQuery`、`IdempotencyFilter` | 不支持 `sort`（固定排序）；同 key 24h 重放返回首次结果 | ✅ 见 §2 |
 | **B-14** | 申诉证据附件 | 申诉只有 `reason`，无附件；宽限证据已通 | `appeal/**` + `shared.file` + 管理端读模型 | `POST /v1/appeals` 收可选 `evidenceIds`（≤5，先传文件，仅本人）；`GET /v1/appeals/{id}` 返回 `evidence[{id,name,contentType,size}]`；管理端列表装配 `evidence[{label,url}]`；旧请求兼容空数组 | ✅ 2026-11-23 · 未提交 · `mvn test` 95 绿/1 跳（新增 4 例）；V14 `appeal_evidence`；契约见接口文档 §18.20 |
 | **B-15** | 预约过期自动清扫 | `expire()` 只改状态，不释放副本、不顺延队首；无定时任务 | `reservation/**` + `catalog/BookCopyRepository` | 每 10 分钟扫描 `READY` 且过期的预约：置 `EXPIRED` + 审计；有下一位则 `READY`（48h）+ outbox `RESERVATION_READY`；无人则释放 `READY_SHELF` 副本 | ✅ 2026-11-23 · f4b1ce0 · `mvn test` 98 绿/1 跳（新增 `ReservationExpiryTest` 3 例）；`@Scheduled(fixedDelay=600000, initialDelay=60000)`；`scanExpired` 逐条容错 |
+| **B-16** | SMTP 邮件通道恢复 | 用户级 `MAIL_PASSWORD` 为失效旧码，EMAIL 投递 `Authentication failed`；`provider_msg_id` 恒空 | `notify/domain/port/MailGateway`、`notify/infrastructure/mail/SmtpMailGateway`、`notify/application/EmailDeliveryService`、`notify/domain/repository/NotifyDeliveryRepository(+Impl)` | 新授权码只经进程环境变量注入并重启；JavaMail Message-ID 落 `notify_delivery.provider_msg_id`；deploy README 补排查步骤 | ✅ 2026-11-23 · 未提交 · `MailGateway.send` 返回 `String`（MimeMessage `getMessageID()`）；真实催还 1 封：delivery `2124869019035705345` / SENT / provider_msg_id `<981383191.0.1795443225035@ZiAn>` / 22:13:47；`mvn -o test` 98 绿/1 跳 |
+| **B-17** | `/me` 资料字段扩展 | `SessionUser` 只有 id/name/role/studentNo/avatarUrl/permissions；客户端「我的」院系空、累计借阅用在借数 | `iam/interfaces/dto/AuthDtos`、`iam/application/AuthService`、新增 `iam/domain/repository/ReaderSelfRepository` + 基础设施实现、`ReaderProfileMapper` | `/v1/me`（及登录/刷新 user）追加 `department/major/grade`（无档案为 `""`）与 `totalBorrowed`（全部借阅单，含已归还）；只读计数，不改表 | ✅ 2026-11-23 · 未提交 · 新增 `MeProfileTest` 2 例（档案字段 + 含已归还计数；空档案默认 `""`/0）；`mvn -o test` 100 绿/1 跳；接口文档 §3.2 |
 
 **不要做**：不改 `schema.sql` 既有语义；`domain` 不引 Spring/MyBatis；不加第二套 ORM；不为单页加专用端点；MySQL 排序不拼字符串。
 
@@ -162,7 +166,7 @@
 
 | 编号 | 任务 | 发起方 | 配合方 | 出口条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| **X-01** | 三端冒烟 | **FE** | BE、APP | 8125 + 5173 + 模拟器同时跑；C1→C3、A5→A7 两条链路无阻断，三条截图/日志留证 | 🟡 2026-11-23 · 管理端 14 路由（ADMIN001/LIB001 双账号）逐页截图通过；后端读者 API 实测 3 借/2 逾期/2 待裁；客户端 APK 仍为 11-19 release 包（API 写死 192.168.123.115），离线重建卡 Gradle 依赖，C1→C3 未跑 · 证据 `temp/admin-verify/`、`temp/ego-verify-20261123/` |
+| **X-01** | 三端冒烟 | **FE** | BE、APP | 8125 + 5173 + 模拟器同时跑；C1→C3、A5→A7 两条链路无阻断，三条截图/日志留证 | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由（ADMIN001/LIB001）逐页通过；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183 / evidence 2124863056660606977）；A5→A7 由管理端宽限/申诉页覆盖 · 证据 `temp/admin-verify/`、`temp/ego-verify-20261123/`、`temp/x01-client/01–09` |
 | **X-02** | 并发压测 | **BE** | FE | 200 并发归还 + 100 并发催还；P95 < 800ms、无 5xx、无死锁 | ✅ 2026-11-19 · 归还 200/200 成功、P95 294.4ms（max 587.7，wall 2.51s）；催还 100/100 成功、P95 185.1ms（max 228.4，wall 1.37s）；5xx=0；`SHOW ENGINE INNODB STATUS` 无 LATEST DETECTED DEADLOCK；脚本 `backend/scripts/loadtest-x02.ps1`（`-Mode returns|remind`） |
 | **X-03** | 文档回填校验 | **BE** | FE、APP | 每批结束后 `技术架构.md` §7/§7.1、`API-INTEGRATION.md`、`client/AGENT.md` 三处端点一致，grep 无幽灵路径 | ✅ 2026-11-19 · `技术架构.md` 不存在（§11 X-03-D1）；FE 43 处 / 客户端 11 处 `/v1` 引用全部可解析；`frontend/docs/API-INTEGRATION.md` 缺口段已按 B-01…B-12 重写；报告 `temp/x03-doc-consistency.md` |
 | **X-04** | 换行统一 | **BE** | 全员 | `.gitattributes`（`* text=auto eol=lf`）后 `git status` 无 CRLF 警告 | ✅ 2026-11-19 · 根 `.gitattributes`（文本 LF、二进制 binary、`*.cmd/*.bat` CRLF）；279 个已跟踪文本文件由 CRLF 归一为 LF；`git add` 不再出现 CRLF 警告（仅 APP 未提交的 `reader_mappers.dart` 保持原状） |
@@ -255,6 +259,8 @@ flutter analyze; flutter test
 | 2026-11-23 | FE | 权限收敛与工作台文案 | 馆员隐藏借出表单（`borrow:create`）与未授权死链；顶栏搜索先按权限过滤；免打扰卡改真实 `stats.pendingTotal`/`duty.window`，去掉「已延后 14 条」等假状态；`pnpm build` 通过（1864 modules / JS 764.16KB gzip 239.74KB） |
 | 2026-11-23 | Lead | 收口复核 | §11 七条全部裁决；§2 索引与 §4 详表状态校正（F-03/F-06/F-07）；PRD 升至 V1.1、README 重写；X-01 记 🟡（管理端+后端已验，客户端 APK 阻塞） |
 | 2026-11-23 | Lead | B-15 预约过期清扫 | `@Scheduled` 每 10 分钟扫 `READY` 过期：置 `EXPIRED` + 审计；队首 `READY`（48h）+ outbox；无人释放 `READY_SHELF` 副本（`releaseHoldForBook`）；`ReservationExpiryTest` 3 例；`mvn test` 98 绿/1 跳；提交 f4b1ce0 |
+| 2026-11-23 | BE | B-16 SMTP 邮件通道恢复 | 用户级新授权码经进程环境变量注入，重启 8125；`MailGateway.send` 改返回 Message-ID，`EmailDeliveryService` 落 `notify_delivery.provider_msg_id`（6 参 append 保留 default 兼容 INBOX）；真实催还 1 封：delivery `2124869019035705345` SENT / provider_msg_id `<981383191.0.1795443225035@ZiAn>`；旧码被判为 QQ 侧重新生成后失效（同端口/发件人仅换码即成功）；deploy README 补三步排查；`mvn -o test` 98 绿/1 跳 |
+| 2026-11-23 | BE | B-17 `/me` 资料字段扩展 | `SessionUser` 追加 `department/major/grade`（NULL→`""`）与 `totalBorrowed`（全部借阅单含已归还），登录/刷新/`/v1/me` 同构；新增 `ReaderSelfRepository`（IAM 领域端口）+ 实现与 `ReaderProfileMapper.countBorrowed` 只读计数；不动表结构、不改 client；`MeProfileTest` 2 例；`mvn -o test` 100 绿/1 跳；接口文档 §3.2 |
 | 2026-11-23 | BE+FE | F-09 值班卡去假名 | 后端 `AdminQueryService` 改 `@Value` 注入 `app.duty.name/window/phone`（默认「前台值班」/08:00–22:00/内线 8021），`application.yml` 支持 `DUTY_*` 环境变量；管理端兜底文案同步；接口文档示例更新；`mvn compile` 与 `pnpm build` 通过；运行态 `/admin/dashboard` 返回 `duty.name=前台值班` |
 | 2026-11-23 | APP | X-01 客户端链路 | 网络恢复后重建 debug APK（Gradle 8.14.3 本地包 + AGP 8.11.0/Kotlin 2.1.20/compileSdk 36，471.5s，API 10.0.2.2）；模拟器安装后 C1→C2→C3 无阻断；宽限真实上传 evidence.png 并提交（GA202611232183 / evidence 2124863056660606977）；截图 temp/x01-client/01–09；`client/android` 临时构建改动已在提交前还原，配方写入 client/README |
 | 2026-11-23 | FE | F-08 管理端状态真实性 | 顶栏连接态/通知数取真实查询；批量拉黑走接口并逐人报告；借还台删硬编码「当前在办」；侧栏删假值班行；`pnpm build` 通过、浏览器实测 |
