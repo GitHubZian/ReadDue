@@ -10,6 +10,8 @@ abstract final class Endpoints {
   static const borrows = '/v1/borrows';
   static String renewBorrow(String id) => '/v1/borrows/$id/renew';
 
+  static const fileUpload = '/v1/files';
+
   static const graces = '/v1/graces';
   static const myGraces = '/v1/graces/self';
 

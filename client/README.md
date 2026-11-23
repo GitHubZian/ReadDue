@@ -12,7 +12,10 @@
 ```bash
 flutter pub get
 
-# 连接已启动的后端（端口 8125，context-path /api；注意路径不带 /v1）
+# 默认连当前局域网后端（10.22.127.30:8125，context-path /api）
+flutter run --dart-define=USE_MOCK=false
+
+# Android 模拟器用宿主机别名覆盖
 flutter run \
   --dart-define=USE_MOCK=false \
   --dart-define=API_BASE_URL=http://10.0.2.2:8125/api
@@ -21,7 +24,7 @@ flutter run \
 flutter run --dart-define=USE_MOCK=true
 ```
 
-`10.0.2.2` 是 Android 模拟器访问宿主机的地址；真机请改成电脑在局域网内的 IP（例如 `192.168.123.115`）。
+默认地址集中在 `lib/core/config/app_config.dart`；真机与电脑需在同一局域网（当前宿主 WLAN IP `10.22.127.30`），换网络时只改这一处或用 `--dart-define=API_BASE_URL` 覆盖。
 
 > `USE_MOCK` 默认 `false`，登录、借阅、详情、宽限、检索、预约、通知、我的、申诉全部走真实接口；mock 仅作为离线演示开关保留在 `features/*/presentation/*_providers.dart`。
 >
@@ -40,8 +43,7 @@ flutter build apk --debug
 
 ```bash
 flutter build apk --release \
-  --dart-define=USE_MOCK=false \
-  --dart-define=API_BASE_URL=http://192.168.123.115:8125/api
+  --dart-define=USE_MOCK=false
 ```
 
 产物 `build/app/outputs/flutter-apk/app-release.apk`（约 23.5 MB）。手机与电脑需在同一局域网；首次连接时 Windows 防火墙若弹窗，请允许 Java 的 8125 入站，否则登录会提示网络不可用。

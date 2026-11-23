@@ -66,7 +66,11 @@ class DioGraceRepository implements GraceRepository {
         status: (json['status'] ?? 'PENDING').toString(),
         submittedAt: parseTime(json['createdAt']) ?? DateTime.now(),
         grantedDays: int.tryParse((json['approvedDays'] ?? '').toString()),
-        attachments: const [],
+        attachments: ((json['evidence'] as List<dynamic>?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map((evidence) => (evidence['name'] ?? '').toString())
+            .where((name) => name.isNotEmpty)
+            .toList(),
       );
     }).toList();
     return GracePageData(
@@ -86,6 +90,11 @@ class DioGraceRepository implements GraceRepository {
         'borrowOrderId': request.orderId,
         'sceneCode': request.sceneCode,
         'evidenceText': request.description,
+        if (request.attachments.isNotEmpty)
+          'evidenceIds': request.attachments
+              .map(int.tryParse)
+              .whereType<int>()
+              .toList(growable: false),
       },
       decode: (data) => (data as Map<String, dynamic>?) ?? const {},
     );

@@ -1,8 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/evidence_upload.dart';
+import '../../../core/network/network_providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/async_body.dart';
@@ -25,7 +28,7 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
   final _controller = TextEditingController();
   BorrowItem? _order;
   String? _type;
-  final List<String> _attachments = [];
+  final List<PickedEvidence> _attachments = [];
   bool _submitting = false;
   String? _error;
 
@@ -121,18 +124,15 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final name in _attachments)
+                      for (final file in _attachments)
                         _AttachmentChip(
-                          name: name,
+                          name: file.name,
                           onRemove: () =>
-                              setState(() => _attachments.remove(name)),
+                              setState(() => _attachments.remove(file)),
                         ),
-                      if (_attachments.length < 3)
+                      if (_attachments.length < kMaxEvidenceFiles)
                         InkWell(
-                          onTap: () => setState(
-                            () => _attachments
-                                .add('凭证${_attachments.length + 1}.pdf'),
-                          ),
+                          onTap: _addAttachment,
                           borderRadius: BorderRadius.circular(9),
                           child: Container(
                             height: 34,
@@ -165,7 +165,7 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '支持 PDF / JPG / PNG，单个不超过 5MB，最多 3 个。',
+                    '支持 PDF / JPG / PNG，单个不超过 5MB，最多 $kMaxEvidenceFiles 个。',
                     style: AppText.caption.copyWith(color: AppColors.ink3),
                   ),
                   const SizedBox(height: 16),
@@ -304,18 +304,43 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
     if (picked != null) setState(() => _order = picked);
   }
 
+  Future<void> _addAttachment() async {
+    final remaining = kMaxEvidenceFiles - _attachments.length;
+    if (remaining <= 0) return;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: kEvidenceExtensions,
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+    if (result.files.length > remaining) {
+      showToast(context, '最多 $kMaxEvidenceFiles 个凭证，已保留前 $remaining 个');
+    }
+    for (final file in result.files.take(remaining)) {
+      final error = evidenceFileError(file);
+      if (error != null) {
+        showToast(context, '${file.name}：$error');
+        continue;
+      }
+      _attachments.add((name: file.name, path: file.path!));
+    }
+    setState(() {});
+  }
+
   Future<void> _submit() async {
     setState(() {
       _submitting = true;
       _error = null;
     });
     try {
+      final evidenceIds =
+          await uploadEvidence(ref.read(apiClientProvider), _attachments);
       final result = await ref.read(appealRepositoryProvider).submit(
             AppealCreateRequest(
               orderId: _order!.id,
               type: _type!,
               description: _controller.text.trim(),
-              attachments: List<String>.of(_attachments),
+              attachments: evidenceIds,
             ),
           );
       if (!mounted) return;
@@ -326,7 +351,9 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = messageForError(error));
+      final message = messageForError(error);
+      setState(() => _error = message);
+      showToast(context, message);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

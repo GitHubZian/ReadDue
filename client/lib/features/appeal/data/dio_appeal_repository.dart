@@ -4,7 +4,8 @@ import '../../../core/network/endpoints.dart';
 import '../../../core/network/reader_mappers.dart';
 import '../domain/appeal_repository.dart';
 
-/// 真后端申诉：/v1/appeals + /v1/appeals/self。附件暂未入库，只提交理由。
+/// 真后端申诉：/v1/appeals + /v1/appeals/self。附件先传 /v1/files，
+/// 提交时带 evidenceIds（后端补齐后入库，未补齐时忽略未知字段）。
 class DioAppealRepository implements AppealRepository {
   DioAppealRepository(this._client);
 
@@ -117,6 +118,11 @@ class DioAppealRepository implements AppealRepository {
         'targetType': request.type,
         'targetId': request.orderId,
         'reason': request.description,
+        if (request.attachments.isNotEmpty)
+          'evidenceIds': request.attachments
+              .map(int.tryParse)
+              .whereType<int>()
+              .toList(growable: false),
       },
       decode: (data) => (data as Map<String, dynamic>?) ?? const {},
     );

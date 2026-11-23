@@ -1,9 +1,12 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/network/evidence_upload.dart';
+import '../../../core/network/network_providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
@@ -32,7 +35,7 @@ class _GracePageState extends ConsumerState<GracePage> {
   final _scroll = ScrollController();
   final _sceneKey = GlobalKey();
   final _descKey = GlobalKey();
-  final List<String> _attachments = [];
+  final List<PickedEvidence> _attachments = [];
   String? _scene;
   String? _error;
   String? _sceneError;
@@ -230,7 +233,7 @@ class _GracePageState extends ConsumerState<GracePage> {
             ),
             const Spacer(),
             Text(
-              '最多 3 个 · 单个 ≤ 5MB',
+              '最多 $kMaxEvidenceFiles 个 · 单个 ≤ 5MB',
               style: AppText.caption.copyWith(color: AppColors.ink3),
             ),
           ],
@@ -242,10 +245,11 @@ class _GracePageState extends ConsumerState<GracePage> {
           children: [
             for (final file in _attachments)
               _AttachmentChip(
-                name: file,
+                name: file.name,
                 onRemove: () => setState(() => _attachments.remove(file)),
               ),
-            if (_attachments.length < 3) _AddAttachment(onTap: _addAttachment),
+            if (_attachments.length < kMaxEvidenceFiles)
+              _AddAttachment(onTap: _addAttachment),
           ],
         ),
         const SizedBox(height: 20),
@@ -330,30 +334,26 @@ class _GracePageState extends ConsumerState<GracePage> {
   }
 
   Future<void> _addAttachment() async {
-    final name = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: AppColors.card,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('拍照上传'),
-              onTap: () => Navigator.of(sheetContext).pop('实习证明.pdf'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: const Text('从文件选择'),
-              onTap: () => Navigator.of(sheetContext).pop('实习安排.png'),
-            ),
-          ],
-        ),
-      ),
+    final remaining = kMaxEvidenceFiles - _attachments.length;
+    if (remaining <= 0) return;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: kEvidenceExtensions,
+      allowMultiple: true,
     );
-    if (name != null && _attachments.length < 3) {
-      setState(() => _attachments.add(name));
+    if (result == null || result.files.isEmpty || !mounted) return;
+    if (result.files.length > remaining) {
+      showToast(context, '最多 $kMaxEvidenceFiles 个材料，已保留前 $remaining 个');
     }
+    for (final file in result.files.take(remaining)) {
+      final error = evidenceFileError(file);
+      if (error != null) {
+        showToast(context, '${file.name}：$error');
+        continue;
+      }
+      _attachments.add((name: file.name, path: file.path!));
+    }
+    setState(() {});
   }
 
   Future<void> _submit() async {
@@ -383,12 +383,14 @@ class _GracePageState extends ConsumerState<GracePage> {
       _submitting = true;
     });
     try {
+      final evidenceIds =
+          await uploadEvidence(ref.read(apiClientProvider), _attachments);
       final result = await ref.read(graceRepositoryProvider).submit(
             GraceSubmitRequest(
               orderId: widget.orderId,
               sceneCode: _scene!,
               description: description,
-              attachments: List.of(_attachments),
+              attachments: evidenceIds,
             ),
           );
       if (!mounted) return;
@@ -398,7 +400,9 @@ class _GracePageState extends ConsumerState<GracePage> {
       context.pop(true);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = messageForError(error));
+      final message = messageForError(error);
+      setState(() => _error = message);
+      showToast(context, message);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

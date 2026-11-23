@@ -55,6 +55,19 @@ class ApiClient {
     return _send('DELETE', path, decode: decode);
   }
 
+  /// multipart 单文件上传；Dio 会按 FormData 自动补 boundary。
+  Future<T> postFile<T>(
+    String path, {
+    required String filePath,
+    required String fileName,
+    required T Function(dynamic data) decode,
+  }) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath, filename: fileName),
+    });
+    return _send('POST', path, body: form, decode: decode);
+  }
+
   Future<T> _send<T>(
     String method,
     String path, {
