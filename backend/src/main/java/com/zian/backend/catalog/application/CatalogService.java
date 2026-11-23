@@ -155,4 +155,17 @@ public class CatalogService {
             copyRepository.update(copy);
         });
     }
+
+    /**
+     * 释放某书目第一本被预约占位的副本（预约过期/取消时调用）。
+     *
+     * @param bookId 书目 ID
+     */
+    @Transactional
+    public void releaseHoldForBook(Long bookId) {
+        copyRepository.findFirstHeld(bookId).ifPresent(copy -> {
+            copy.releaseHold();
+            copyRepository.update(copy);
+        });
+    }
 }

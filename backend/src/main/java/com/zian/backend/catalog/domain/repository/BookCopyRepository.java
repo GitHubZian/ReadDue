@@ -29,4 +29,9 @@ public interface BookCopyRepository {
      * 查该书目第一本可借副本。
      */
     Optional<BookCopy> findFirstAvailable(Long bookId);
+
+    /**
+     * 查该书目第一本被预约占位（READY_SHELF）的副本。
+     */
+    Optional<BookCopy> findFirstHeld(Long bookId);
 }

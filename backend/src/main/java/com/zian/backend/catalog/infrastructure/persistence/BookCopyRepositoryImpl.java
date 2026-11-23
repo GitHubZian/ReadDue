@@ -53,6 +53,17 @@ public class BookCopyRepositoryImpl implements BookCopyRepository {
         return Optional.ofNullable(po).map(this::toDomain);
     }
 
+    @Override
+    public Optional<BookCopy> findFirstHeld(Long bookId) {
+        BookCopyPO po = mapper.selectOne(Wrappers.<BookCopyPO>lambdaQuery()
+                .eq(BookCopyPO::getBookId, bookId)
+                .eq(BookCopyPO::getStatus, CopyStatus.READY_SHELF.name())
+                .eq(BookCopyPO::getDeleted, 0L)
+                .orderByAsc(BookCopyPO::getId)
+                .last("limit 1"));
+        return Optional.ofNullable(po).map(this::toDomain);
+    }
+
     private BookCopy toDomain(BookCopyPO po) {
         return new BookCopy(
                 po.getId(),

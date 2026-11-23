@@ -7,6 +7,7 @@ import com.zian.backend.reservation.domain.model.ReservationStatus;
 import com.zian.backend.reservation.domain.repository.ReservationRepository;
 import com.zian.backend.reservation.infrastructure.persistence.mapper.ReservationMapper;
 import com.zian.backend.reservation.infrastructure.persistence.po.ReservationPO;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,19 @@ public class ReservationRepositoryImpl implements ReservationRepository {
                 .orderByAsc(ReservationPO::getQueueNo)
                 .last("limit 1"));
         return Optional.ofNullable(po).map(this::toDomain);
+    }
+
+    @Override
+    public List<Reservation> findExpiredReady(LocalDateTime now, int limit) {
+        return mapper
+                .selectList(Wrappers.<ReservationPO>lambdaQuery()
+                        .eq(ReservationPO::getStatus, ReservationStatus.READY.name())
+                        .lt(ReservationPO::getExpiresAt, now)
+                        .orderByAsc(ReservationPO::getExpiresAt)
+                        .last("limit " + Math.max(1, limit)))
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override

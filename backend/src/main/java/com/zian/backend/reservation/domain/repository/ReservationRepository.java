@@ -1,6 +1,7 @@
 package com.zian.backend.reservation.domain.repository;
 
 import com.zian.backend.reservation.domain.model.Reservation;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,11 @@ public interface ReservationRepository {
      * 取该书目队首的等待中预约。
      */
     Optional<Reservation> findNextWaiting(Long bookId);
+
+    /**
+     * 取已过取书截止时间的到书待取预约，按截止时间升序。
+     */
+    List<Reservation> findExpiredReady(LocalDateTime now, int limit);
 
     /**
      * 查读者对同一书目的有效预约。

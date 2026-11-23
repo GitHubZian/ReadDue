@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservationService.class);
 
     private final ReservationRepository repository;
     private final CatalogService catalogService;
@@ -110,19 +115,70 @@ public class ReservationService {
     }
 
     /**
-     * 使预约过期并释放占位。
+     * 使预约过期：释放占位，并顺延给队首等待者；无人排队时副本回可借。
      *
      * @param id 预约 ID
      * @return 预约聚合
      */
     @Transactional
     public Reservation expire(Long id) {
-        Reservation reservation = require(id);
+        return expireAndPromote(require(id));
+    }
+
+    /**
+     * 过期扫描：每 10 分钟把超过取书截止时间的预约置为过期并顺延。
+     */
+    @Scheduled(fixedDelayString = "${app.reservation.expire-scan-ms:600000}", initialDelay = 60_000)
+    @Transactional
+    public void scanExpired() {
+        List<Reservation> due;
+        try {
+            due = repository.findExpiredReady(LocalDateTime.now(), 100);
+        } catch (Exception e) {
+            log.warn("预约过期扫描失败: {}", e.getMessage());
+            return;
+        }
+        for (Reservation reservation : due) {
+            try {
+                expireAndPromote(reservation);
+            } catch (BusinessException e) {
+                log.warn("预约 {} 过期处理跳过: {}", reservation.getId(), e.getMessage());
+            }
+        }
+        if (!due.isEmpty()) {
+            log.info("预约过期扫描：处理 {} 条", due.size());
+        }
+    }
+
+    /**
+     * 置为过期，并把保留的副本转给下一位等待者；无人排队则释放占位。
+     */
+    private Reservation expireAndPromote(Reservation reservation) {
         reservation.expire();
         if (repository.update(reservation) == 0) {
             throw new BusinessException(ErrorCode.CONFLICT_ERROR, "预约状态已被修改，请重试");
         }
-        auditRecorder.record("RESERVATION_EXPIRE", "RESERVATION", id, "预约过期未取", Map.of());
+        auditRecorder.record("RESERVATION_EXPIRE", "RESERVATION", reservation.getId(), "预约过期未取", Map.of());
+        Optional<Reservation> next = repository.findNextWaiting(reservation.getBookId());
+        if (next.isEmpty()) {
+            catalogService.releaseHoldForBook(reservation.getBookId());
+            return reservation;
+        }
+        Reservation promoted = next.get();
+        promoted.markReady(LocalDateTime.now(), ruleService.intValue("RESERVATION.READY_HOLD_HOURS", 48));
+        if (repository.update(promoted) == 0) {
+            throw new BusinessException(ErrorCode.CONFLICT_ERROR, "预约状态已被修改，请重试");
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("reservationId", promoted.getId());
+        payload.put("bookId", promoted.getBookId());
+        payload.put("readerId", promoted.getReaderId());
+        payload.put("expiresAt", String.valueOf(promoted.getExpiresAt()));
+        outboxAppender.append(
+                "RESERVATION", promoted.getId(), MqConstant.EVENT_RESERVATION_READY, payload);
+        auditRecorder.record(
+                "RESERVATION_PROMOTE", "RESERVATION", promoted.getId(), "预约过期顺延",
+                Map.of("bookId", promoted.getBookId()));
         return reservation;
     }
 
