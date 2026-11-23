@@ -1,25 +1,45 @@
-# project · 代码工程（占位）
+# 阅有期 · 代码工程
 
-阅有期的实际代码放这里（目前还没有初始化）。
+高校图书馆借阅到期与归还小管家：读者端 Flutter、管理端 React、后端 Spring Boot 模块化单体。
+需求与规则见 Obsidian `Projects/阅有期/`，接口契约以 [`后端的交互接口文档.md`](后端的交互接口文档.md) 为准。
 
-## 既定形态
-
-- 模块化单体：Spring Boot 3.x + MySQL 8 + Redis 7 + RabbitMQ 3.13；前端 React 18 + Vite + shadcn/ui + TanStack Query，移动端 Flutter 3。
-- 包根 `com.zian`，按 9 个限界上下文垂直切片：
+## 目录
 
 ```
-com.zian.{iam,catalog,borrow,reservation,grace,notify,appeal,rule,audit}
-        .{interfaces,application,domain,infrastructure}
-com.zian.bootstrap
+backend/    Spring Boot 3.5 + MyBatis-Plus + Flyway；包根 com.zian.backend
+frontend/   管理端 React 18 + Vite + TanStack Query + Radix（pnpm）
+client/     读者端 Flutter 3.24（Riverpod / go_router / dio / freezed）
 ```
 
-- 依赖方向：`interfaces → application → domain ← infrastructure`，跨上下文只走应用服务接口与领域事件，禁止直连 Mapper。
-- 默认「一事务一聚合」；归还时 `BorrowOrder` + `BookCopy` 是唯一强一致例外，其余走 outbox。
-- 持久化统一 MyBatis-Plus：`BaseMapper` 只在 infrastructure；`deleted BIGINT` 写本行主键（逻辑删除）；`version` 乐观锁冲突返回 409 `CONCURRENT_MODIFIED`。
+后端 9 个业务上下文（iam/catalog/borrow/reservation/grace/notify/appeal/rule/audit）+ `reporting`、`shared`、`bootstrap`；
+依赖方向 `interfaces → application → domain ← infrastructure`，归还时 `BorrowOrder` + `BookCopy` 单事务强一致，其余走 outbox。
 
-## 对应文档（Obsidian）
+## 本地启动
 
-- 需求：`Projects/阅有期/project/requires/require_total.md`
-- 架构与规约：`.../project/spec/技术架构.md`
-- 业务规则与验收：`.../project/spec/借阅与归还说明书.md`
-- 建库脚本：`.../project/spec/schema.sql`（26 表 + 2 视图）
+```powershell
+# 后端（8125，context-path /api；需 JDK 21）
+cd backend; $env:JAVA_HOME='C:\JDK\jdk21'; mvn spring-boot:run
+
+# 管理端（5173，代理 /api → 8125）
+cd frontend; pnpm install; pnpm dev
+
+# 读者端（模拟器访问宿主机用 10.0.2.2）
+cd client; flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8125/api
+```
+
+演示账号：管理员 `ADMIN001/123456`、馆员 `LIB001/123456`、读者 `2021001/123456`。
+依赖：MySQL 8+（库 `readdue`）、Redis 7、RabbitMQ 3.13；连接串见 `backend/src/main/resources/application-local.yml`。
+
+## 验证
+
+```powershell
+cd backend;  $env:JAVA_HOME='C:\JDK\jdk21'; mvn test        # 95 tests
+cd frontend; pnpm typecheck; pnpm build                     # 13 业务页
+cd client;   flutter analyze; flutter test                  # 30 tests
+```
+
+## 进度与约定
+
+- 任务与证据：`todolist.md`（唯一任务来源，完成一项回写四段证据）。
+- 当前分支 `feat/m3-progress-sync`，尚未合入 `main`；X-01 三端冒烟待办。
+- 数据库迁移 V1–V14 由 Flyway 管理；新增表/列必须配迁移，不改历史脚本。
