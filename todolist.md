@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 11/11 · 客户端 10/10 + 证据附件真实上传 + 刷新令牌 + 真实预约 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 11/11 · 客户端 11/11 + 证据附件真实上传 + 刷新令牌 + 真实预约 + 真机复验 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -87,9 +87,10 @@
 | C-05 | 申诉与个人中心 | APP | ✅ 2026-11-19 · 无 git 提交 · analyze 0 / test 23 绿 · C8 真实列表+提交、C7 真实资料 | 无（接口已在） |
 | C-06 | 真机联调两条链路 | APP | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3、C5→C6→C7 真机走通 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ✅ 2026-11-19 · 无 git 提交 · 隐私授权/6 主题频率/遗忘确认；PUT 真机验证；test 26 绿 | B-06、B-10 |
-| C-08 | 个人资料接真实字段 | APP | ✅ 2026-11-23 · 无 git 提交 · analyze 0 / test 34 绿 · 解析 `/me` department/major/grade/totalBorrowed，副标题与累计借阅去假值 | B-17 |
+| C-08 | 个人资料接真实字段 | APP | ✅ 2026-11-23 · 8548e34 · analyze 0 / test 34 绿 · 解析 `/me` department/major/grade/totalBorrowed，副标题与累计借阅去假值 | B-17 |
 | C-09 | 客户端刷新令牌接入 | APP | ✅ 2026-11-23 · 9861f40 · 401→refresh→重放，single-flight；失败清会话回登录；analyze 0 / test 37 绿 | 无 |
 | C-10 | 客户端真实预约 | APP | ✅ 2026-11-23 · 9861f40 · 检索页预约确认→`POST /v1/reservations`；成功回显排位 + 底栏角标；409/422 原地提示不假成功；analyze 0 / test 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） | 无（接口已在） |
+| C-11 | 真机默认 IP 与 debug 溢出 | APP | ✅ 2026-11-23 · f85c16b · 默认 API 改 `192.168.0.3`（dart-define 可覆盖）；登录 2px、检索头部 13px overflow 清零；analyze 0 / test 40 绿；真机 UCB685CMAUIFFA7P 重装复验（APK 115,242,041 B，SHA256 8DC4B431…A9DA），新预约 2124891109856104449（算法导论/排位 2） | C-10 |
 | X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -170,6 +171,8 @@
 | **C-08** | 个人资料接真实字段 | `/me` 解析 department/major/grade/totalBorrowed | `profile/`、`core/models/` | 副标题真实、累计借阅取 totalBorrowed、空值省略 | ✅ 2026-11-23 · 无 git 提交 · `dart format` 0 changed / `flutter analyze` 0 / `flutter test` 34 绿 · 8 文件（含 2 生成物，新增 2 测试文件） |
 | **C-09** | 刷新令牌接入 | 401 自动 refresh 并重放，single-flight | `core/network/`、`auth/` | `/v1/auth/refresh`；失败清会话回登录；并发只刷一次 | ✅ 2026-11-23 · 无 git 提交 · `endpoints.dart` 增 refresh；`api_client.dart` 401 单飞刷新+重放；失败清会话回调登录；3 拦截器测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 37 绿 |
 | **C-10** | 真实预约 | 检索页「预约」原先只 toast；改真实 `POST /v1/reservations` | `search/`、`reservation/`、`core/widgets/`、`core/router/` | 确认 sheet（书名/预计排位/保留 48h）；成功行与详情「已预约 · 排位 N」；预约 tab 角标；409/422 原地提示；后端不可用置灰「暂不可预约」 | ✅ 2026-11-23 · 无 git 提交 · `endpoints.dart` 增 reservations；`SearchRepository.reserve` + `ReservationRepository.activeCount`；AppShell/AppTabBar 角标；新增 2 仓储测试 + 1 页面测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） |
+
+| **C-11** | 真机默认 IP 与 debug 溢出 | `192.168.0.3` 默认值；登录/检索两处 overflow | `core/config/`、`auth/`、`search/` | 默认 IP 可被 dart-define 覆盖；真机无黄黑条、无截断 | ✅ 2026-11-23 · f85c16b · `app_config.dart` 默认改 `192.168.0.3`；登录输入框 `minHeight:60`；检索头部 `Expanded+FittedBox`、副文案两行；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 UCB685CMAUIFFA7P 复验 01/04 截图，新预约 2124891109856104449 |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -289,6 +292,8 @@ flutter analyze; flutter test
 | 2026-11-23 | BE | B-18 拉黑到期自动解除 | `User.isBlacklisted()` 增加到期实时判定（到期即按 NORMAL 放行，不等扫描）；新增 `BlacklistExpiryService` 每 60s 扫描 `BLACKLISTED + expires_at<=now`，回写状态并写 `user_status_log`（`BLACKLISTED→NORMAL` /「到期自动解除」/「系统」）+ 审计 `USER_UNBLOCK_EXPIRE`；`UserAdminService` 拉黑/恢复也写状态日志；`SysUserPO` 四个拉黑字段 `updateStrategy=ALWAYS` 修复 null 不清空；`BlacklistExpiryTest` 4 例；`mvn -o test` 107 绿/1 跳；接口文档 §11.2 |
 | 2026-11-23 | BE | B-19 上传与配置加固 | `FileService` 对 png/jpg 改 `ImageIO` 真实解码并要求格式=扩展名（12B 伪图拒绝）；清理 `backend/data/uploads` 下 9 个伪 PNG；`.gitignore` 忽略 uploads；`CorsConfig` 改白名单（`CORS_ALLOWED_ORIGINS`）；prod 关 springdoc、actuator 仅 `health,info`、日志 INFO；compose/`.env.example` 标注默认口令仅演示；`FileUploadValidationTest` 3 例；`mvn -o test` 107 绿/1 跳；`docker compose ... config --quiet` exit 0 |
 | 2026-11-23 | FE | F-11 审批深链与搜索关键词 | `GracePage`/`AppealPage` 用 `useSearchParams` 读 `?id=`；失效 toast「该工单已归档或不存在」并清 id 回落；Grace 详情改「单号·学号·书名」，通过/驳回加 AlertDialog（对象·书名·天数）；Appeal 详情顶栏常显单号+状态，PENDING 行「去处理」/其他「查看」；`AuditPage` 读 `?keyword=` 初始化并同步 URL，空态给「查看全部日志」；`pnpm build` 通过（1864 modules / JS 767.98KB gzip 241.70KB），ego 深链实测 GA202611191780 / AP20260209002 / BC0001，截图 temp/admin-verify2/fix-grace.png、fix-grace-confirm.png、fix-appeal.png、fix-audit.png |
+| 2026-11-23 | APP | C-11 真机默认 IP 与溢出 | 默认地址跟进当前 WLAN（192.168.0.3，可 dart-define）；修登录 2px、检索 13px overflow；真机重装复验；APK 115,242,041B / SHA256 8DC4B431…A9DA；test 40 绿 |
+| 2026-11-23 | Lead | 真机 + 邮件演示证据 | Realme RMX3041（UCB685CMAUIFFA7P）真机登录/书架/详情/预约全 PASS；SMTP 587 实发催还邮件 `EMAIL/SENT`（delivery 2124887081382301697，msgid `<1540127645.0.1795447531533@ZiAn>`），QQ 邮箱 IMAP 实收；证据 temp/real-phone/、temp/mail-shot/ |
 
 ---
 
