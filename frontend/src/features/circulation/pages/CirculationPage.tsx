@@ -16,13 +16,17 @@ import { StatCard } from "@/components/common/StatCard";
 import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useTodayFlow, useBorrowBook, useReturnBook } from "@/features/circulation/queries";
+import { can } from "@/lib/auth/permissions";
+import { useSession } from "@/lib/auth/session";
 import { formatDateTime, formatTime } from "@/lib/format/date";
 import { formatCNY } from "@/lib/format/money";
 
 export function CirculationPage() {
+  const { user } = useSession();
   const { data } = useTodayFlow();
   const borrow = useBorrowBook();
   const ret = useReturnBook();
+  const canBorrow = can(user, "borrow:create");
 
   const [readerNo, setReaderNo] = useState("");
   const [borrowBarcode, setBorrowBarcode] = useState("");
@@ -45,7 +49,11 @@ export function CirculationPage() {
     <div className="space-y-4">
       <PageHeader
         title="借还台"
-        description="扫码即办，借出与归还共用一套条码规则；异常会内联提示，不打断下一位读者。"
+        description={
+          canBorrow
+            ? "扫码即办，借出与归还共用一套条码规则；异常会内联提示，不打断下一位读者。"
+            : "扫码归还，自动计算逾期天数与滞纳金；异常会内联提示，不打断下一位读者。"
+        }
       />
 
       <div className="grid grid-cols-3 gap-3">
@@ -61,7 +69,8 @@ export function CirculationPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className={canBorrow ? "grid grid-cols-1 gap-4 lg:grid-cols-2" : "grid grid-cols-1 gap-4"}>
+        {canBorrow ? (
         <SectionCard title="借出" description="输入读者证号与馆藏条码，回车即提交">
           <div className="space-y-3">
             <div>
@@ -115,6 +124,7 @@ export function CirculationPage() {
             ) : null}
           </div>
         </SectionCard>
+        ) : null}
 
         <SectionCard title="归还" description="归还后自动计算逾期天数与滞纳金">
           <div className="space-y-3">

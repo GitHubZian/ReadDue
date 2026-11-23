@@ -58,7 +58,7 @@ export function Sidebar() {
         <div className="rounded-xl bg-deep px-3.5 py-3 text-white/90">
           <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-white">
             <MoonStar className="size-3.5" strokeWidth={1.8} />
-            夜间免打扰已开启
+            夜间免打扰时段
           </p>
           <p className="mt-1 text-[9.5px] leading-4 text-white/55">
             22:00–08:00 暂停外部推送，站内信正常送达。

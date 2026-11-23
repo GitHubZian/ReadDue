@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ROLE_LABEL } from "@/lib/auth/permissions";
+import { can, ROLE_LABEL } from "@/lib/auth/permissions";
 import { clearSession, useSession } from "@/lib/auth/session";
 import { logout as logoutRequest } from "@/features/auth/api";
 
@@ -24,11 +24,13 @@ export function Topbar() {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
 
+  const canViewAudit = can(user, "audit:read");
   const matches = useMemo(() => {
+    const accessible = NAV_ITEMS.filter((item) => can(user, item.permission));
     const q = query.trim();
-    if (!q) return NAV_ITEMS.slice(0, 5);
-    return NAV_ITEMS.filter((item) => item.label.includes(q) || item.path.includes(q));
-  }, [query]);
+    if (!q) return accessible.slice(0, 5);
+    return accessible.filter((item) => item.label.includes(q) || item.path.includes(q));
+  }, [query, user]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,7 +39,7 @@ export function Topbar() {
       navigate(first.path);
       setQuery("");
       setSearchOpen(false);
-    } else {
+    } else if (canViewAudit) {
       navigate(`/audit?keyword=${encodeURIComponent(query.trim())}`);
       setQuery("");
       setSearchOpen(false);
@@ -96,7 +98,9 @@ export function Topbar() {
             ))
           ) : (
             <p className="px-2 py-3 text-[11px] text-ink-3">
-              未找到对应页面，回车将带关键词前往审计日志。
+              {canViewAudit
+                ? "未找到对应页面，回车将带关键词前往审计日志。"
+                : "未找到可访问的页面。"}
             </p>
           )}
         </PopoverContent>
@@ -166,9 +170,11 @@ export function Topbar() {
               {user?.studentNo ?? "—"}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/users")} className="text-[11.5px]">
-              <UserRound className="size-3.5" /> 用户与权限
-            </DropdownMenuItem>
+            {can(user, "user:manage") ? (
+              <DropdownMenuItem onClick={() => navigate("/users")} className="text-[11.5px]">
+                <UserRound className="size-3.5" /> 用户与权限
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={logout} className="text-[11.5px] text-danger">
               <LogOut className="size-3.5" /> 退出登录
             </DropdownMenuItem>

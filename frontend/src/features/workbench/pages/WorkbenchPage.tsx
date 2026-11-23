@@ -24,9 +24,14 @@ import { useRemindOverdue } from "@/features/overdue/queries";
 import { formatMoneyNumber } from "@/lib/format/money";
 import { formatTime, slaRemaining } from "@/lib/format/date";
 import { categoryLabel, appealStatusMeta } from "@/features/appeal/labels";
+import { can } from "@/lib/auth/permissions";
+import { useSession } from "@/lib/auth/session";
 
 export function WorkbenchPage() {
   const navigate = useNavigate();
+  const { user } = useSession();
+  const canViewAudit = can(user, "audit:read");
+  const canEditRules = can(user, "rule:update");
   const { data, isLoading } = useDashboard();
   const graces = useGraces({ status: "PENDING", page: 1, size: 5 });
   const appeals = useAppeals({ page: 1, size: 3 });
@@ -38,14 +43,16 @@ export function WorkbenchPage() {
     <div className="space-y-4">
       <PageHeader
         title="工作台"
-        description="早上好，今天先处理 SLA 内到期的宽限与申诉。"
+        description="今天先处理 SLA 内到期的宽限与申诉。"
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/audit">
-              操作日志
-              <ArrowUpRight className="size-3.5" />
-            </Link>
-          </Button>
+          canViewAudit ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/audit">
+                操作日志
+                <ArrowUpRight className="size-3.5" />
+              </Link>
+            </Button>
+          ) : null
         }
       />
 
@@ -278,20 +285,20 @@ export function WorkbenchPage() {
                 <span className="grid size-7 place-items-center rounded-lg bg-white/10">
                   <MoonStar className="size-3.5 text-mint" />
                 </span>
-                <p className="text-[12px] font-semibold">夜间免打扰生效中</p>
+                <p className="text-[12px] font-semibold">夜间免打扰时段</p>
               </div>
               <StatusPill tone="mint">22:00–08:00</StatusPill>
             </div>
             <p className="mt-2.5 text-[10.5px] leading-5 text-white/55">
-              今日已延后 14 条提醒，逾期首日与预约到馆通知不受影响。规则参数改动会即时作用于队列。
+              此时段仅暂停外部推送，站内信正常送达；逾期首日与预约到馆通知不受影响。规则参数改动会即时作用于队列。
             </p>
             <div className="mt-3 flex items-center gap-4 border-t border-white/10 pt-3">
               <div>
-                <p className="text-[9px] text-white/40">延后队列</p>
-                <p className="tabular text-[15px] font-bold">14</p>
+                <p className="text-[9px] text-white/40">待办工单</p>
+                <p className="tabular text-[15px] font-bold">{stats?.pendingTotal ?? 0}</p>
               </div>
               <div>
-                <p className="text-[9px] text-white/40">免打扰时段</p>
+                <p className="text-[9px] text-white/40">值班时段</p>
                 <p className="text-[11px] font-semibold">{data?.duty.window ?? "08:00–22:00"}</p>
               </div>
               <Button
@@ -300,7 +307,7 @@ export function WorkbenchPage() {
                 className="ml-auto text-mint hover:bg-white/10 hover:text-mint"
                 asChild
               >
-                <Link to="/notify">查看队列</Link>
+                <Link to="/notify">提醒中心</Link>
               </Button>
             </div>
           </div>
@@ -326,15 +333,19 @@ export function WorkbenchPage() {
               <p className="text-[9.5px] text-ink-3">
                 值班 {data?.duty.name ?? "王倩"} · {data?.duty.phone ?? "内线 8021"}
               </p>
-              <Button variant="ghost" size="xs" asChild>
-                <Link to="/rules">调整参数</Link>
-              </Button>
+              {canEditRules ? (
+                <Button variant="ghost" size="xs" asChild>
+                  <Link to="/rules">调整参数</Link>
+                </Button>
+              ) : null}
             </div>
           </SectionCard>
 
           {graces.data?.items.length ? (
             <p className="px-1 text-[9.5px] text-ink-3">
-              提示：裁决记录会写入审计日志，可在「审计日志 · 审批」中追溯。
+              {canViewAudit
+                ? "提示：裁决记录会写入审计日志，可在「审计日志 · 审批」中追溯。"
+                : "提示：裁决记录会写入审计日志。"}
             </p>
           ) : null}
         </div>

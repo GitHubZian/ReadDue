@@ -2,6 +2,7 @@ import type { Role, SessionUser } from "@/lib/api/models";
 
 export const PERMISSIONS = {
   workbenchRead: "workbench:read",
+  borrowCreate: "borrow:create",
   borrowReturn: "borrow:return",
   reservationManage: "reservation:manage",
   overdueRead: "overdue:read",
