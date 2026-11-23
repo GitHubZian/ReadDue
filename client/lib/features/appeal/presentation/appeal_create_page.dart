@@ -44,6 +44,15 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
       _controller.text.trim().length >= 15 &&
       _attachments.isNotEmpty;
 
+  List<String> get _missing {
+    return [
+      if (_order == null) '选择关联单据',
+      if (_type == null) '选择申诉类型',
+      if (_controller.text.trim().length < 15) '填写至少 15 字说明',
+      if (_attachments.isEmpty) '添加至少 1 个凭证',
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final types = ref.watch(appealTypesProvider);
@@ -218,10 +227,26 @@ class _AppealCreatePageState extends ConsumerState<AppealCreatePage> {
             color: AppColors.bg,
             border: Border(top: BorderSide(color: AppColors.line)),
           ),
-          child: PrimaryButton(
-            label: '提交申诉',
-            loading: _submitting,
-            onPressed: _canSubmit && !_submitting ? _submit : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_missing.isNotEmpty) ...[
+                Text(
+                  '还差 ${_missing.length} 项：${_missing.join('、')}',
+                  style: AppText.caption.copyWith(
+                    color: AppColors.ink3,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              PrimaryButton(
+                label: '提交申诉',
+                loading: _submitting,
+                onPressed: _canSubmit && !_submitting ? _submit : null,
+              ),
+            ],
           ),
         ),
       ),

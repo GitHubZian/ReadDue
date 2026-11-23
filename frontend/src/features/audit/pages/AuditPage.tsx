@@ -240,17 +240,28 @@ export function AuditPage() {
 
         {!query.isLoading && (query.data?.items.length ?? 0) === 0 ? (
           <EmptyState
-            title={keyword ? `未找到「${keyword}」` : "没有相关日志"}
+            title={
+              keyword
+                ? `未找到「${keyword}」`
+                : category !== "ALL"
+                  ? "当前分类下没有日志"
+                  : "还没有审计日志"
+            }
             description={
-              keyword ? "检查单号是否完整（BC 开头 10 位），或换个关键词再试。" : "调整分类或关键词后再试。"
+              keyword
+                ? "检查单号是否完整（BC 开头 10 位），或换个关键词再试。"
+                : category !== "ALL"
+                  ? "切换到「全部」或换个分类再试。"
+                  : "审批、规则变更与用户操作会实时记录在这里。"
             }
             action={
-              keyword ? (
+              keyword || category !== "ALL" ? (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setKeyword("");
+                    setCategory("ALL");
                     setPage(1);
                     const next = new URLSearchParams(searchParams);
                     next.delete("keyword");

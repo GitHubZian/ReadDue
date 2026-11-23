@@ -23,12 +23,14 @@ class DioSearchRepository implements SearchRepository {
         .map(bookItemFromJson)
         .toList();
     final items = switch (filter) {
-      '可借' => all.where((b) => b.availableCopies > 0).toList(),
-      '可预约' => all.where((b) => b.availableCopies == 0).toList(),
+      'available' || '可借' => all.where((b) => b.availableCopies > 0).toList(),
+      'reservable' ||
+      '可预约' =>
+        all.where((b) => b.availableCopies == 0).toList(),
       _ => all,
     };
     return SearchPageData(
-      total: (page['total'] as num?)?.toInt() ?? items.length,
+      total: items.length,
       items: items,
       query: query,
     );

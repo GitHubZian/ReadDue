@@ -84,11 +84,18 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                 ),
               ),
             Expanded(
-              child: AsyncBody<NotificationsPageData>(
-                value: value,
-                onRetry: () => ref.invalidate(notificationsProvider),
-                skeleton: const SkeletonList(count: 4, itemHeight: 82),
-                builder: (data) => _body(data),
+              child: RefreshIndicator(
+                color: AppColors.mintDeep,
+                onRefresh: () async {
+                  ref.invalidate(notificationsProvider);
+                  await ref.read(notificationsProvider.future);
+                },
+                child: AsyncBody<NotificationsPageData>(
+                  value: value,
+                  onRetry: () => ref.invalidate(notificationsProvider),
+                  skeleton: const SkeletonList(count: 4, itemHeight: 82),
+                  builder: (data) => _body(data),
+                ),
               ),
             ),
           ],
@@ -107,6 +114,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final quietHours = data.quietHours;
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
       children: [
         if (items.isEmpty)

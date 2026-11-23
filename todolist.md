@@ -1,6 +1,6 @@
 # 阅有期 · 三端任务分派书（todolist.md）
 
-> 版本：2026-11-23 · 收口复核（后端 107 测试绿 / 管理端 13 业务页 / 客户端 40 测试绿 / Flyway V14）
+> 版本：2026-11-24 · 收口复核（后端 107 测试绿 / 管理端 13 业务页 / 客户端 46 测试绿 / Flyway V14）
 > 读者：**后端 Agent**、**前端 Agent**、**客户端 Agent**。三方共读 §0–§2，然后只做自己那一节。
 > 接口口径：以 `project/后端的交互接口文档.md` 为准（`project/spec/技术架构.md` 不存在，X-03-D1 已由 Lead 裁决，2026-11-23）。
 
@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 11/11 · 客户端 11/11 + 证据附件真实上传 + 刷新令牌 + 真实预约 + 真机复验 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 12/12 · 客户端 12/12 + 证据附件真实上传 + 刷新令牌 + 真实预约 + 真机复验 + 检索交互修补 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -80,6 +80,7 @@
 | F-09 | 值班卡去假名 | BE+FE | ✅ 2026-11-23 · 见 §4 | 无 |
 | F-10 | 管理端刷新令牌接入 | FE | ✅ 2026-11-23 · 44013c5 · 401→refresh→重放，single-flight；失败清会话回登录；build 通过 | B-11 |
 | F-11 | 审批深链与搜索关键词 | FE | ✅ 2026-11-23 · 44013c5 · 宽限/申诉读 ?id=、失效提示与确认弹窗，审计读 ?keyword=；build 通过 + ego 深链实测 | 无 |
+| F-12 | 管理端交互 P1 修补 | FE | ✅ 2026-11-24 · 见 §4 · 馆员搜索提示、通知可点、借还台内联校验、指标卡跳转、审计空态；build 1864 modules / JS 770.56KB | UX 审查 |
 | C-01 | 接真实后端（去 mock） | APP | ✅ 2026-11-19 · 无 git 提交 · `useMock` 默认 false，7 个 provider 按 `appUseMockProvider` 切换；C1 摘要/未读、C6 通知/渠道/免打扰、C7 资料走真接口 | B-01、B-02、B-04、B-05 |
 | C-02 | 检索与书目详情 | APP | ✅ 2026-11-19 · 无 git 提交 · `/books` 四端点 + 详情弹层 + 可借/可预约；UI 真实借阅「算法导论」成功并回流 C1 | B-01 |
 | C-03 | 消息中心与偏好 | APP | ✅ 2026-11-19 · 无 git 提交 · 通知列表/未读数、渠道开关、免打扰读写真接口；失败回滚提示；空态真机验证 | B-02、B-04、B-05 |
@@ -91,6 +92,7 @@
 | C-09 | 客户端刷新令牌接入 | APP | ✅ 2026-11-23 · 9861f40 · 401→refresh→重放，single-flight；失败清会话回登录；analyze 0 / test 37 绿 | 无 |
 | C-10 | 客户端真实预约 | APP | ✅ 2026-11-23 · 9861f40 · 检索页预约确认→`POST /v1/reservations`；成功回显排位 + 底栏角标；409/422 原地提示不假成功；analyze 0 / test 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） | 无（接口已在） |
 | C-11 | 真机默认 IP 与 debug 溢出 | APP | ✅ 2026-11-23 · f85c16b · 默认 API 改 `192.168.0.3`（dart-define 可覆盖）；登录 2px、检索头部 13px overflow 清零；analyze 0 / test 40 绿；真机 UCB685CMAUIFFA7P 重装复验（APK 115,242,041 B，SHA256 8DC4B431…A9DA），新预约 2124891109856104449（算法导论/排位 2） | C-10 |
+| C-12 | 检索页真机反馈与交互修补 | APP | ✅ 2026-11-24 · 见 §5 · 已预约行换行不截断、详情固定 86% 仅下滑关闭、筛选/排序真实面板、下拉刷新、借出刷新、申诉缺项汇总；analyze 0 / test 46 绿 | UX 审查 |
 | X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -151,13 +153,15 @@
 
 | **F-11** | 审批深链与搜索关键词 | 工作台 `/grace?id=`、`/appeals?id=` 被忽略而落第一条；审计忽略 `?keyword=` | `src/features/grace/pages/GracePage.tsx`、`src/features/appeal/pages/AppealPage.tsx`、`src/features/audit/pages/AuditPage.tsx` | Grace/Appeal 读 id 选中；失效 toast 并回落；Grace 标题=单号·学号·书名，通过/驳回确认弹窗写明对象·书名·天数；Appeal 顶部常显单号+状态，PENDING 行「去处理」/其他「查看」；Audit 用 keyword 初始化并立即查询 | ✅ 2026-11-23 · 无 git 提交 · `pnpm build` 通过（1864 modules / JS 767.98KB gzip 241.70KB）+ ego-browser 三条深链实测：GA202611191780 自动选中第 2 行、AP20260209002 选中处理中单、BC0001 审计回填并查到 0 条；失效 id 提示后 URL 清 id 回落；截图 temp/admin-verify2/fix-grace.png、fix-grace-confirm.png、fix-appeal.png、fix-audit.png · 3 文件 |
 
+| **F-12** | 管理端交互 P1 修补 | 馆员搜索静默、通知不可点、借还台空表单无反馈、指标卡不可点、审计空态误导 | `app/layout/Topbar.tsx`、`features/circulation/pages/CirculationPage.tsx`、`components/common/StatCard.tsx`、`features/workbench/pages/WorkbenchPage.tsx`、`features/grace|appeal/pages/*.tsx`、`features/audit/pages/AuditPage.tsx` | 搜索无匹配 toast 并关层；通知可 Tab/Enter 跳转；空表单内联错误；四卡整卡可点；审计空态区分 | ✅ 2026-11-24 · 无 git 提交 · `pnpm typecheck` + `pnpm build` 通过（1864 modules / JS 770.56KB gzip 241.95KB）；ego 实测 lib-search-toast、notify-focus、circulation-empty-errors、workbench-card-focus、appeal-processing、audit-empty-category、rules-zero；记录 temp/ux-admin-fix/验收记录.md · 7 文件 |
+
 **不要做**：不改 `components/ui/*`；不引第二套 UI；不开 dark mode；不端算金额/天数/SLA。
 
 ---
 
 ## 5. 客户端 Agent（`project/client`）
 
-> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 40 测试绿 / `useMock` 默认 false / 附件真实上传 / 401 自动刷新令牌 / 预约接真实接口。
+> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 46 测试绿 / `useMock` 默认 false / 附件真实上传 / 401 自动刷新令牌 / 预约接真实接口。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -173,6 +177,8 @@
 | **C-10** | 真实预约 | 检索页「预约」原先只 toast；改真实 `POST /v1/reservations` | `search/`、`reservation/`、`core/widgets/`、`core/router/` | 确认 sheet（书名/预计排位/保留 48h）；成功行与详情「已预约 · 排位 N」；预约 tab 角标；409/422 原地提示；后端不可用置灰「暂不可预约」 | ✅ 2026-11-23 · 无 git 提交 · `endpoints.dart` 增 reservations；`SearchRepository.reserve` + `ReservationRepository.activeCount`；AppShell/AppTabBar 角标；新增 2 仓储测试 + 1 页面测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） |
 
 | **C-11** | 真机默认 IP 与 debug 溢出 | `192.168.0.3` 默认值；登录/检索两处 overflow | `core/config/`、`auth/`、`search/` | 默认 IP 可被 dart-define 覆盖；真机无黄黑条、无截断 | ✅ 2026-11-23 · f85c16b · `app_config.dart` 默认改 `192.168.0.3`；登录输入框 `minHeight:60`；检索头部 `Expanded+FittedBox`、副文案两行；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 UCB685CMAUIFFA7P 复验 01/04 截图，新预约 2124891109856104449 |
+
+| **C-12** | 检索页真机反馈与交互修补 | 已预约行挤压文字、详情可上拉、筛选/排序是假入口 | `features/search/presentation/search_page.dart`、`features/search/domain/book_sort.dart`、`features/search/data/dio_search_repository.dart`、`features/{notifications,reservation,profile}/presentation/*.dart`、`features/appeal/presentation/appeal_create_page.dart` | 行内换行不截断；详情固定 86% 仅下滑关闭；筛选/排序真实生效；三页下拉刷新；借出刷新；申诉缺项汇总 | ✅ 2026-11-24 · 无 git 提交 · `dart format` 103 files 0 changed / `flutter analyze` 0 / `flutter test` 46 绿（+6）；模拟器实测 02–10 截图 temp/ux-client-fix · 未完成 B1/B3/B5/B7 |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -294,6 +300,9 @@ flutter analyze; flutter test
 | 2026-11-23 | FE | F-11 审批深链与搜索关键词 | `GracePage`/`AppealPage` 用 `useSearchParams` 读 `?id=`；失效 toast「该工单已归档或不存在」并清 id 回落；Grace 详情改「单号·学号·书名」，通过/驳回加 AlertDialog（对象·书名·天数）；Appeal 详情顶栏常显单号+状态，PENDING 行「去处理」/其他「查看」；`AuditPage` 读 `?keyword=` 初始化并同步 URL，空态给「查看全部日志」；`pnpm build` 通过（1864 modules / JS 767.98KB gzip 241.70KB），ego 深链实测 GA202611191780 / AP20260209002 / BC0001，截图 temp/admin-verify2/fix-grace.png、fix-grace-confirm.png、fix-appeal.png、fix-audit.png |
 | 2026-11-23 | APP | C-11 真机默认 IP 与溢出 | 默认地址跟进当前 WLAN（192.168.0.3，可 dart-define）；修登录 2px、检索 13px overflow；真机重装复验；APK 115,242,041B / SHA256 8DC4B431…A9DA；test 40 绿 |
 | 2026-11-23 | Lead | 真机 + 邮件演示证据 | Realme RMX3041（UCB685CMAUIFFA7P）真机登录/书架/详情/预约全 PASS；SMTP 587 实发催还邮件 `EMAIL/SENT`（delivery 2124887081382301697，msgid `<1540127645.0.1795447531533@ZiAn>`），QQ 邮箱 IMAP 实收；证据 temp/real-phone/、temp/mail-shot/ |
+| 2026-11-24 | APP | C-12 检索页真机反馈与交互修补 | 已预约行改 Wrap 多行（libraryLabel 不再被 ellipsis）；详情由 DraggableScrollableSheet 改固定 86% + ListView（只能下滑关闭）；「筛选」改真实面板（全部/可借/可预约，说明按可借状态）；「按相关度」改可点排序（相关度/可借优先/书名 A-Z）；消息/预约/我的下拉刷新；借出后刷新检索；申诉补「还差 N 项」；新增 `book_sort.dart` + 6 测试；`flutter analyze` 0 / `flutter test` 46 绿；截图 temp/ux-client-fix/ |
+| 2026-11-24 | FE | F-12 管理端交互 P1 修补 | 馆员搜索无匹配 toast 并关层；通知行改 button 可 Tab/Enter 跳转（逾期/宽限/申诉/提醒）；借还台空表单内联错误 + toast + 回车校验；指标卡整卡可点（待办/到期/逾期/超时申诉）；审计空态区分；`pnpm typecheck` + `pnpm build` 通过（1864 modules / JS 770.56KB gzip 241.95KB）；截图 temp/ux-admin-fix/ |
+| 2026-11-23 | Lead | 审查与 P0 修复收口 | 安全审查 P0=0/P1=1/P2=13、交互审查 P0=3/P1=17/P2=12；本批修复 P1 刷新令牌（F-10/C-09）与 3 条 P0（C-10/F-11）；提交 b37c6e4/44013c5/9861f40；后端 107、客户端 40 测试绿 |
 
 ---
 
@@ -311,16 +320,3 @@ flutter analyze; flutter test
 | B-09-D1 | BE | 审计新增 `trace_id`/`before_json`/`after_json`：`traceId` 取请求头 `X-Trace-Id`（无头时由过滤器生成，与响应 `traceId` 一致）；前后值 JSON 字符串只覆盖宽限审批、申诉处理、规则调整三类；CSV 导出追加 3 列。前端如需把旧行也展示为结构化对象，请按 `null` 处理 | Lead 已裁决 | ✅ 2026-11-23 旧行按 null 降级，不补历史数据 |
 | B-08-D1 | BE | 证据附件为自定契约：`POST /v1/files`（multipart `file`，png/jpg/pdf、≤5MB、按魔数校验，超限 422）、`GET /v1/files/{id}`（本人或馆员可读，他人 404）、单次最多 5 个 `evidenceIds`；新增 `GET /v1/graces/{id}` 详情（此前只有 `/graces/self`）。若前端需要多文件上限调整或图片压缩，请提供口径 | Lead 已裁决 | ✅ 2026-11-23 上限保持 ≤5MB × 5 个；申诉沿用同契约（B-14） |
 | FR-05-D1 | BE | `READY` 预约的 48h 保留期目前只能由管理端 `POST /admin/reservations/{id}/expire` 手动触发，无定时清扫；赵一 2026-11-16 已过期的记录一直显示「待取书」。是否补 `@Scheduled` 清扫（过期 + 顺延下一位 + 通知） | Lead 已裁决 | ✅ 2026-11-23 已补 B-15：每 10 分钟扫描，过期置 `EXPIRED`、队首顺延 48h 并发 `RESERVATION_READY`、无人释放副本 |
-
-
-
-
-
-
-
-
-
-
-
-
-| 2026-11-23 | Lead | 审查与 P0 修复收口 | 安全审查 P0=0/P1=1/P2=13、交互审查 P0=3/P1=17/P2=12；本批修复 P1 刷新令牌（F-10/C-09）与 3 条 P0（C-10/F-11）；提交 b37c6e4/44013c5/9861f40；后端 107、客户端 40 测试绿 |

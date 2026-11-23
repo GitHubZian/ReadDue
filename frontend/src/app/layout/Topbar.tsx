@@ -1,6 +1,7 @@
-import { Bell, ChevronDown, Command, LogOut, Search, UserRound } from "lucide-react";
+import { Bell, ChevronDown, ChevronRight, Command, LogOut, Search, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { NAV_ITEMS } from "@/app/nav";
 import { StatusPill } from "@/components/common/StatusPill";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function Topbar() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const dashboard = useDashboard();
   const stats = dashboard.data?.stats;
   const notices = dashboard.data?.notices ?? [];
@@ -39,6 +41,10 @@ export function Topbar() {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!query.trim()) {
+      setSearchOpen(false);
+      return;
+    }
     const first = matches[0];
     if (first) {
       navigate(first.path);
@@ -48,7 +54,25 @@ export function Topbar() {
       navigate(`/audit?keyword=${encodeURIComponent(query.trim())}`);
       setQuery("");
       setSearchOpen(false);
+    } else {
+      // 馆员没有审计权限：给明确反馈，不再静默停在原地
+      toast.error("未找到匹配的功能或单号", {
+        description: "请换一个功能名称，或联系管理员查询单号。",
+      });
+      setSearchOpen(false);
     }
+  };
+
+  const noticeTarget = (notice: { id: string; title: string }) => {
+    if (notice.title.includes("宽限")) return `/grace?id=${notice.id}`;
+    if (notice.title.includes("申诉")) return `/appeals?id=${notice.id}`;
+    if (notice.title.includes("逾期") || notice.title.includes("催还")) return "/overdue";
+    return "/notify";
+  };
+
+  const openNotice = (notice: { id: string; title: string }) => {
+    navigate(noticeTarget(notice));
+    setNoticeOpen(false);
   };
 
   const logout = async () => {
@@ -94,7 +118,7 @@ export function Topbar() {
                   setQuery("");
                   setSearchOpen(false);
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] text-ink-2 hover:bg-wash"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] text-ink-2 hover:bg-wash focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-deep/40"
               >
                 <item.icon className="size-3.5 text-ink-3" />
                 {item.label}
@@ -105,7 +129,7 @@ export function Topbar() {
             <p className="px-2 py-3 text-[11px] text-ink-3">
               {canViewAudit
                 ? "未找到对应页面，回车将带关键词前往审计日志。"
-                : "未找到可访问的页面。"}
+                : "未找到匹配的功能或单号，换一个关键词试试。"}
             </p>
           )}
         </PopoverContent>
@@ -119,7 +143,7 @@ export function Topbar() {
           {dashboard.isPending ? "连接中" : dashboard.isError ? "服务未连接" : "服务在线"}
         </StatusPill>
 
-        <Popover>
+        <Popover open={noticeOpen} onOpenChange={setNoticeOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label="通知" className="relative">
               <Bell className="size-4" strokeWidth={1.8} />
@@ -138,11 +162,20 @@ export function Topbar() {
             <ul className="divide-y divide-line-2">
               {notices.length ? (
                 notices.slice(0, 4).map((notice) => (
-                  <li key={notice.id} className="px-3.5 py-2.5">
-                    <p className="text-[11px] font-medium text-ink">{notice.title}</p>
-                    <p className="mt-0.5 text-[10px] text-ink-3">
-                      {notice.body} · {fromNow(notice.at)}
-                    </p>
+                  <li key={notice.id}>
+                    <button
+                      type="button"
+                      onClick={() => openNotice(notice)}
+                      className="flex w-full items-start gap-2 px-3.5 py-2.5 text-left transition-colors hover:bg-wash focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-mint-deep/40"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-medium text-ink">{notice.title}</span>
+                        <span className="mt-0.5 block text-[10px] text-ink-3">
+                          {notice.body} · {fromNow(notice.at)}
+                        </span>
+                      </span>
+                      <ChevronRight className="mt-0.5 size-3 shrink-0 text-ink-3" />
+                    </button>
                   </li>
                 ))
               ) : (
@@ -152,8 +185,11 @@ export function Topbar() {
             <div className="border-t border-line px-3.5 py-2">
               <button
                 type="button"
-                onClick={() => navigate("/notify")}
-                className="text-[10.5px] font-medium text-mint-deep hover:underline"
+                onClick={() => {
+                  navigate("/notify");
+                  setNoticeOpen(false);
+                }}
+                className="rounded text-[10.5px] font-medium text-mint-deep hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-deep/40"
               >
                 前往提醒中心
               </button>

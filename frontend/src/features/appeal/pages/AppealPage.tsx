@@ -41,7 +41,15 @@ type ConclusionKind = "REVOKE_OVERDUE" | "COMPENSATE" | "REJECT";
 export function AppealPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlId = searchParams.get("id") ?? undefined;
-  const [status, setStatus] = useState<AppealStatus | "ALL">("ALL");
+  const [status, setStatus] = useState<AppealStatus | "ALL">(() => {
+    const urlStatus = searchParams.get("status");
+    return urlStatus === "PENDING" ||
+      urlStatus === "PROCESSING" ||
+      urlStatus === "RESOLVED" ||
+      urlStatus === "REJECTED"
+      ? urlStatus
+      : "ALL";
+  });
   const [category, setCategory] = useState<AppealCategory | "ALL">("ALL");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);

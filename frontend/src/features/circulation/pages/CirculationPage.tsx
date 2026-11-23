@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeftRight, BookUp2, ScanLine } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,9 +32,18 @@ export function CirculationPage() {
   const [readerNo, setReaderNo] = useState("");
   const [borrowBarcode, setBorrowBarcode] = useState("");
   const [returnBarcode, setReturnBarcode] = useState("");
+  const [borrowErrors, setBorrowErrors] = useState<{ readerNo?: string; barcode?: string }>({});
+  const [returnError, setReturnError] = useState<string>();
 
   const onBorrow = () => {
-    if (!readerNo.trim() || !borrowBarcode.trim()) return;
+    const nextErrors: { readerNo?: string; barcode?: string } = {};
+    if (!readerNo.trim()) nextErrors.readerNo = "请输入读者证号";
+    if (!borrowBarcode.trim()) nextErrors.barcode = "请输入或扫描馆藏条码";
+    setBorrowErrors(nextErrors);
+    if (nextErrors.readerNo || nextErrors.barcode) {
+      toast.error("请先补全借出信息", { description: "读者证号与馆藏条码都不能为空。" });
+      return;
+    }
     borrow.mutate(
       { readerNo: readerNo.trim(), barcode: borrowBarcode.trim() },
       { onSuccess: () => setBorrowBarcode("") },
@@ -41,7 +51,12 @@ export function CirculationPage() {
   };
 
   const onReturn = () => {
-    if (!returnBarcode.trim()) return;
+    if (!returnBarcode.trim()) {
+      setReturnError("请输入或扫描馆藏条码");
+      toast.error("请输入馆藏条码");
+      return;
+    }
+    setReturnError(undefined);
     ret.mutate({ barcode: returnBarcode.trim() }, { onSuccess: () => setReturnBarcode("") });
   };
 
@@ -72,10 +87,23 @@ export function CirculationPage() {
               <Input
                 id="reader-no"
                 value={readerNo}
-                onChange={(event) => setReaderNo(event.target.value)}
+                onChange={(event) => {
+                  setReaderNo(event.target.value);
+                  if (borrowErrors.readerNo && event.target.value.trim()) {
+                    setBorrowErrors((prev) => ({ ...prev, readerNo: undefined }));
+                  }
+                }}
+                onKeyDown={(event) => event.key === "Enter" && onBorrow()}
                 placeholder="例如 2023A1042"
+                aria-invalid={Boolean(borrowErrors.readerNo)}
+                aria-describedby={borrowErrors.readerNo ? "reader-no-error" : undefined}
                 className="mt-1 h-10 font-mono text-[12px]"
               />
+              {borrowErrors.readerNo ? (
+                <p id="reader-no-error" role="alert" className="mt-1 text-[10px] text-danger">
+                  {borrowErrors.readerNo}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className="text-[9.5px] font-semibold tracking-wider text-ink-3" htmlFor="borrow-barcode">
@@ -87,9 +115,16 @@ export function CirculationPage() {
                   <Input
                     id="borrow-barcode"
                     value={borrowBarcode}
-                    onChange={(event) => setBorrowBarcode(event.target.value)}
+                    onChange={(event) => {
+                      setBorrowBarcode(event.target.value);
+                      if (borrowErrors.barcode && event.target.value.trim()) {
+                        setBorrowErrors((prev) => ({ ...prev, barcode: undefined }));
+                      }
+                    }}
                     onKeyDown={(event) => event.key === "Enter" && onBorrow()}
                     placeholder="扫描或输入条码"
+                    aria-invalid={Boolean(borrowErrors.barcode)}
+                    aria-describedby={borrowErrors.barcode ? "borrow-barcode-error" : undefined}
                     className="h-10 pl-9 pr-3 font-mono text-[12px]"
                   />
                 </div>
@@ -97,6 +132,11 @@ export function CirculationPage() {
                   确认借出
                 </Button>
               </div>
+              {borrowErrors.barcode ? (
+                <p id="borrow-barcode-error" role="alert" className="mt-1 text-[10px] text-danger">
+                  {borrowErrors.barcode}
+                </p>
+              ) : null}
             </div>
 
             {borrow.data ? (
@@ -130,9 +170,14 @@ export function CirculationPage() {
                   <Input
                     id="return-barcode"
                     value={returnBarcode}
-                    onChange={(event) => setReturnBarcode(event.target.value)}
+                    onChange={(event) => {
+                      setReturnBarcode(event.target.value);
+                      if (returnError && event.target.value.trim()) setReturnError(undefined);
+                    }}
                     onKeyDown={(event) => event.key === "Enter" && onReturn()}
                     placeholder="扫描归还条码"
+                    aria-invalid={Boolean(returnError)}
+                    aria-describedby={returnError ? "return-barcode-error" : undefined}
                     className="h-10 pl-9 pr-3 font-mono text-[12px]"
                   />
                 </div>
@@ -140,6 +185,11 @@ export function CirculationPage() {
                   确认归还
                 </Button>
               </div>
+              {returnError ? (
+                <p id="return-barcode-error" role="alert" className="mt-1 text-[10px] text-danger">
+                  {returnError}
+                </p>
+              ) : null}
             </div>
 
             {ret.data ? (

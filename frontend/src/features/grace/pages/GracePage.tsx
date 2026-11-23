@@ -45,7 +45,10 @@ function evidenceId(file: { id?: string; url?: string }) {
 export function GracePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlId = searchParams.get("id") ?? undefined;
-  const [status, setStatus] = useState<GraceStatus>("PENDING");
+  const [status, setStatus] = useState<GraceStatus>(() => {
+    const urlStatus = searchParams.get("status");
+    return urlStatus === "APPROVED" || urlStatus === "REJECTED" ? urlStatus : "PENDING";
+  });
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | undefined>(urlId);

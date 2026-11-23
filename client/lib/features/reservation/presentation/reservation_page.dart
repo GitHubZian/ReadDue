@@ -58,11 +58,18 @@ class _ReservationPageState extends ConsumerState<ReservationPage> {
                 ),
               ),
             Expanded(
-              child: AsyncBody<ReservationsPage>(
-                value: value,
-                onRetry: () => ref.invalidate(reservationsProvider),
-                skeleton: const SkeletonList(count: 2, itemHeight: 150),
-                builder: (data) => _body(data),
+              child: RefreshIndicator(
+                color: AppColors.mintDeep,
+                onRefresh: () async {
+                  ref.invalidate(reservationsProvider);
+                  await ref.read(reservationsProvider.future);
+                },
+                child: AsyncBody<ReservationsPage>(
+                  value: value,
+                  onRetry: () => ref.invalidate(reservationsProvider),
+                  skeleton: const SkeletonList(count: 2, itemHeight: 150),
+                  builder: (data) => _body(data),
+                ),
               ),
             ),
           ],
@@ -74,13 +81,20 @@ class _ReservationPageState extends ConsumerState<ReservationPage> {
   Widget _body(ReservationsPage data) {
     if (_tab == 0) {
       if (data.ready.isEmpty) {
-        return const EmptyState(
-          title: '暂无待取书的预约',
-          message: '借出中的书可以在检索页预约，到书后会第一时间通知。',
-          icon: Icons.event_available_outlined,
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 40),
+            EmptyState(
+              title: '暂无待取书的预约',
+              message: '借出中的书可以在检索页预约，到书后会第一时间通知。',
+              icon: Icons.event_available_outlined,
+            ),
+          ],
         );
       }
       return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
         children: [
           for (var i = 0; i < data.ready.length; i++) ...[
@@ -112,13 +126,20 @@ class _ReservationPageState extends ConsumerState<ReservationPage> {
     }
     if (_tab == 1) {
       if (data.completed.isEmpty) {
-        return const EmptyState(
-          title: '暂无已完成的预约',
-          message: '取书完成后，历史记录会保留在这里。',
-          icon: Icons.history,
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 40),
+            EmptyState(
+              title: '暂无已完成的预约',
+              message: '取书完成后，历史记录会保留在这里。',
+              icon: Icons.history,
+            ),
+          ],
         );
       }
       return ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
         itemCount: data.completed.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -127,13 +148,20 @@ class _ReservationPageState extends ConsumerState<ReservationPage> {
       );
     }
     if (data.cancelled.isEmpty) {
-      return const EmptyState(
-        title: '暂无已取消的预约',
-        message: '取消预约后会保留记录，方便复查。',
-        icon: Icons.event_busy_outlined,
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 40),
+          EmptyState(
+            title: '暂无已取消的预约',
+            message: '取消预约后会保留记录，方便复查。',
+            icon: Icons.event_busy_outlined,
+          ),
+        ],
       );
     }
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
       itemCount: data.cancelled.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),

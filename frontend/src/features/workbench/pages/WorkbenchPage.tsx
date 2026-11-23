@@ -68,6 +68,7 @@ export function WorkbenchPage() {
           }
           icon={Inbox}
           tone="amber"
+          to="/grace?status=PENDING"
         />
         <StatCard
           label="今日到期"
@@ -78,6 +79,7 @@ export function WorkbenchPage() {
           }
           icon={CalendarClock}
           tone="mint"
+          to="/circulation"
         />
         <StatCard
           label="逾期未还"
@@ -91,6 +93,7 @@ export function WorkbenchPage() {
           }
           icon={AlarmClock}
           tone="red"
+          to="/overdue"
         />
         <StatCard
           label="超时申诉"
@@ -99,6 +102,7 @@ export function WorkbenchPage() {
           hint={(stats?.slaBreach ?? 0) > 0 ? "已升级值班主管" : "暂无超时工单"}
           icon={TriangleAlert}
           tone="red"
+          to="/appeals?status=PROCESSING"
         />
       </div>
 

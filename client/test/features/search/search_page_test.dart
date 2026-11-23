@@ -135,4 +135,47 @@ void main() {
     expect(find.text('暂时无法加载'), findsOneWidget);
     expect(find.text('重试'), findsOneWidget);
   });
+
+  testWidgets('C12 筛选面板按可借状态过滤', (tester) async {
+    await pumpPage(tester, const SearchPage());
+
+    expect(find.textContaining('乡土中国·生育制度'), findsOneWidget);
+    await tester.tap(find.text('筛选'));
+    await tester.pumpAndSettle();
+    expect(find.text('筛选结果'), findsOneWidget);
+    expect(find.textContaining('可借＝有在架副本'), findsOneWidget);
+
+    await tester.tap(find.text('可借').last);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('乡土中国·生育制度'), findsNothing);
+    expect(find.text('乡土中国'), findsOneWidget);
+  });
+
+  testWidgets('C12 排序面板更新标签', (tester) async {
+    await pumpPage(tester, const SearchPage());
+
+    await tester.tap(find.textContaining('按相关度'));
+    await tester.pumpAndSettle();
+    expect(find.text('排序方式'), findsOneWidget);
+
+    await tester.tap(find.text('书名 A-Z'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('书名 A-Z'), findsWidgets);
+    expect(find.textContaining('按相关度'), findsNothing);
+  });
+
+  testWidgets('C12 详情页固定高度且不可上拉扩展', (tester) async {
+    await pumpPage(tester, const SearchPage());
+
+    await tester.tap(find.text('乡土中国').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DraggableScrollableSheet), findsNothing);
+    expect(find.textContaining('ISBN'), findsOneWidget);
+    expect(find.text('馆藏位置'), findsOneWidget);
+  });
 }

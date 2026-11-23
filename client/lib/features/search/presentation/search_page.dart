@@ -20,6 +20,7 @@ import '../../../core/widgets/states.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../borrow/presentation/borrow_providers.dart';
 import '../../reservation/presentation/reservation_providers.dart';
+import '../domain/book_sort.dart';
 import 'search_providers.dart';
 
 /// C4 馆藏检索：300ms 防抖、全部/可借/可预约筛选、结果行。
@@ -40,6 +41,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Timer? _debounce;
   late String _query;
   int _filter = 0;
+  BookSort _sort = BookSort.relevance;
   final Map<String, int> _reserved = {};
   bool _reserveBlocked = false;
   bool _reserving = false;
@@ -72,6 +74,106 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     setState(() {});
   }
 
+  Future<void> _showFilterSheet() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sheetHandle(),
+              const SizedBox(height: 16),
+              const Text('筛选结果', style: AppText.h3),
+              const SizedBox(height: 6),
+              Text(
+                '按「可借状态」筛选：可借＝有在架副本；可预约＝已全部借出、可排队。',
+                style: AppText.caption.copyWith(
+                  color: AppColors.ink2,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 10),
+              for (var i = 0; i < _filters.length; i++)
+                _SheetOption(
+                  label: _filters[i],
+                  subtitle: switch (i) {
+                    1 => '只看当前有在架副本的书',
+                    2 => '只看已全部借出、可排队的书',
+                    _ => '不限可借状态',
+                  },
+                  selected: _filter == i,
+                  onTap: () => Navigator.of(sheetContext).pop(i),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) setState(() => _filter = selected);
+  }
+
+  Future<void> _showSortSheet() async {
+    final selected = await showModalBottomSheet<BookSort>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sheetHandle(),
+              const SizedBox(height: 16),
+              const Text('排序方式', style: AppText.h3),
+              const SizedBox(height: 6),
+              Text(
+                '排序只影响当前结果列表，不改变检索关键词。',
+                style: AppText.caption.copyWith(color: AppColors.ink2),
+              ),
+              const SizedBox(height: 10),
+              for (final sort in BookSort.values)
+                _SheetOption(
+                  label: sort.label,
+                  subtitle: sort.description,
+                  selected: _sort == sort,
+                  onTap: () => Navigator.of(sheetContext).pop(sort),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) setState(() => _sort = selected);
+  }
+
+  Widget _sheetHandle() {
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: AppColors.line,
+          borderRadius: BorderRadius.circular(99),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final args = (query: _query, filter: _filterValues[_filter]);
@@ -90,7 +192,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                 radius: 12,
-                onTap: () => showToast(context, '筛选条件已是最新'),
+                onTap: _showFilterSheet,
                 child: SizedBox(
                   height: 44,
                   child: Row(
@@ -188,11 +290,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             style:
                                 AppText.caption.copyWith(color: AppColors.ink3),
                           ),
-                          Text(
-                            '按相关度 ⌄',
-                            style: AppText.caption.copyWith(
-                              color: AppColors.mintDeep,
-                              fontWeight: FontWeight.w600,
+                          InkWell(
+                            onTap: _showSortSheet,
+                            borderRadius: BorderRadius.circular(6),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                '${_sort.label} ⌄',
+                                style: AppText.caption.copyWith(
+                                  color: AppColors.mintDeep,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -218,50 +327,53 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     setState(() => _query = '');
                   },
                 ),
-                builder: (data) => ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                  itemCount: data.items.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    if (index == data.items.length) {
-                      return Column(
-                        children: [
-                          AppCard(
-                            onTap: () => showToast(context, '已加载全部结果'),
-                            child: SizedBox(
-                              height: 28,
-                              child: Center(
-                                child: Text(
-                                  '查看全部 $total 条结果  →',
-                                  style: AppText.bodySm.copyWith(
-                                    fontWeight: FontWeight.w600,
+                builder: (data) {
+                  final items = sortBooks(data.items, _sort);
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    itemCount: items.length + 1,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      if (index == items.length) {
+                        return Column(
+                          children: [
+                            AppCard(
+                              onTap: () => showToast(context, '已加载全部结果'),
+                              child: SizedBox(
+                                height: 28,
+                                child: Center(
+                                  child: Text(
+                                    '查看全部 $total 条结果  →',
+                                    style: AppText.bodySm.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '检索支持书名 / 作者 / 索书号，结果按库存实时更新',
-                            textAlign: TextAlign.center,
-                            style:
-                                AppText.caption.copyWith(color: AppColors.ink3),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            Text(
+                              '检索支持书名 / 作者 / 索书号，结果按库存实时更新',
+                              textAlign: TextAlign.center,
+                              style: AppText.caption
+                                  .copyWith(color: AppColors.ink3),
+                            ),
+                          ],
+                        );
+                      }
+                      return EnterFade(
+                        index: index,
+                        child: _BookRow(
+                          book: items[index],
+                          reservedPosition: _reserved[items[index].id],
+                          reserveEnabled: !_reserveBlocked,
+                          onTap: () => _openDetail(items[index]),
+                          onAction: () => _onAction(items[index]),
+                        ),
                       );
-                    }
-                    return EnterFade(
-                      index: index,
-                      child: _BookRow(
-                        book: data.items[index],
-                        reservedPosition: _reserved[data.items[index].id],
-                        reserveEnabled: !_reserveBlocked,
-                        onTap: () => _openDetail(data.items[index]),
-                        onAction: () => _onAction(data.items[index]),
-                      ),
-                    );
-                  },
-                ),
+                    },
+                  );
+                },
               ),
             ),
           ],
@@ -402,6 +514,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       await ref.read(searchRepositoryProvider).borrow(book.id);
       if (!mounted) return;
       ref.invalidate(borrowDashboardProvider);
+      ref.invalidate(
+        searchProvider((query: _query, filter: _filterValues[_filter])),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('已借出《${book.title}》'),
@@ -489,15 +604,28 @@ class _BookRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    StatusPill(label: pillLabel, tone: tone),
-                    const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        book.libraryLabel,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.caption.copyWith(color: AppColors.ink3),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            StatusPill(label: pillLabel, tone: tone),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                  maxWidth: constraints.maxWidth),
+                              child: Text(
+                                book.libraryLabel,
+                                softWrap: true,
+                                style: AppText.caption
+                                    .copyWith(color: AppColors.ink3),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -537,13 +665,9 @@ class _BookDetailSheet extends ConsumerWidget {
     final detail = ref.watch(bookDetailProvider(book.id));
     return SafeArea(
       top: false,
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.72,
-        minChildSize: 0.45,
-        maxChildSize: 0.92,
-        builder: (context, scrollController) => ListView(
-          controller: scrollController,
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.86,
+        child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
           children: [
             Center(
@@ -717,7 +841,6 @@ class _BookDetailSheet extends ConsumerWidget {
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});
-
   final String label;
   final String value;
 
@@ -744,6 +867,63 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SheetOption extends StatelessWidget {
+  const _SheetOption({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppText.bodySm.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.ink3,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 20,
+                color: AppColors.mintDeep,
+              ),
+          ],
+        ),
       ),
     );
   }

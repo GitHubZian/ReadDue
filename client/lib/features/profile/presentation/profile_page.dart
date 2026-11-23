@@ -52,11 +52,18 @@ class ProfilePage extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: AsyncBody<ProfileData>(
-                value: value,
-                onRetry: () => ref.invalidate(profileProvider),
-                skeleton: const SkeletonList(count: 5, itemHeight: 72),
-                builder: (data) => _body(context, ref, data),
+              child: RefreshIndicator(
+                color: AppColors.mintDeep,
+                onRefresh: () async {
+                  ref.invalidate(profileProvider);
+                  await ref.read(profileProvider.future);
+                },
+                child: AsyncBody<ProfileData>(
+                  value: value,
+                  onRetry: () => ref.invalidate(profileProvider),
+                  skeleton: const SkeletonList(count: 5, itemHeight: 72),
+                  builder: (data) => _body(context, ref, data),
+                ),
               ),
             ),
           ],
@@ -71,6 +78,7 @@ class ProfilePage extends ConsumerWidget {
     final full = data.quotaUsed >= data.quotaTotal && data.quotaTotal > 0;
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
       children: [
         if (data.blacklisted) ...[
