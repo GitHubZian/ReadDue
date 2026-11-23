@@ -1,6 +1,6 @@
 # 阅有期 · 三端任务分派书（todolist.md）
 
-> 版本：2026-11-23 · 收口复核（后端 95 测试绿 / 管理端 13 业务页 / 客户端 30 测试绿 / Flyway V14）
+> 版本：2026-11-23 · 收口复核（后端 98 测试绿 / 管理端 13 业务页 / 客户端 30 测试绿 / Flyway V14）
 > 读者：**后端 Agent**、**前端 Agent**、**客户端 Agent**。三方共读 §0–§2，然后只做自己那一节。
 > 接口口径：以 `project/后端的交互接口文档.md` 为准（`project/spec/技术架构.md` 不存在，X-03-D1 已由 Lead 裁决，2026-11-23）。
 
@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 15/15（B-00…B-12 + B-14 申诉证据；X-02/03/04 另计） · 前端 7/7 · 客户端 7/7 + 证据附件真实上传 · 联动 3/4（X-02/03/04 ✅；X-01 进行中）
+**进度快照（回写时同步此行）**：后端 16/16（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫；X-02/03/04 另计） · 前端 8/8 · 客户端 7/7 + 证据附件真实上传 · 联动 4/5（X-02/03/04/05 ✅；X-01 🟡 客户端 APK 阻塞）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -64,6 +64,7 @@
 | B-12 | 角色权限调整 | BE | ✅ 2026-11-19 · 9f53861 · 90 绿/1 跳 · 4 个测试 | B-00 |
 | B-13 | sort 移除 + 幂等 | BE | ✅ 2026-11-19 · 未提交 · `IdempotencyFilter` 已生效 · 42 测试绿 | — |
 | B-14 | 申诉证据附件 | BE | ✅ 2026-11-23 · 见 §3 | B-08 |
+| B-15 | 预约过期自动清扫 | BE | ✅ 2026-11-23 · 见 §3 | B-08、FR-05-D1 |
 | F-01 | 校历管理（A9） | FE | ✅ 2026-11-19 · 7b140e0 | B-07 |
 | F-02 | 角色权限页 | FE | ✅ 2026-11-19 · 1da9f4c | B-12 |
 | F-03 | 宽限证据展示 | FE | ✅ 2026-11-19 · 663e8a1 · 管理端 evidence 由 3d79e35 补齐 | B-08 |
@@ -71,6 +72,7 @@
 | F-05 | 组织级通知策略 | FE | ✅ 2026-11-19 · d4e6e04 | B-06 |
 | F-06 | 幂等与重试语义 | FE | ✅ 2026-11-19 · 3a08e5d · 见 §4 | B-13 ✅ |
 | F-07 | 部署前清理演示账号 | FE | ✅ 2026-11-19 · 6fe2744 · 见 §4 | 无 |
+| F-08 | 管理端状态真实性 | FE | ✅ 2026-11-23 · 见 §4 | 无 |
 | C-01 | 接真实后端（去 mock） | APP | ✅ 2026-11-19 · 无 git 提交 · `useMock` 默认 false，7 个 provider 按 `appUseMockProvider` 切换；C1 摘要/未读、C6 通知/渠道/免打扰、C7 资料走真接口 | B-01、B-02、B-04、B-05 |
 | C-02 | 检索与书目详情 | APP | ✅ 2026-11-19 · 无 git 提交 · `/books` 四端点 + 详情弹层 + 可借/可预约；UI 真实借阅「算法导论」成功并回流 C1 | B-01 |
 | C-03 | 消息中心与偏好 | APP | ✅ 2026-11-19 · 无 git 提交 · 通知列表/未读数、渠道开关、免打扰读写真接口；失败回滚提示；空态真机验证 | B-02、B-04、B-05 |
@@ -82,13 +84,14 @@
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
 | X-04 | `.gitattributes` | **BE 发起** | ✅ 2026-11-19 · `* text=auto eol=lf`，279 个文本文件归一化 | 无 |
+| X-05 | CI/CD 与容器化 | **Lead** | ✅ 2026-11-23 · ci/release workflow + 三端镜像 + compose，离线校验通过（未推送） | 无 |
 
 ---
 
 ## 3. 后端 Agent（`project/backend`）
 
 > 入口 `backend/AGENT.md`。启动：`$env:JAVA_HOME='C:\JDK\jdk21'; mvn -q spring-boot:run`（8125，`/api`）。
-> 现有基线：378 Java / 26 Controller / 95 测试（1 跳过）/ Flyway V1–V14。
+> 现有基线：378 Java / 26 Controller / 98 测试（1 跳过）/ Flyway V1–V14。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -107,6 +110,7 @@
 | **B-12** | 角色权限调整 | 权限种子固定 | `iam/interfaces/UserAdminController.java` | `GET /admin/roles`、`GET /admin/permissions`、`PUT /admin/roles/{code}/permissions`，仅 ADMIN，改后 `/me` 立即生效；ADMIN 不可移除 `role:manage` | ✅ 2026-11-19 · 9f53861 · 90 绿/1 跳 · 4 个测试：角色列表/权限目录、旧 token 立即失权、未知角色/权限 404、ADMIN 422 |
 | **B-13** | sort + 幂等 | 已完成 | `PageQuery`、`IdempotencyFilter` | 不支持 `sort`（固定排序）；同 key 24h 重放返回首次结果 | ✅ 见 §2 |
 | **B-14** | 申诉证据附件 | 申诉只有 `reason`，无附件；宽限证据已通 | `appeal/**` + `shared.file` + 管理端读模型 | `POST /v1/appeals` 收可选 `evidenceIds`（≤5，先传文件，仅本人）；`GET /v1/appeals/{id}` 返回 `evidence[{id,name,contentType,size}]`；管理端列表装配 `evidence[{label,url}]`；旧请求兼容空数组 | ✅ 2026-11-23 · 未提交 · `mvn test` 95 绿/1 跳（新增 4 例）；V14 `appeal_evidence`；契约见接口文档 §18.20 |
+| **B-15** | 预约过期自动清扫 | `expire()` 只改状态，不释放副本、不顺延队首；无定时任务 | `reservation/**` + `catalog/BookCopyRepository` | 每 10 分钟扫描 `READY` 且过期的预约：置 `EXPIRED` + 审计；有下一位则 `READY`（48h）+ outbox `RESERVATION_READY`；无人则释放 `READY_SHELF` 副本 | ✅ 2026-11-23 · 未提交 · `mvn test` 98 绿/1 跳（新增 `ReservationExpiryTest` 3 例）；`@Scheduled(fixedDelay=600000, initialDelay=60000)`；`scanExpired` 逐条容错 |
 
 **不要做**：不改 `schema.sql` 既有语义；`domain` 不引 Spring/MyBatis；不加第二套 ORM；不为单页加专用端点；MySQL 排序不拼字符串。
 
@@ -125,6 +129,7 @@
 | **F-05** | 组织级通知策略 | A7 只收发模板 | `src/features/notify/` | 院系/角色默认偏好与强制项；不覆盖读者 OFF | ✅ 2026-11-19 · d4e6e04 · `pnpm typecheck`/`pnpm build` 通过；/notify 主题策略 6 个主题渲染，`PUT /admin/notify-topics/BORROW_DUE` code=0；SMS 渠道 422，UI 仅保留 INBOX/EMAIL · 3 文件（notify/api.ts、queries.ts、pages/NotifyPage.tsx） |
 | **F-06** | 幂等与重试语义 | 重试不复用 key | `src/lib/api/` | 同一写操作重试复用 key；409/422 提示区分 | ✅ 2026-11-19 · 3a08e5d · `pnpm typecheck`/`pnpm build` 通过；同 body 连发两次 `POST /borrows` 复用同一 Idempotency-Key（8f94cb92…），失败不清键 · 2 文件（client.ts、errors.ts） |
 | **F-07** | 演示账号清理 | 登录页预填 | `src/features/auth/pages/LoginPage.tsx` | `import.meta.env.DEV` 包裹，生产构建不含演示账号 | ✅ 2026-11-19 · 6fe2744 · `pnpm build` 通过；`dist` 内检索 ADMIN001/演示账号 计数 0 · 1 文件（LoginPage.tsx） |
+| **F-08** | 管理端状态真实性 | 顶栏连接态/通知气泡/免打扰卡/侧栏值班为静态；批量拉黑只 toast；借还台「当前在办 0」硬编码 | `app/layout/*`、`features/circulation`、`features/iam` | 连接态取 dashboard 查询结果；通知数取 `pendingTotal` 与真实 notices；批量拉黑走真实接口并逐人报告；删除硬编码的在办数与假值班行 | ✅ 2026-11-23 · 未提交 · `pnpm build` 通过（1864 modules / JS 764.93KB gzip 240.01KB）；浏览器实测徽标「服务在线」、批量弹窗勾选 2 人可提交（已取消）、借还台仅 2 张真实统计卡 |
 
 **不要做**：不改 `components/ui/*`；不引第二套 UI；不开 dark mode；不端算金额/天数/SLA。
 
@@ -132,7 +137,7 @@
 
 ## 5. 客户端 Agent（`project/client`）
 
-> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 24 测试绿 / `useMock` 默认 false。
+> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 30 测试绿 / `useMock` 默认 false / 附件真实上传。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -247,7 +252,10 @@ flutter analyze; flutter test
 | 2026-11-23 | APP | API 地址与证据附件 | `app_config.dart` 默认 `http://10.22.127.30:8125/api`；新增 `POST /v1/files` multipart 与 `evidence_upload.dart`；宽限/申诉真实选文件、上限 5、≤5MB、先传后提；`flutter analyze` 0 / `flutter test` 30 绿；APK 构建被离线 Gradle 阻塞（未产生新包） |
 | 2026-11-23 | FE | 权限收敛与工作台文案 | 馆员隐藏借出表单（`borrow:create`）与未授权死链；顶栏搜索先按权限过滤；免打扰卡改真实 `stats.pendingTotal`/`duty.window`，去掉「已延后 14 条」等假状态；`pnpm build` 通过（1864 modules / JS 764.16KB gzip 239.74KB） |
 | 2026-11-23 | Lead | 收口复核 | §11 七条全部裁决；§2 索引与 §4 详表状态校正（F-03/F-06/F-07）；PRD 升至 V1.1、README 重写；X-01 记 🟡（管理端+后端已验，客户端 APK 阻塞） |
-| 2026-11-23 | Lead | 演示数据修复 | 周雨 `reader_profile.department` 乱码 `æ–‡å­¦é™¢` → `文学院`；赵一过期预约（2026-11-16）经 `POST /admin/reservations/{id}/expire` 置 `EXPIRED`；登记 FR-05-D1（缺自动清扫任务） |
+| 2026-11-23 | BE | B-15 预约过期清扫 | `@Scheduled` 每 10 分钟扫 `READY` 过期：置 `EXPIRED` + 审计；队首 `READY`（48h）+ outbox；无人释放 `READY_SHELF` 副本（`releaseHoldForBook`）；`ReservationExpiryTest` 3 例；`mvn test` 98 绿/1 跳 |
+| 2026-11-23 | FE | F-08 管理端状态真实性 | 顶栏连接态/通知数取真实查询；批量拉黑走接口并逐人报告；借还台删硬编码「当前在办」；侧栏删假值班行；`pnpm build` 通过、浏览器实测 |
+| 2026-11-23 | Lead | X-05 CI/CD 与容器化 | `.github/workflows/ci.yml`（三端构建/测试）、`release.yml`（tag 制品 + ghcr 镜像 + Release）、`backend|frontend/Dockerfile`、`frontend/nginx.conf`、`deploy/docker-compose.yml`、`.env.example`、`application-prod.yml`；`docker compose config` 与 YAML 校验通过；README 增 CI/CD 段 |
+| 2026-11-23 | Lead | 离线收尾复核 | 后端 98 测试、管理端构建、客户端 30 测试全绿；工作树待提交（B-15/F-08/X-05/文档）；GitHub 仍不可达，未推送 |
 
 ---
 
@@ -264,7 +272,7 @@ flutter analyze; flutter test
 | B-10-D1 | BE | 关闭「计算缓存」授权时，已写入 Redis 的宽限快照不做即时删除（键为 `readdue:grace:snap:{orderId}`，跨上下文枚举成本高），按 24h TTL 自然过期；遗忘为不可撤销的脱敏，账号仍可登录但无姓名/手机/邮箱 | Lead 已裁决 | ✅ 2026-11-23 接受 24h TTL，页面提示「最迟 24 小时内失效」 |
 | B-09-D1 | BE | 审计新增 `trace_id`/`before_json`/`after_json`：`traceId` 取请求头 `X-Trace-Id`（无头时由过滤器生成，与响应 `traceId` 一致）；前后值 JSON 字符串只覆盖宽限审批、申诉处理、规则调整三类；CSV 导出追加 3 列。前端如需把旧行也展示为结构化对象，请按 `null` 处理 | Lead 已裁决 | ✅ 2026-11-23 旧行按 null 降级，不补历史数据 |
 | B-08-D1 | BE | 证据附件为自定契约：`POST /v1/files`（multipart `file`，png/jpg/pdf、≤5MB、按魔数校验，超限 422）、`GET /v1/files/{id}`（本人或馆员可读，他人 404）、单次最多 5 个 `evidenceIds`；新增 `GET /v1/graces/{id}` 详情（此前只有 `/graces/self`）。若前端需要多文件上限调整或图片压缩，请提供口径 | Lead 已裁决 | ✅ 2026-11-23 上限保持 ≤5MB × 5 个；申诉沿用同契约（B-14） |
-| FR-05-D1 | BE | `READY` 预约的 48h 保留期目前只能由管理端 `POST /admin/reservations/{id}/expire` 手动触发，无定时清扫；赵一 2026-11-16 已过期的记录一直显示「待取书」。是否补 `@Scheduled` 清扫（过期 + 顺延下一位 + 通知） | Lead 待排期 | ⬜ 待排期 |
+| FR-05-D1 | BE | `READY` 预约的 48h 保留期目前只能由管理端 `POST /admin/reservations/{id}/expire` 手动触发，无定时清扫；赵一 2026-11-16 已过期的记录一直显示「待取书」。是否补 `@Scheduled` 清扫（过期 + 顺延下一位 + 通知） | Lead 已裁决 | ✅ 2026-11-23 已补 B-15：每 10 分钟扫描，过期置 `EXPIRED`、队首顺延 48h 并发 `RESERVATION_READY`、无人释放副本 |
 
 
 
