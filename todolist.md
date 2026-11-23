@@ -1,6 +1,6 @@
 # 阅有期 · 三端任务分派书（todolist.md）
 
-> 版本：2026-11-23 · 收口复核（后端 98 测试绿 / 管理端 13 业务页 / 客户端 30 测试绿 / Flyway V14）
+> 版本：2026-11-23 · 收口复核（后端 107 测试绿 / 管理端 13 业务页 / 客户端 40 测试绿 / Flyway V14）
 > 读者：**后端 Agent**、**前端 Agent**、**客户端 Agent**。三方共读 §0–§2，然后只做自己那一节。
 > 接口口径：以 `project/后端的交互接口文档.md` 为准（`project/spec/技术架构.md` 不存在，X-03-D1 已由 Lead 裁决，2026-11-23）。
 
@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 18/18（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料；X-02/03/04 另计） · 前端 9/9 · 客户端 8/8 + 证据附件真实上传 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 11/11 · 客户端 10/10 + 证据附件真实上传 + 刷新令牌 + 真实预约 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -67,6 +67,8 @@
 | B-15 | 预约过期自动清扫 | BE | ✅ 2026-11-23 · 见 §3 | B-08、FR-05-D1 |
 | B-16 | SMTP 邮件通道恢复 | BE | ✅ 2026-11-23 · 见 §3 | — |
 | B-17 | `/me` 资料字段扩展 | BE | ✅ 2026-11-23 · 见 §3 | — |
+| B-18 | 拉黑到期自动解除 | BE | ✅ 2026-11-23 · b37c6e4 · 见 §3 | — |
+| B-19 | 上传/配置加固 | BE | ✅ 2026-11-23 · b37c6e4 · 见 §3 | B-08 |
 | F-01 | 校历管理（A9） | FE | ✅ 2026-11-19 · 7b140e0 | B-07 |
 | F-02 | 角色权限页 | FE | ✅ 2026-11-19 · 1da9f4c | B-12 |
 | F-03 | 宽限证据展示 | FE | ✅ 2026-11-19 · 663e8a1 · 管理端 evidence 由 3d79e35 补齐 | B-08 |
@@ -76,6 +78,8 @@
 | F-07 | 部署前清理演示账号 | FE | ✅ 2026-11-19 · 6fe2744 · 见 §4 | 无 |
 | F-08 | 管理端状态真实性 | FE | ✅ 2026-11-23 · 4cf2d5f · 见 §4 | 无 |
 | F-09 | 值班卡去假名 | BE+FE | ✅ 2026-11-23 · 见 §4 | 无 |
+| F-10 | 管理端刷新令牌接入 | FE | ✅ 2026-11-23 · 44013c5 · 401→refresh→重放，single-flight；失败清会话回登录；build 通过 | B-11 |
+| F-11 | 审批深链与搜索关键词 | FE | ✅ 2026-11-23 · 44013c5 · 宽限/申诉读 ?id=、失效提示与确认弹窗，审计读 ?keyword=；build 通过 + ego 深链实测 | 无 |
 | C-01 | 接真实后端（去 mock） | APP | ✅ 2026-11-19 · 无 git 提交 · `useMock` 默认 false，7 个 provider 按 `appUseMockProvider` 切换；C1 摘要/未读、C6 通知/渠道/免打扰、C7 资料走真接口 | B-01、B-02、B-04、B-05 |
 | C-02 | 检索与书目详情 | APP | ✅ 2026-11-19 · 无 git 提交 · `/books` 四端点 + 详情弹层 + 可借/可预约；UI 真实借阅「算法导论」成功并回流 C1 | B-01 |
 | C-03 | 消息中心与偏好 | APP | ✅ 2026-11-19 · 无 git 提交 · 通知列表/未读数、渠道开关、免打扰读写真接口；失败回滚提示；空态真机验证 | B-02、B-04、B-05 |
@@ -84,6 +88,8 @@
 | C-06 | 真机联调两条链路 | APP | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3、C5→C6→C7 真机走通 | C-01…C-05 |
 | C-07 | 隐私与偏好页 | APP | ✅ 2026-11-19 · 无 git 提交 · 隐私授权/6 主题频率/遗忘确认；PUT 真机验证；test 26 绿 | B-06、B-10 |
 | C-08 | 个人资料接真实字段 | APP | ✅ 2026-11-23 · 无 git 提交 · analyze 0 / test 34 绿 · 解析 `/me` department/major/grade/totalBorrowed，副标题与累计借阅去假值 | B-17 |
+| C-09 | 客户端刷新令牌接入 | APP | ✅ 2026-11-23 · 9861f40 · 401→refresh→重放，single-flight；失败清会话回登录；analyze 0 / test 37 绿 | 无 |
+| C-10 | 客户端真实预约 | APP | ✅ 2026-11-23 · 9861f40 · 检索页预约确认→`POST /v1/reservations`；成功回显排位 + 底栏角标；409/422 原地提示不假成功；analyze 0 / test 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） | 无（接口已在） |
 | X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -95,7 +101,7 @@
 ## 3. 后端 Agent（`project/backend`）
 
 > 入口 `backend/AGENT.md`。启动：`$env:JAVA_HOME='C:\JDK\jdk21'; mvn -q spring-boot:run`（8125，`/api`）。
-> 现有基线：378 Java / 26 Controller / 98 测试（1 跳过）/ Flyway V1–V14。
+> 现有基线：383 Java / 26 Controller / 107 测试（1 跳过）/ Flyway V1–V14。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -117,6 +123,8 @@
 | **B-15** | 预约过期自动清扫 | `expire()` 只改状态，不释放副本、不顺延队首；无定时任务 | `reservation/**` + `catalog/BookCopyRepository` | 每 10 分钟扫描 `READY` 且过期的预约：置 `EXPIRED` + 审计；有下一位则 `READY`（48h）+ outbox `RESERVATION_READY`；无人则释放 `READY_SHELF` 副本 | ✅ 2026-11-23 · f4b1ce0 · `mvn test` 98 绿/1 跳（新增 `ReservationExpiryTest` 3 例）；`@Scheduled(fixedDelay=600000, initialDelay=60000)`；`scanExpired` 逐条容错 |
 | **B-16** | SMTP 邮件通道恢复 | 用户级 `MAIL_PASSWORD` 为失效旧码，EMAIL 投递 `Authentication failed`；`provider_msg_id` 恒空 | `notify/domain/port/MailGateway`、`notify/infrastructure/mail/SmtpMailGateway`、`notify/application/EmailDeliveryService`、`notify/domain/repository/NotifyDeliveryRepository(+Impl)` | 新授权码只经进程环境变量注入并重启；JavaMail Message-ID 落 `notify_delivery.provider_msg_id`；deploy README 补排查步骤 | ✅ 2026-11-23 · 未提交 · `MailGateway.send` 返回 `String`（MimeMessage `getMessageID()`）；真实催还 1 封：delivery `2124869019035705345` / SENT / provider_msg_id `<981383191.0.1795443225035@ZiAn>` / 22:13:47；`mvn -o test` 98 绿/1 跳 |
 | **B-17** | `/me` 资料字段扩展 | `SessionUser` 只有 id/name/role/studentNo/avatarUrl/permissions；客户端「我的」院系空、累计借阅用在借数 | `iam/interfaces/dto/AuthDtos`、`iam/application/AuthService`、新增 `iam/domain/repository/ReaderSelfRepository` + 基础设施实现、`ReaderProfileMapper` | `/v1/me`（及登录/刷新 user）追加 `department/major/grade`（无档案为 `""`）与 `totalBorrowed`（全部借阅单，含已归还）；只读计数，不改表 | ✅ 2026-11-23 · 未提交 · 新增 `MeProfileTest` 2 例（档案字段 + 含已归还计数；空档案默认 `""`/0）；`mvn -o test` 100 绿/1 跳；接口文档 §3.2 |
+| **B-18** | 拉黑到期自动解除 | `User.blacklistExpiresAt` 只写不读，临时拉黑实际永久；`user_status_log` 无人写 | `iam/domain/model/User`、新增 `iam/application/BlacklistExpiryService`、`UserAdminService`、`UserRepository(+Impl)`、新增 `UserStatusLogRepository(+Impl)`、`SysUserPO` | 到期实时按 `NORMAL` 放行；每 60s 扫描回写状态并写 `user_status_log`（「到期自动解除」/「系统」）+ 审计 `USER_UNBLOCK_EXPIRE`；人工拉黑/恢复也写日志；`NULL` = 永久 | ✅ 2026-11-23 · 未提交 · 新增 `BlacklistExpiryTest` 4 例（到期恢复/未到期保留/扫描前放行/拉黑写日志）；修复 MyBatis-Plus 更新跳过 null 导致解禁字段不清空；`mvn -o test` 107 绿/1 跳；接口文档 §11.2 |
+| **B-19** | 上传与配置加固 | PNG 仅校验 4 字节魔数（12 字节伪图可入库，已有 9 个）；`uploads` 未忽略；prod Swagger/actuator/CORS 过宽 | `shared/file/application/FileService`、`bootstrap/config/CorsConfig`、`application.yml`、`application-prod.yml`、`project/.gitignore`、`deploy/docker-compose.yml`、`deploy/.env.example` | png/jpg 走 `ImageIO` 真实解码且真实格式=扩展名；清理 9 个 12B 伪 PNG；prod 关 springdoc、actuator 仅 `health,info`、日志 INFO、CORS 白名单；compose/示例环境变量提示默认口令 | ✅ 2026-11-23 · 未提交 · 新增 `FileUploadValidationTest` 3 例；`mvn -o test` 107 绿/1 跳；`docker compose -f deploy/docker-compose.yml --env-file deploy/.env.example config --quiet` exit 0 |
 
 **不要做**：不改 `schema.sql` 既有语义；`domain` 不引 Spring/MyBatis；不加第二套 ORM；不为单页加专用端点；MySQL 排序不拼字符串。
 
@@ -138,13 +146,17 @@
 | **F-08** | 管理端状态真实性 | 顶栏连接态/通知气泡/免打扰卡/侧栏值班为静态；批量拉黑只 toast；借还台「当前在办 0」硬编码 | `app/layout/*`、`features/circulation`、`features/iam` | 连接态取 dashboard 查询结果；通知数取 `pendingTotal` 与真实 notices；批量拉黑走真实接口并逐人报告；删除硬编码的在办数与假值班行 | ✅ 2026-11-23 · 4cf2d5f · `pnpm build` 通过（1864 modules / JS 764.93KB gzip 240.01KB）；浏览器实测徽标「服务在线」、批量弹窗勾选 2 人可提交（已取消）、借还台仅 2 张真实统计卡 |
 | **F-09** | 值班卡去假名 | 工作台值班卡写死「值班馆员 · 王倩」 | `reporting/application/AdminQueryService.java`、`application.yml`、`WorkbenchPage.tsx` | 值班信息由 `app.duty.*` 配置注入（支持 `DUTY_NAME/DUTY_WINDOW/DUTY_PHONE`），默认「前台值班」；前端兜底同步 | ✅ 2026-11-23 · `mvn compile` 与 `pnpm build` 通过；运行态 `/admin/dashboard` 返回 `duty.name=前台值班` |
 
+| **F-10** | 刷新令牌接入 | 401 直接清会话跳登录 | `src/lib/api/client.ts`、`src/lib/auth/session.ts`、`src/lib/api/models.ts` | 401→refresh→重放一次；并发 single-flight；失败才清会话并保留 from | ✅ 2026-11-23 · 无 git 提交 · `pnpm build` 通过（1864 modules / JS 765.66KB gzip 240.20KB）；ego-browser 实测 3 并发 401 仅 1 次 refresh、3 请求均重放 200；access+refresh 均无效时落 `/login?from=%2Fworkbench` 且会话清空；截图 temp/admin-verify2/refresh-after.png、refresh-fail-login.png；注：后端当前单 token（TTL 2h），过期后 refresh 同样 401，彻底消除 2h 重登需后端独立长 TTL refresh token，超本次前端范围 |
+
+| **F-11** | 审批深链与搜索关键词 | 工作台 `/grace?id=`、`/appeals?id=` 被忽略而落第一条；审计忽略 `?keyword=` | `src/features/grace/pages/GracePage.tsx`、`src/features/appeal/pages/AppealPage.tsx`、`src/features/audit/pages/AuditPage.tsx` | Grace/Appeal 读 id 选中；失效 toast 并回落；Grace 标题=单号·学号·书名，通过/驳回确认弹窗写明对象·书名·天数；Appeal 顶部常显单号+状态，PENDING 行「去处理」/其他「查看」；Audit 用 keyword 初始化并立即查询 | ✅ 2026-11-23 · 无 git 提交 · `pnpm build` 通过（1864 modules / JS 767.98KB gzip 241.70KB）+ ego-browser 三条深链实测：GA202611191780 自动选中第 2 行、AP20260209002 选中处理中单、BC0001 审计回填并查到 0 条；失效 id 提示后 URL 清 id 回落；截图 temp/admin-verify2/fix-grace.png、fix-grace-confirm.png、fix-appeal.png、fix-audit.png · 3 文件 |
+
 **不要做**：不改 `components/ui/*`；不引第二套 UI；不开 dark mode；不端算金额/天数/SLA。
 
 ---
 
 ## 5. 客户端 Agent（`project/client`）
 
-> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 34 测试绿 / `useMock` 默认 false / 附件真实上传。
+> 入口 `client/AGENT.md`；现状：全部 feature 具备 dio 实现（mock 保留开关）/ 40 测试绿 / `useMock` 默认 false / 附件真实上传 / 401 自动刷新令牌 / 预约接真实接口。
 
 | 编号 | 任务 | 现状 | 落点 | 验收 | 状态 |
 | --- | --- | --- | --- | --- | --- |
@@ -156,6 +168,8 @@
 | **C-06** | 真机联调 | 真后端 + emulator-5554 | 全端 | C1→C2→C3、C5→C6→C7 全通；`flutter test` 绿 | ✅ 2026-11-19 · 无 git 提交 · C1→C2→C3 与 C5→C6→C7 真机走通；摘要/详情/宽限/预约/消息/我的均读真接口；test 26 绿 |
 | **C-07** | 隐私与偏好页 | 已建 `privacy_page.dart` + dio/mock repo | `profile/` | 授权开关、遗忘申请、提醒偏好 | ✅ 2026-11-19 · 无 git 提交 · 设置→隐私与提醒；授权开关、6 主题频率、遗忘确认弹窗；真机 PUT 验证（sceneConsent=true、BORROW_DUE=WEEKLY）；test 26 绿 |
 | **C-08** | 个人资料接真实字段 | `/me` 解析 department/major/grade/totalBorrowed | `profile/`、`core/models/` | 副标题真实、累计借阅取 totalBorrowed、空值省略 | ✅ 2026-11-23 · 无 git 提交 · `dart format` 0 changed / `flutter analyze` 0 / `flutter test` 34 绿 · 8 文件（含 2 生成物，新增 2 测试文件） |
+| **C-09** | 刷新令牌接入 | 401 自动 refresh 并重放，single-flight | `core/network/`、`auth/` | `/v1/auth/refresh`；失败清会话回登录；并发只刷一次 | ✅ 2026-11-23 · 无 git 提交 · `endpoints.dart` 增 refresh；`api_client.dart` 401 单飞刷新+重放；失败清会话回调登录；3 拦截器测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 37 绿 |
+| **C-10** | 真实预约 | 检索页「预约」原先只 toast；改真实 `POST /v1/reservations` | `search/`、`reservation/`、`core/widgets/`、`core/router/` | 确认 sheet（书名/预计排位/保留 48h）；成功行与详情「已预约 · 排位 N」；预约 tab 角标；409/422 原地提示；后端不可用置灰「暂不可预约」 | ✅ 2026-11-23 · 无 git 提交 · `endpoints.dart` 增 reservations；`SearchRepository.reserve` + `ReservationRepository.activeCount`；AppShell/AppTabBar 角标；新增 2 仓储测试 + 1 页面测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -269,6 +283,12 @@ flutter analyze; flutter test
 | 2026-11-23 | Lead | X-05 CI/CD 与容器化 | `.github/workflows/ci.yml`（三端构建/测试）、`release.yml`（tag 制品 + ghcr 镜像 + Release）、`backend|frontend/Dockerfile`、`frontend/nginx.conf`、`deploy/docker-compose.yml`、`.env.example`、`application-prod.yml`；`docker compose config` 与 YAML 校验通过；README 增 CI/CD 段 |
 | 2026-11-23 | Lead | 离线收尾复核 | 后端 98 测试、管理端构建、客户端 30 测试全绿；工作树待提交（B-15/F-08/X-05/文档）；GitHub 仍不可达，未推送 |
 | 2026-11-23 | APP | C-08 个人资料真实字段 | `DioProfileRepository` 解析 `/me` 的 department/major/grade，`totalBorrowed` 用 `asInt` 兼容字符串；删除 `department: ''`、`degree: roleLabel`、`totalBorrowed: borrowed` 假值；副标题改 `studentNo · major · grade` 且空值省略；累计借阅取 totalBorrowed；mock 同步；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 34 绿（新增 2 仓库映射 + 2 页面两态） |
+| 2026-11-23 | APP | C-09 客户端刷新令牌 | `endpoints.dart` 增 `/v1/auth/refresh`；`ApiClient` 401 用旧 token 刷新并重放一次，`_refreshInFlight` single-flight；refresh 失败 `clearSession` 并回调 `AuthController.sessionExpired` 回登录；新增 `token_refresh_test.dart` 3 例（成功重放/失败清会话/并发单飞）；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 37 绿 |
+| 2026-11-23 | APP | C-10 客户端真实预约 | `endpoints.dart` 增 `/v1/reservations`；`SearchRepository.reserve` POST `{bookId}` 解析 `queuePosition`；检索页预约改确认 sheet，成功回显「已预约 · 排位 N」并刷新预约列表/角标，409/422 原地提示，网络/5xx 后按钮置灰「暂不可预约」；`ReservationRepository.activeCount` 驱动 AppTabBar 角标；新增 2 仓储 + 1 页面测试；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） |
+| 2026-11-23 | FE | F-10 管理端刷新令牌 | `session.ts` 增 refreshToken（旧会话回退 token）、`LoginResult` 可选 refreshToken；`client.ts` 401 单飞 `POST /auth/refresh` 后重放一次，失败清会话并跳 `/login?from=`；ego-browser 3 并发 401 仅 1 次 refresh 且均重放 200，双无效 token 落登录页；`pnpm build` 通过（1864 modules / 765.66KB gzip 240.20KB） |
+| 2026-11-23 | BE | B-18 拉黑到期自动解除 | `User.isBlacklisted()` 增加到期实时判定（到期即按 NORMAL 放行，不等扫描）；新增 `BlacklistExpiryService` 每 60s 扫描 `BLACKLISTED + expires_at<=now`，回写状态并写 `user_status_log`（`BLACKLISTED→NORMAL` /「到期自动解除」/「系统」）+ 审计 `USER_UNBLOCK_EXPIRE`；`UserAdminService` 拉黑/恢复也写状态日志；`SysUserPO` 四个拉黑字段 `updateStrategy=ALWAYS` 修复 null 不清空；`BlacklistExpiryTest` 4 例；`mvn -o test` 107 绿/1 跳；接口文档 §11.2 |
+| 2026-11-23 | BE | B-19 上传与配置加固 | `FileService` 对 png/jpg 改 `ImageIO` 真实解码并要求格式=扩展名（12B 伪图拒绝）；清理 `backend/data/uploads` 下 9 个伪 PNG；`.gitignore` 忽略 uploads；`CorsConfig` 改白名单（`CORS_ALLOWED_ORIGINS`）；prod 关 springdoc、actuator 仅 `health,info`、日志 INFO；compose/`.env.example` 标注默认口令仅演示；`FileUploadValidationTest` 3 例；`mvn -o test` 107 绿/1 跳；`docker compose ... config --quiet` exit 0 |
+| 2026-11-23 | FE | F-11 审批深链与搜索关键词 | `GracePage`/`AppealPage` 用 `useSearchParams` 读 `?id=`；失效 toast「该工单已归档或不存在」并清 id 回落；Grace 详情改「单号·学号·书名」，通过/驳回加 AlertDialog（对象·书名·天数）；Appeal 详情顶栏常显单号+状态，PENDING 行「去处理」/其他「查看」；`AuditPage` 读 `?keyword=` 初始化并同步 URL，空态给「查看全部日志」；`pnpm build` 通过（1864 modules / JS 767.98KB gzip 241.70KB），ego 深链实测 GA202611191780 / AP20260209002 / BC0001，截图 temp/admin-verify2/fix-grace.png、fix-grace-confirm.png、fix-appeal.png、fix-audit.png |
 
 ---
 
@@ -298,3 +318,4 @@ flutter analyze; flutter test
 
 
 
+| 2026-11-23 | Lead | 审查与 P0 修复收口 | 安全审查 P0=0/P1=1/P2=13、交互审查 P0=3/P1=17/P2=12；本批修复 P1 刷新令牌（F-10/C-09）与 3 条 P0（C-10/F-11）；提交 b37c6e4/44013c5/9861f40；后端 107、客户端 40 测试绿 |
