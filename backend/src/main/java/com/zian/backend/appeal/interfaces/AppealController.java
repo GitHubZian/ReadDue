@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,18 @@ public class AppealController {
     public BaseResponse<AppealDtos.MyTicketView> create(
             @Valid @RequestBody AppealDtos.CreateRequest request) {
         return ResultUtils.success(appealService.create(request));
+    }
+
+    /**
+     * 查询一条申诉工单（含证据附件）：本人或馆员/管理员。
+     *
+     * @param id 工单 id
+     * @return 工单详情
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('appeal:create') or hasAuthority('appeal:handle')")
+    public BaseResponse<AppealDtos.MyTicketView> detail(@PathVariable long id) {
+        return ResultUtils.success(appealService.detail(id));
     }
 
     /**

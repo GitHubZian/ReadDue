@@ -2,6 +2,7 @@ package com.zian.backend.appeal.application;
 
 import com.zian.backend.appeal.domain.model.AppealStatus;
 import com.zian.backend.appeal.domain.model.AppealTicket;
+import com.zian.backend.appeal.domain.repository.AppealEvidenceRepository;
 import com.zian.backend.appeal.domain.repository.AppealTicketRepository;
 import com.zian.backend.appeal.interfaces.dto.AppealDtos;
 import com.zian.backend.audit.application.AuditRecorder;
@@ -11,9 +12,10 @@ import com.zian.backend.rule.application.RuleService;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.common.PageQuery;
 import com.zian.backend.shared.common.PageResult;
-import com.zian.backend.shared.common.Times;
 import com.zian.backend.shared.constant.MqConstant;
 import com.zian.backend.shared.exception.BusinessException;
+import com.zian.backend.shared.file.application.FileService;
+import com.zian.backend.shared.file.domain.model.StoredFile;
 import com.zian.backend.shared.outbox.application.OutboxAppender;
 import com.zian.backend.shared.security.LoginUser;
 import com.zian.backend.shared.security.UserContext;
@@ -22,7 +24,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +47,8 @@ public class AppealService {
     private static final DateTimeFormatter TICKET_NO_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final AppealTicketRepository repository;
+    private final AppealEvidenceRepository evidenceRepository;
+    private final FileService fileService;
     private final RuleService ruleService;
     private final OutboxAppender outboxAppender;
     private final AuditRecorder auditRecorder;
@@ -198,6 +204,7 @@ public class AppealService {
                     ErrorCode.PARAMS_ERROR, "申诉对象类型只能是 GRACE/OVERDUE_TIER/RENEW/REMINDER/OTHER");
         }
         validateTarget(targetType, request.targetId(), readerId);
+        List<StoredFile> evidence = fileService.requireOwned(request.evidenceIds(), readerId);
         LocalDateTime now = LocalDateTime.now();
         int slaHours = ruleService.intValue("APPEAL.SLA_HOURS", 2);
         AppealTicket ticket = new AppealTicket(
@@ -217,23 +224,32 @@ public class AppealService {
                 null,
                 now);
         Long id = repository.insert(ticket);
+        // 仓储只返回主键，回填到聚合后再复用统一的视图转换（含证据附件）
+        ticket.setId(id);
+        evidenceRepository.attach(id, evidence.stream().map(StoredFile::id).toList());
         auditRecorder.record(
                 "APPEAL_CREATE",
                 "APPEAL_TICKET",
                 id,
                 "读者提交申诉",
                 Map.of("targetType", targetType, "targetId", request.targetId()));
-        return new AppealDtos.MyTicketView(
-                id,
-                ticket.getTicketNo(),
-                targetType,
-                request.targetId(),
-                ticket.getReason(),
-                AppealStatus.OPEN.name(),
-                Times.iso(now),
-                Times.iso(ticket.getSlaDueAt()),
-                0,
-                null);
+        return AppealDtos.MyTicketView.of(ticket, evidence);
+    }
+
+    /**
+     * 读取一条申诉工单（本人或馆员/管理员），返回完整证据列表。
+     *
+     * @param id 工单 id
+     * @return 工单视图
+     */
+    @Transactional(readOnly = true)
+    public AppealDtos.MyTicketView detail(long id) {
+        AppealTicket ticket = require(id);
+        LoginUser user = UserContext.require();
+        if (!user.id().equals(ticket.getReaderId()) && !user.isStaff()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "申诉工单不存在");
+        }
+        return AppealDtos.MyTicketView.of(ticket, fileService.files(evidenceRepository.fileIdsOf(id)));
     }
 
     /**
@@ -249,7 +265,21 @@ public class AppealService {
         List<AppealTicket> tickets =
                 repository.findByReader(readerId, status, (int) pageQuery.offset(), pageQuery.size());
         long total = repository.countByReader(readerId, status);
-        return PageResult.of(tickets.stream().map(AppealDtos.MyTicketView::of).toList(), total, pageQuery);
+        Map<Long, List<Long>> evidenceIds = evidenceRepository.fileIdsOf(
+                tickets.stream().map(AppealTicket::getId).toList());
+        Map<Long, StoredFile> filesById = fileService
+                .files(evidenceIds.values().stream().flatMap(List::stream).toList())
+                .stream()
+                .collect(Collectors.toMap(StoredFile::id, file -> file));
+        List<AppealDtos.MyTicketView> items = tickets.stream()
+                .map(ticket -> AppealDtos.MyTicketView.of(
+                        ticket,
+                        evidenceIds.getOrDefault(ticket.getId(), List.of()).stream()
+                                .map(filesById::get)
+                                .filter(Objects::nonNull)
+                                .toList()))
+                .toList();
+        return PageResult.of(items, total, pageQuery);
     }
 
     private void validateTarget(String targetType, Long targetId, Long readerId) {

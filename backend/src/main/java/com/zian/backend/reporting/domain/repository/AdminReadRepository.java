@@ -1,5 +1,6 @@
 package com.zian.backend.reporting.domain.repository;
 
+import com.zian.backend.reporting.domain.model.AppealEvidenceRow;
 import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
@@ -161,6 +162,14 @@ public interface AdminReadRepository {
      * @return 总条数
      */
     long countAppeals(String status, String category, String keyword);
+
+    /**
+     * 批量查询申诉工单的证据附件，用于管理端列表避免 N+1。
+     *
+     * @param appealIds 申诉工单 id 集合，不能为空
+     * @return 附件行（按关联时间升序）
+     */
+    List<AppealEvidenceRow> appealEvidence(List<Long> appealIds);
 
     /**
      * 预约分页查询。

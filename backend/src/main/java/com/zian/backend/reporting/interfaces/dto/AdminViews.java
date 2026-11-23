@@ -91,7 +91,8 @@ public final class AdminViews {
             String createdAt,
             String slaDeadline,
             AppealConclusion conclusion,
-            List<TimelineItem> timeline) {
+            List<TimelineItem> timeline,
+            List<Evidence> evidence) {
     }
 
     public record ReservationView(

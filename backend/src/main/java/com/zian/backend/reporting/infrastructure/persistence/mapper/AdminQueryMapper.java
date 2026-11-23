@@ -1,5 +1,6 @@
 package com.zian.backend.reporting.infrastructure.persistence.mapper;
 
+import com.zian.backend.reporting.domain.model.AppealEvidenceRow;
 import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
@@ -356,6 +357,24 @@ public interface AdminQueryMapper {
             """)
     long countAppeals(
             @Param("status") String status, @Param("category") String category, @Param("keyword") String keyword);
+
+    /**
+     * 批量查询申诉工单的证据附件。
+     *
+     * @param appealIds 申诉工单 id 集合
+     * @return 附件行
+     */
+    @Select("""
+            <script>
+            SELECT ae.appeal_id AS appealId, ae.file_id AS fileId, f.original_name AS name
+              FROM appeal_evidence ae
+              JOIN file_object f ON f.id = ae.file_id
+             WHERE ae.appeal_id IN
+             <foreach collection="appealIds" item="aid" open="(" separator="," close=")">#{aid}</foreach>
+             ORDER BY ae.created_at, ae.id
+            </script>
+            """)
+    List<AppealEvidenceRow> appealEvidence(@Param("appealIds") List<Long> appealIds);
 
 // endregion
 

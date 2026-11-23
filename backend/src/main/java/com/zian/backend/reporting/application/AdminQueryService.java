@@ -2,6 +2,7 @@ package com.zian.backend.reporting.application;
 
 import com.zian.backend.notify.application.NotifyTemplateService;
 import com.zian.backend.notify.interfaces.dto.NotifyDtos;
+import com.zian.backend.reporting.domain.model.AppealEvidenceRow;
 import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
@@ -289,15 +290,30 @@ public class AdminQueryService {
      */
     public PageResult<AppealTicketView> appeals(String status, String category, String keyword, PageQuery page) {
         long total = readRepository.countAppeals(status, category, keyword);
-        List<AppealTicketView> items = readRepository
-                .appeals(status, category, keyword, page.size(), page.offset())
-                .stream()
-                .map(this::appealView)
+        List<AppealRow> rows =
+                readRepository.appeals(status, category, keyword, page.size(), page.offset());
+        Map<Long, List<AdminViews.Evidence>> evidence =
+                appealEvidenceOf(rows.stream().map(AppealRow::id).toList());
+        List<AppealTicketView> items = rows.stream()
+                .map(row -> appealView(row, evidence.getOrDefault(row.id(), List.of())))
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
     }
 
-    private AppealTicketView appealView(AppealRow row) {
+    private Map<Long, List<AdminViews.Evidence>> appealEvidenceOf(List<Long> appealIds) {
+        if (appealIds.isEmpty()) {
+            return Map.of();
+        }
+        return readRepository.appealEvidence(appealIds).stream()
+                .collect(Collectors.groupingBy(
+                        AppealEvidenceRow::appealId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                row -> new AdminViews.Evidence(row.name(), "/v1/files/" + row.fileId()),
+                                Collectors.toList())));
+    }
+
+    private AppealTicketView appealView(AppealRow row, List<AdminViews.Evidence> evidence) {
         String dbStatus = row.status();
         List<TimelineItem> timeline = new ArrayList<>();
         timeline.add(new TimelineItem(
@@ -346,7 +362,8 @@ public class AdminQueryService {
                 iso(row.createdAt()),
                 iso(row.slaDueAt()),
                 conclusion,
-                timeline);
+                timeline,
+                evidence);
     }
 
     private String appealStatus(String db) {

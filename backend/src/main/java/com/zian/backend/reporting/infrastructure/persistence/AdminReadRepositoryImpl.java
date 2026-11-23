@@ -1,5 +1,6 @@
 package com.zian.backend.reporting.infrastructure.persistence;
 
+import com.zian.backend.reporting.domain.model.AppealEvidenceRow;
 import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
@@ -114,6 +115,11 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     @Override
     public long countAppeals(String status, String category, String keyword) {
         return mapper.countAppeals(status, category, keyword);
+    }
+
+    @Override
+    public List<AppealEvidenceRow> appealEvidence(List<Long> appealIds) {
+        return mapper.appealEvidence(appealIds);
     }
 
     @Override
