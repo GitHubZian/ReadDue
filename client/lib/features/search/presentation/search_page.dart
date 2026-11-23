@@ -318,14 +318,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 onRetry: () => ref.invalidate(searchProvider(args)),
                 skeleton: const SkeletonList(count: 3, itemHeight: 108),
                 isEmpty: (data) => data.items.isEmpty,
-                empty: EmptyState(
-                  title: '没有找到相关馆藏',
-                  message: '试试书名、作者或索书号；也可以切换筛选条件。',
-                  actionLabel: '清空关键词',
-                  onAction: () {
-                    _controller.clear();
-                    setState(() => _query = '');
-                  },
+                empty: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.viewInsetsOf(context).bottom,
+                    ),
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
+                      child: EmptyState(
+                        title: '没有找到相关馆藏',
+                        message: '试试书名、作者或索书号；也可以切换筛选条件。',
+                        actionLabel: '清空关键词',
+                        onAction: () {
+                          _controller.clear();
+                          setState(() => _query = '');
+                        },
+                      ),
+                    ),
+                  ),
                 ),
                 builder: (data) {
                   final items = sortBooks(data.items, _sort);

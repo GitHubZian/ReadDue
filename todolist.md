@@ -14,7 +14,7 @@
 | 前端 Agent | `FE` | `project/frontend` | `src/**`、`docs/API-INTEGRATION.md`、`AGENT.md` | `components/ui/*`、`backend/**`、`client/**` |
 | 客户端 Agent | `APP` | `project/client` | `lib/**`、`test/**`、`pubspec.yaml`、`AGENT.md` | `backend/**`、`frontend/**` |
 
-**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 12/12 · 客户端 12/12 + 证据附件真实上传 + 刷新令牌 + 真实预约 + 真机复验 + 检索交互修补 · 联动 5/5（X-01…X-05 ✅）
+**进度快照（回写时同步此行）**：后端 20/20（B-00…B-12 + B-14 申诉证据 + B-15 预约过期清扫 + B-16 SMTP 通道 + B-17 /me 资料 + B-18 拉黑到期 + B-19 上传/配置加固；X-02/03/04 另计） · 前端 12/12 · 客户端 13/13 + 证据附件真实上传 + 刷新令牌 + 真实预约 + 真机复验 + 检索交互修补 + 键盘空态修复 · 联动 5/5（X-01…X-05 ✅）
 
 ### 0.1 一页分派（各 Agent 只看自己这格）
 
@@ -92,7 +92,8 @@
 | C-09 | 客户端刷新令牌接入 | APP | ✅ 2026-11-23 · 9861f40 · 401→refresh→重放，single-flight；失败清会话回登录；analyze 0 / test 37 绿 | 无 |
 | C-10 | 客户端真实预约 | APP | ✅ 2026-11-23 · 9861f40 · 检索页预约确认→`POST /v1/reservations`；成功回显排位 + 底栏角标；409/422 原地提示不假成功；analyze 0 / test 40 绿；真机 2021001 预约《解忧杂货店》成功（reservation 2124881324775514113，WAITING/排位 1，截图 temp/ux-audit/fix-reserve-*.png） | 无（接口已在） |
 | C-11 | 真机默认 IP 与 debug 溢出 | APP | ✅ 2026-11-23 · f85c16b · 默认 API 改 `192.168.0.3`（dart-define 可覆盖）；登录 2px、检索头部 13px overflow 清零；analyze 0 / test 40 绿；真机 UCB685CMAUIFFA7P 重装复验（APK 115,242,041 B，SHA256 8DC4B431…A9DA），新预约 2124891109856104449（算法导论/排位 2） | C-10 |
-| C-12 | 检索页真机反馈与交互修补 | APP | ✅ 2026-11-24 · 见 §5 · 已预约行换行不截断、详情固定 86% 仅下滑关闭、筛选/排序真实面板、下拉刷新、借出刷新、申诉缺项汇总；analyze 0 / test 46 绿 | UX 审查 |
+| C-12 | 检索页真机反馈与交互修补 | APP | ✅ 2026-11-24 · 6ed1e39 · 已预约行换行不截断、详情固定 86% 仅下滑关闭、筛选/排序真实面板、下拉刷新、借出刷新、申诉缺项汇总；analyze 0 / test 46 绿；真机 RP-02 8/8 PASS | UX 审查 |
+| C-13 | 检索空态键盘溢出 | APP | ✅ 2026-11-24 · 空态 LayoutBuilder + keyboard inset，14px overflow 清零；test 47 绿；真机 TP 0 结果 + 键盘复验无黄黑条（temp/real-phone2/c13-search-empty.png） | C-12、RP-02 |
 | X-01 | 三端冒烟 | **FE 发起** | ✅ 2026-11-23 · 8125+5173+emulator-5554 同时在线；管理端 14 路由双账号验收；客户端新 debug APK（API 10.0.2.2）C1 登录→C2 书架（3 在借/2 逾期）→C3 详情（活着逾期 11 天）无阻断；宽限真实上传 evidence.png 落库（GA202611232183，evidence 2124863056660606977）；截图 temp/x01-client/01–09 | F-01…F-06、C-06 |
 | X-02 | 并发压测 | **BE 发起** | ✅ 2026-11-19 · 200 归还 + 100 催还，P95 294/185ms，0 个 5xx | B-01…B-05 |
 | X-03 | 文档回填校验 | **BE 发起** | ✅ 2026-11-19 · 幽灵路径 0；FE 文档缺口段已刷新 | 每批结束 |
@@ -178,7 +179,9 @@
 
 | **C-11** | 真机默认 IP 与 debug 溢出 | `192.168.0.3` 默认值；登录/检索两处 overflow | `core/config/`、`auth/`、`search/` | 默认 IP 可被 dart-define 覆盖；真机无黄黑条、无截断 | ✅ 2026-11-23 · f85c16b · `app_config.dart` 默认改 `192.168.0.3`；登录输入框 `minHeight:60`；检索头部 `Expanded+FittedBox`、副文案两行；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 40 绿；真机 UCB685CMAUIFFA7P 复验 01/04 截图，新预约 2124891109856104449 |
 
-| **C-12** | 检索页真机反馈与交互修补 | 已预约行挤压文字、详情可上拉、筛选/排序是假入口 | `features/search/presentation/search_page.dart`、`features/search/domain/book_sort.dart`、`features/search/data/dio_search_repository.dart`、`features/{notifications,reservation,profile}/presentation/*.dart`、`features/appeal/presentation/appeal_create_page.dart` | 行内换行不截断；详情固定 86% 仅下滑关闭；筛选/排序真实生效；三页下拉刷新；借出刷新；申诉缺项汇总 | ✅ 2026-11-24 · 无 git 提交 · `dart format` 103 files 0 changed / `flutter analyze` 0 / `flutter test` 46 绿（+6）；模拟器实测 02–10 截图 temp/ux-client-fix · 未完成 B1/B3/B5/B7 |
+| **C-12** | 检索页真机反馈与交互修补 | 已预约行挤压文字、详情可上拉、筛选/排序是假入口 | `features/search/presentation/search_page.dart`、`features/search/domain/book_sort.dart`、`features/search/data/dio_search_repository.dart`、`features/{notifications,reservation,profile}/presentation/*.dart`、`features/appeal/presentation/appeal_create_page.dart` | 行内换行不截断；详情固定 86% 仅下滑关闭；筛选/排序真实生效；三页下拉刷新；借出刷新；申诉缺项汇总 | ✅ 2026-11-24 · 6ed1e39 · `dart format` 103 files 0 changed / `flutter analyze` 0 / `flutter test` 46 绿（+6）；模拟器实测 02–10 截图 temp/ux-client-fix · 真机 RP-02 8/8 PASS · 未完成 B1/B3/B5/B7 |
+
+| **C-13** | 检索空态键盘溢出 | 空关键词 + 键盘弹起时底部 BOTTOM OVERFLOWED BY 14 PIXELS | `features/search/presentation/search_page.dart`、`test/features/search/search_page_test.dart` | 空态可滚、键盘 inset 预留、无黄黑条 | ✅ 2026-11-24 · `dart format` 103 files 0 changed / `flutter analyze` 0 / `flutter test` 47 绿（+1）；真机 APK 115,250,593 B，`temp/real-phone2/c13-search-empty.png` 黄黑条消失；构建后 client/android 已还原 |
 
 **不要做**：不在端上算宽限/费用/SLA；不缓存状态机；不引第三方 UI 替换 token 体系。
 
@@ -302,6 +305,8 @@ flutter analyze; flutter test
 | 2026-11-23 | Lead | 真机 + 邮件演示证据 | Realme RMX3041（UCB685CMAUIFFA7P）真机登录/书架/详情/预约全 PASS；SMTP 587 实发催还邮件 `EMAIL/SENT`（delivery 2124887081382301697，msgid `<1540127645.0.1795447531533@ZiAn>`），QQ 邮箱 IMAP 实收；证据 temp/real-phone/、temp/mail-shot/ |
 | 2026-11-24 | APP | C-12 检索页真机反馈与交互修补 | 已预约行改 Wrap 多行（libraryLabel 不再被 ellipsis）；详情由 DraggableScrollableSheet 改固定 86% + ListView（只能下滑关闭）；「筛选」改真实面板（全部/可借/可预约，说明按可借状态）；「按相关度」改可点排序（相关度/可借优先/书名 A-Z）；消息/预约/我的下拉刷新；借出后刷新检索；申诉补「还差 N 项」；新增 `book_sort.dart` + 6 测试；`flutter analyze` 0 / `flutter test` 46 绿；截图 temp/ux-client-fix/ |
 | 2026-11-24 | FE | F-12 管理端交互 P1 修补 | 馆员搜索无匹配 toast 并关层；通知行改 button 可 Tab/Enter 跳转（逾期/宽限/申诉/提醒）；借还台空表单内联错误 + toast + 回车校验；指标卡整卡可点（待办/到期/逾期/超时申诉）；审计空态区分；`pnpm typecheck` + `pnpm build` 通过（1864 modules / JS 770.56KB gzip 241.95KB）；截图 temp/ux-admin-fix/ |
+| 2026-11-24 | APP | C-13 检索空态键盘溢出 | 空态 LayoutBuilder + `MediaQuery.viewInsetsOf(context).bottom`，键盘弹起可滚、无 overflow；新增 C13 用例；`dart format` 0 changed / `flutter analyze` 0 / `flutter test` 47 绿；真机 UCB685CMAUIFFA7P 复验 `temp/real-phone2/c13-search-empty.png`，构建后 android 已还原 |
+| 2026-11-24 | Lead | RP-02 真机回归与 PPT 重构 | C-12/F-12 真机 8/8 PASS（检索排位、详情不可上拉、筛选、排序、三页刷新、申诉缺项）；PPT 重做为 12 页（冲突 A 主线，删「能演示可交付」），design/deck/阅有期-项目答辩-20261124.pptx |
 | 2026-11-23 | Lead | 审查与 P0 修复收口 | 安全审查 P0=0/P1=1/P2=13、交互审查 P0=3/P1=17/P2=12；本批修复 P1 刷新令牌（F-10/C-09）与 3 条 P0（C-10/F-11）；提交 b37c6e4/44013c5/9861f40；后端 107、客户端 40 测试绿 |
 
 ---

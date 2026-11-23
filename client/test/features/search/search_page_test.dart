@@ -178,4 +178,17 @@ void main() {
     expect(find.textContaining('ISBN'), findsOneWidget);
     expect(find.text('馆藏位置'), findsOneWidget);
   });
+
+  testWidgets('C13 键盘弹起时空态不溢出', (tester) async {
+    tester.view.viewInsets = const FakeViewPadding(bottom: 900);
+    addTearDown(tester.view.resetViewInsets);
+    await pumpPage(tester, const SearchPage());
+
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('没有找到相关馆藏'), findsOneWidget);
+  });
 }
