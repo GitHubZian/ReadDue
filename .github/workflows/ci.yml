@@ -58,6 +58,12 @@ jobs:
         run: mvn -B -ntp verify
         env:
           APP_DEMO_ENABLED: "false"
+          APP_JWT_SECRET: "ci-only-0123456789abcdef0123456789abcdef0123456789abcdef"
+          SPRING_DATASOURCE_URL: "jdbc:mysql://127.0.0.1:3306/readdue?useUnicode=true&characterEncoding=utf-8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true"
+          SPRING_DATASOURCE_USERNAME: "root"
+          SPRING_DATASOURCE_PASSWORD: "123456"
+          SPRING_DATA_REDIS_HOST: "127.0.0.1"
+          SPRING_RABBITMQ_HOST: "127.0.0.1"
 
   frontend:
     name: 管理端 · 构建
@@ -65,6 +71,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -96,4 +104,5 @@ jobs:
       - name: flutter test
         working-directory: client
         run: flutter test
+
 

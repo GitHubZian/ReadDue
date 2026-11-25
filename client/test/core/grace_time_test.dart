@@ -47,11 +47,11 @@ void main() {
         borrowJson(),
         now: DateTime(2026, 11, 25, 12),
       );
-      expect(item.dueAt, DateTime(2026, 11, 12, 23, 59, 59));
-      expect(item.effectiveDueAt, DateTime(2026, 11, 15, 23, 59, 59));
+      expect(item.dueAt.toUtc(), DateTime.utc(2026, 11, 12, 15, 59, 59));
+      expect(item.effectiveDueAt!.toUtc(), DateTime.utc(2026, 11, 15, 15, 59, 59));
       expect(item.appliedGraceDays, 3);
       expect(item.hasAppliedGrace, isTrue);
-      expect(item.settledDueAt, DateTime(2026, 11, 15, 23, 59, 59));
+      expect(item.settledDueAt.toUtc(), DateTime.utc(2026, 11, 15, 15, 59, 59));
       expect(item.graceDueLabel, '已延至 11-15（宽限 +3 天）');
       expect(item.daysLeft, -10);
       expect(item.dueSummary, contains('已延至 11-15（宽限 +3 天）'));
@@ -73,7 +73,7 @@ void main() {
       final overdueEvent =
           detail.timeline.firstWhere((event) => event.id == 'overdue');
       // 原到期日 11-12，宽限后 11-15，进入逾期应是 11-16。
-      expect(overdueEvent.time, DateTime(2026, 11, 16, 23, 59, 59));
+      expect(overdueEvent.time!.toUtc(), DateTime.utc(2026, 11, 16, 15, 59, 59));
       expect(overdueEvent.subtitle, '已逾期 10 天');
     });
 
@@ -112,3 +112,7 @@ void main() {
     });
   });
 }
+
+
+
+
