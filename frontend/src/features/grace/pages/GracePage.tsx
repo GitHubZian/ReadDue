@@ -25,6 +25,7 @@ import { fetchEvidenceBlob } from "@/features/grace/api";
 import { graceSceneLabel, graceStatusMeta } from "@/features/grace/labels";
 import { formatDateTime, slaRemaining } from "@/lib/format/date";
 import { formatCNY } from "@/lib/format/money";
+import { maskName, maskStudentNo, maskText } from "@/lib/mask";
 import { cn } from "@/lib/utils";
 import type { GraceRecord, GraceStatus } from "@/lib/api/models";
 
@@ -219,12 +220,12 @@ export function GracePage() {
                           : "bg-card text-mint-deep ring-line",
                       )}
                     >
-                      {item.reader.name.slice(0, 1)}
+                      {maskName(item.reader.name).slice(0, 1)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-1.5">
                         <p className="truncate text-[11.5px] font-semibold text-ink">
-                          {item.reader.name}
+                          {maskName(item.reader.name)}
                         </p>
                         <span className="tabular shrink-0 text-[8.5px] text-ink-3">{item.code}</span>
                       </div>
@@ -295,7 +296,7 @@ export function GracePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="grid size-10 shrink-0 place-items-center rounded-full bg-mint-soft text-[14px] font-bold text-mint-deep">
-                      {selected.reader.name.slice(0, 1)}
+                      {maskName(selected.reader.name).slice(0, 1)}
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -307,7 +308,7 @@ export function GracePage() {
                         </StatusPill>
                       </div>
                       <p className="mt-1 truncate text-[10px] text-ink-3">
-                        {selected.reader.studentNo} · 《{selected.book.title}》 · {selected.reader.name}
+                        {maskStudentNo(selected.reader.studentNo)} · 《{selected.book.title}》 · {maskName(selected.reader.name)}
                       </p>
                       <p className="mt-0.5 text-[9.5px] text-ink-3">
                         {selected.reader.college} · 提交于 {formatDateTime(selected.createdAt)}
@@ -367,7 +368,7 @@ export function GracePage() {
 
                 <div className="mt-4 border-t border-line-2 pt-3.5">
                   <p className="text-[9px] uppercase tracking-wider text-ink-3">申请理由</p>
-                  <p className="mt-1.5 text-[10.5px] leading-5 text-ink-2">{selected.reason}</p>
+                  <p className="mt-1.5 text-[10.5px] leading-5 text-ink-2">{maskText(selected.reason)}</p>
                 </div>
 
                 <div className="mt-4 border-t border-line-2 pt-3.5">
@@ -447,7 +448,7 @@ export function GracePage() {
                         <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-mint-deep/50" />
                         <div className="min-w-0">
                           <p className="text-[10px] leading-4 text-ink-2">
-                            <b className="font-semibold text-ink">{entry.actor}</b> {entry.text}
+                            <b className="font-semibold text-ink">{entry.actor}</b> {maskText(entry.text)}
                           </p>
                           <p className="tabular text-[8.5px] text-ink-3">{formatDateTime(entry.at)}</p>
                         </div>
@@ -533,7 +534,7 @@ export function GracePage() {
             <AlertDialogTitle>{confirm === "reject" ? "确认驳回这笔宽限？" : "确认通过这笔宽限？"}</AlertDialogTitle>
             <AlertDialogDescription>
               {selected
-                ? `${selected.reader.name}（${selected.reader.studentNo}）·《${selected.book.title}》· 申请 ${selected.requestedDays} 天。`
+                ? `${maskName(selected.reader.name)}（${maskStudentNo(selected.reader.studentNo)}）·《${selected.book.title}》· 申请 ${selected.requestedDays} 天。`
                 : ""}
               {confirm === "reject"
                 ? "驳回后读者会收到通知，说明将写入审计日志。"

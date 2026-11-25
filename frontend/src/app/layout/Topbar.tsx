@@ -20,6 +20,7 @@ import { clearSession, useSession } from "@/lib/auth/session";
 import { logout as logoutRequest } from "@/features/auth/api";
 import { useDashboard } from "@/features/workbench/queries";
 import { fromNow } from "@/lib/format/date";
+import { maskNoticeText } from "@/lib/mask";
 
 export function Topbar() {
   const { user } = useSession();
@@ -171,7 +172,7 @@ export function Topbar() {
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-medium text-ink">{notice.title}</span>
                         <span className="mt-0.5 block text-[10px] text-ink-3">
-                          {notice.body} · {fromNow(notice.at)}
+                          {maskNoticeText(notice.body)} · {fromNow(notice.at)}
                         </span>
                       </span>
                       <ChevronRight className="mt-0.5 size-3 shrink-0 text-ink-3" />

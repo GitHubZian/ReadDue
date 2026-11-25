@@ -26,6 +26,7 @@ import { formatTime, slaRemaining } from "@/lib/format/date";
 import { categoryLabel, appealStatusMeta } from "@/features/appeal/labels";
 import { can } from "@/lib/auth/permissions";
 import { useSession } from "@/lib/auth/session";
+import { maskName, maskStudentNo } from "@/lib/mask";
 
 export function WorkbenchPage() {
   const navigate = useNavigate();
@@ -133,8 +134,8 @@ export function WorkbenchPage() {
                   return (
                     <TableRow key={item.id}>
                       <TableCell >
-                        <p className="font-medium text-ink">{item.reader.name}</p>
-                        <p className="text-[9.5px] text-ink-3">{item.reader.studentNo}</p>
+                        <p className="font-medium text-ink">{maskName(item.reader.name)}</p>
+                        <p className="text-[9.5px] text-ink-3">{maskStudentNo(item.reader.studentNo)}</p>
                       </TableCell>
                       <TableCell className="max-w-[130px] truncate text-ink-2">
                         {item.book.title}
@@ -195,7 +196,7 @@ export function WorkbenchPage() {
               <TableBody>
                 {(data?.dueTodayItems ?? []).map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="text-ink">{item.reader.name}</TableCell>
+                    <TableCell className="text-ink">{maskName(item.reader.name)}</TableCell>
                     <TableCell className="max-w-[140px] truncate text-ink-2">
                       {item.book.title}
                     </TableCell>
@@ -212,7 +213,7 @@ export function WorkbenchPage() {
                         disabled={remind.isPending}
                         onClick={() =>
                           remind.mutate([item.id], {
-                            onSuccess: () => toast.success(`已向 ${item.reader.name} 发送到期提醒`),
+                            onSuccess: () => toast.success(`已向 ${maskName(item.reader.name)} 发送到期提醒`),
                           })
                         }
                       >
@@ -250,7 +251,7 @@ export function WorkbenchPage() {
                     <TableCell >
                       <p className="tabular font-medium text-ink">{item.code}</p>
                       <p className="text-[9.5px] text-ink-3">
-                        {item.reader.name} · {item.book.title}
+                        {maskName(item.reader.name)} · {item.book.title}
                       </p>
                     </TableCell>
                     <TableCell className="text-ink-3">{categoryLabel[item.category]}</TableCell>

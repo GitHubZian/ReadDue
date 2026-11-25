@@ -33,6 +33,7 @@ import {
   conclusionLabel,
 } from "@/features/appeal/labels";
 import { formatDateTime, slaRemaining } from "@/lib/format/date";
+import { maskName, maskText } from "@/lib/mask";
 import type { AppealCategory, AppealStatus, AppealTicket } from "@/lib/api/models";
 import { SLA_OPTIONS } from "@/features/appeal/constants";
 
@@ -195,7 +196,7 @@ export function AppealPage() {
                         <p className="text-[9px] text-ink-3">{formatDateTime(item.createdAt)}</p>
                       </TableCell>
                       <TableCell>
-                        <p className="text-ink">{item.reader.name}</p>
+                        <p className="text-ink">{maskName(item.reader.name)}</p>
                         <p className="max-w-[150px] truncate text-[9.5px] text-ink-3">
                           {item.book.title}
                         </p>
@@ -254,7 +255,7 @@ export function AppealPage() {
                   <div>
                     <p className="tabular text-[12px] font-bold text-ink">{selected.code}</p>
                     <p className="mt-0.5 text-[10px] text-ink-3">
-                      {selected.reader.name} · {categoryLabel[selected.category]}
+                      {maskName(selected.reader.name)} · {categoryLabel[selected.category]}
                     </p>
                   </div>
                   <StatusPill tone={appealStatusMeta[selected.status].tone} dot>
@@ -263,7 +264,7 @@ export function AppealPage() {
                 </div>
 
                 <p className="rounded-lg bg-card px-3 py-2 text-[10.5px] leading-5 text-ink-2 ring-1 ring-line">
-                  {selected.summary}
+                  {maskText(selected.summary)}
                 </p>
 
                 {selected.conclusion ? (
@@ -273,7 +274,7 @@ export function AppealPage() {
                       {conclusionLabel[selected.conclusion.kind]}
                       {selected.conclusion.days ? ` · ${selected.conclusion.days} 天` : ""}
                     </p>
-                    <p className="mt-1 text-[10px] leading-5 text-ink-2">{selected.conclusion.note}</p>
+                    <p className="mt-1 text-[10px] leading-5 text-ink-2">{maskText(selected.conclusion.note)}</p>
                     <p className="tabular mt-1.5 text-[9px] text-ink-3">
                       {selected.conclusion.decidedBy} · {formatDateTime(selected.conclusion.decidedAt)}
                     </p>
@@ -288,7 +289,7 @@ export function AppealPage() {
                         <span className="mt-1 size-1.5 shrink-0 rounded-full bg-mint-deep/50" />
                         <div>
                           <p className="text-[10.5px] text-ink-2">
-                            <b className="font-semibold text-ink">{entry.actor}</b> {entry.text}
+                            <b className="font-semibold text-ink">{entry.actor}</b> {maskText(entry.text)}
                           </p>
                           <p className="tabular text-[9px] text-ink-3">{formatDateTime(entry.at)}</p>
                         </div>

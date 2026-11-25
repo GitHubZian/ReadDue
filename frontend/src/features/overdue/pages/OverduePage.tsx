@@ -21,6 +21,7 @@ import { Pager } from "@/components/common/Pager";
 import { useOverdue, useRemindOverdue } from "@/features/overdue/queries";
 import { formatDate, formatDateTime, fromNow } from "@/lib/format/date";
 import { formatCNY, formatMoneyNumber } from "@/lib/format/money";
+import { maskName, maskStudentNo } from "@/lib/mask";
 import type { OverdueStatus } from "@/lib/api/models";
 
 const statusMeta: Record<OverdueStatus, { label: string; tone: "mint" | "amber" | "red" | "slate" }> = {
@@ -139,12 +140,12 @@ export function OverduePage() {
                   <Checkbox
                     checked={selected.includes(item.id)}
                     onCheckedChange={() => toggle(item.id)}
-                    aria-label={`选择 ${item.reader.name}`}
+                    aria-label={`选择 ${maskName(item.reader.name)}`}
                   />
                 </TableCell>
                 <TableCell>
-                  <p className="font-medium text-ink">{item.reader.name}</p>
-                  <p className="text-[9.5px] text-ink-3">{item.reader.studentNo}</p>
+                  <p className="font-medium text-ink">{maskName(item.reader.name)}</p>
+                  <p className="text-[9.5px] text-ink-3">{maskStudentNo(item.reader.studentNo)}</p>
                 </TableCell>
                 <TableCell className="max-w-[200px]">
                   <p className="truncate text-ink-2">{item.book.title}</p>

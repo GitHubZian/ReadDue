@@ -31,6 +31,7 @@ import { useUsers, useBlacklistUser, useBatchBlacklistUsers, useRestoreUser } fr
 import { ROLE_LABEL } from "@/lib/auth/permissions";
 import { formatDate, fromNow } from "@/lib/format/date";
 import { formatCNY } from "@/lib/format/money";
+import { maskName, maskStudentNo, maskText } from "@/lib/mask";
 import type { AdminUser, Role } from "@/lib/api/models";
 
 const statusMeta: Record<AdminUser["status"], { label: string; tone: "mint" | "amber" | "red" | "slate" }> = {
@@ -75,7 +76,7 @@ export function UsersPage() {
         onSuccess: () => {
           setTarget(null);
           setReason("");
-          toast.success(`已拉黑 ${target.name}`, { description: "其借出与预约权限已冻结。" });
+          toast.success(`已拉黑 ${maskName(target.name)}`, { description: "其借出与预约权限已冻结。" });
         },
       },
     );
@@ -179,18 +180,18 @@ export function UsersPage() {
                         prev.includes(user.id) ? prev.filter((key) => key !== user.id) : [...prev, user.id],
                       )
                     }
-                    aria-label={`选择 ${user.name}`}
+                    aria-label={`选择 ${maskName(user.name)}`}
                   />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="grid size-6 place-items-center rounded-full bg-mint-soft text-[9.5px] font-semibold text-mint-deep">
-                      {user.name.slice(0, 1)}
+                      {maskName(user.name).slice(0, 1)}
                     </span>
                     <div>
-                      <p className="font-medium text-ink">{user.name}</p>
+                      <p className="font-medium text-ink">{maskName(user.name)}</p>
                       <p className="tabular text-[9px] text-ink-3">
-                        {user.studentNo} · {user.college}
+                        {maskStudentNo(user.studentNo)} · {user.college}
                       </p>
                     </div>
                   </div>
@@ -202,7 +203,7 @@ export function UsersPage() {
                   </StatusPill>
                   {user.blacklistReason ? (
                     <p className="mt-0.5 max-w-[120px] truncate text-[9px] text-danger">
-                      {user.blacklistReason}
+                      {maskText(user.blacklistReason)}
                     </p>
                   ) : null}
                 </TableCell>
@@ -225,7 +226,7 @@ export function UsersPage() {
                       size="xs"
                       disabled={restore.isPending}
                       onClick={() =>
-                        restore.mutate(user.id, { onSuccess: () => toast.success(`已恢复 ${user.name} 的权限`) })
+                        restore.mutate(user.id, { onSuccess: () => toast.success(`已恢复 ${maskName(user.name)} 的权限`) })
                       }
                     >
                       <RotateCcw className="size-3" /> 恢复
@@ -261,7 +262,7 @@ export function UsersPage() {
       <Dialog open={Boolean(target)} onOpenChange={(open) => !open && setTarget(null)}>
         <DialogContent className="max-w-[380px]">
           <DialogHeader>
-            <DialogTitle className="text-[15px]">拉黑 {target?.name}</DialogTitle>
+            <DialogTitle className="text-[15px]">拉黑 {maskName(target?.name)}</DialogTitle>
             <DialogDescription className="text-[10.5px] text-ink-3">
               拉黑后该用户无法借出、预约与续借，已借图书仍需归还。原因会写入审计日志并通知本人。
             </DialogDescription>
