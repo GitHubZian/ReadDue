@@ -1,7 +1,6 @@
-# syntax=docker/dockerfile:1
-
 # ---------- 构建 ----------
-FROM node:22-alpine AS build
+ARG REGISTRY=docker.io
+FROM ${REGISTRY}/library/node:22-alpine AS build
 RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
@@ -10,7 +9,8 @@ COPY . .
 RUN pnpm build
 
 # ---------- 运行 ----------
-FROM nginx:1.27-alpine
+FROM ${REGISTRY}/library/nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
+

@@ -36,6 +36,11 @@ spring:
       mail.smtp.writetimeout: 5000
 
 app:
+  bootstrap:
+    admin:
+      enabled: ${APP_BOOTSTRAP_ADMIN_ENABLED:true}
+      username: ${APP_BOOTSTRAP_ADMIN_USERNAME:admin}
+      password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
   jwt:
     secret: ${APP_JWT_SECRET}
   demo:
@@ -63,3 +68,4 @@ logging:
   level:
     root: INFO
     com.zian.backend: INFO
+

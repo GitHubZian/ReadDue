@@ -51,6 +51,8 @@ services:
   backend:
     build:
       context: ../backend
+      args:
+        REGISTRY: ${IMAGE_REGISTRY:-docker.io}
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -62,6 +64,8 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET 必须设置}
+      APP_BOOTSTRAP_ADMIN_USERNAME: ${APP_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-}
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
@@ -85,6 +89,8 @@ services:
   frontend:
     build:
       context: ../frontend
+      args:
+        REGISTRY: ${IMAGE_REGISTRY:-docker.io}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:80"
@@ -96,3 +102,5 @@ volumes:
   redis-data:
   rabbitmq-data:
   uploads:
+
+
