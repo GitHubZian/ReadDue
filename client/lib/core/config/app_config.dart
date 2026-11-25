@@ -6,8 +6,9 @@ abstract final class AppConfig {
   /// `--dart-define=API_BASE_URL=http://10.0.2.2:8125/api` 覆盖。
   static const apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.0.3:8125/api',
+    defaultValue: 'http://8.163.136.80:8124/api',
   );
 
   static const useMock = bool.fromEnvironment('USE_MOCK', defaultValue: false);
 }
+
