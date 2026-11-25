@@ -77,6 +77,60 @@ public class AuthService {
     }
 
     /**
+     * 读者自助修改资料（姓名/手机/邮箱），返回与 {@code GET /me} 相同的会话结构。
+     *
+     * <p>字段为 null 表示不修改；手机/邮箱传空串表示清空。失焦的字段（未传）保持原值。
+     *
+     * @param request 修改内容
+     * @return 更新后的会话用户
+     */
+    @Transactional
+    public AuthDtos.SessionUser updateMe(AuthDtos.UpdateProfileRequest request) {
+        LoginUser current = UserContext.require();
+        User user = userRepository
+                .findById(current.id())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "缺少修改内容");
+        }
+        String name = request.name() == null ? user.getName() : request.name().trim();
+        if (name == null || name.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "姓名不能为空");
+        }
+        if (name.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "姓名长度为 1-20 个字符");
+        }
+        String phone = request.phone() == null ? user.getPhone() : request.phone().trim();
+        if (phone != null && phone.isEmpty()) {
+            phone = null;
+        }
+        if (phone != null && !phone.matches("^1\\d{10}$")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号需为 11 位数字且以 1 开头");
+        }
+        String email = request.email() == null ? user.getEmail() : request.email().trim();
+        if (email != null && email.isEmpty()) {
+            email = null;
+        }
+        if (email != null && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+        if (email != null && email.length() > 100) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱过长");
+        }
+        userRepository.updateProfile(user.getId(), name, phone, email);
+        auditRecorder.record(
+                "USER_PROFILE_UPDATE",
+                "SYS_USER",
+                user.getId(),
+                "读者更新联系方式",
+                Map.of(
+                        "hasPhone", phone != null,
+                        "hasEmail", email != null,
+                        "changedName", !name.equals(user.getName())));
+        return me();
+    }
+
+    /**
      * 注销：吊销令牌对应的 Redis 登录态。
      *
      * @param token 原始令牌
@@ -153,7 +207,9 @@ public class AuthService {
                 profile.department(),
                 profile.major(),
                 profile.grade(),
-                readerSelfRepository.totalBorrowed(user.getId()));
+                readerSelfRepository.totalBorrowed(user.getId()),
+                user.getPhone(),
+                user.getEmail());
     }
 }
 

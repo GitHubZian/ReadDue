@@ -1,5 +1,6 @@
 package com.zian.backend.grace.interfaces.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.zian.backend.grace.domain.model.GraceApplication;
 import com.zian.backend.shared.file.domain.model.StoredFile;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +34,38 @@ public final class GraceDtos {
             String sceneCode,
             String evidenceText,
             @Size(max = 5, message = "最多上传 5 个证据附件") List<Long> evidenceIds) {
+    }
+
+    /**
+     * 宽限建议天数预览入参（不落库）。
+     *
+     * @param orderId       借阅单 id
+     * @param sceneCode     场景（NORMAL/EXAM/THESIS/GRADUATION）
+     * @param requestedDays 读者期望天数；传入且小于计算值时按期望值收敛
+     */
+    public record PreviewRequest(
+            @NotNull(message = "借阅单不能为空") Long orderId,
+            @JsonAlias("scene") String sceneCode,
+            Integer requestedDays) {
+    }
+
+    /**
+     * 宽限建议天数预览结果。
+     *
+     * @param baseDays      场景基准天数
+     * @param sceneFactor   信用档位系数
+     * @param quotaFactor   预约队列系数
+     * @param capDays       单次上限天数
+     * @param suggestedDays 建议天数（支持 .5 天）
+     * @param note          计算说明
+     */
+    public record PreviewView(
+            int baseDays,
+            double sceneFactor,
+            double quotaFactor,
+            int capDays,
+            double suggestedDays,
+            String note) {
     }
 
     /**

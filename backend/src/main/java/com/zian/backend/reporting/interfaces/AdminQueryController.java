@@ -5,6 +5,7 @@ import com.zian.backend.reporting.application.AdminQueryService;
 import com.zian.backend.reporting.interfaces.dto.AdminViews;
 import com.zian.backend.shared.common.BaseResponse;
 import com.zian.backend.shared.common.ErrorCode;
+import com.zian.backend.shared.common.Masks;
 import com.zian.backend.shared.common.PageQuery;
 import com.zian.backend.shared.common.PageResult;
 import com.zian.backend.shared.common.ResultUtils;
@@ -266,20 +267,21 @@ public class AdminQueryController {
         PageResult<AdminViews.AuditLogView> result =
                 queryService.auditLogs(category, keyword, PageQuery.of(1, PageQuery.MAX_SIZE));
         StringBuilder csv = new StringBuilder("id,时间,操作人,角色,动作,分类,对象,IP,详情,traceId,变更前,变更后\n");
+        // 导出是离线文件，最易泄露个人信息：姓名/IP/详情与变更前后统一脱敏后再写 CSV。
         result.items().forEach(log -> {
             csv.append(String.join(",",
                             csvCell(log.id()),
                             csvCell(log.at() == null ? "" : log.at().toString()),
-                            csvCell(log.actor().name()),
+                            csvCell(Masks.name(log.actor().name())),
                             csvCell(log.actor().role()),
                             csvCell(log.action()),
                             csvCell(log.category()),
                             csvCell(log.target()),
-                            csvCell(log.ip()),
-                            csvCell(log.detail()),
+                            csvCell(Masks.ip(log.ip())),
+                            csvCell(Masks.json(log.detail(), 500)),
                             csvCell(log.traceId()),
-                            csvCell(log.before()),
-                            csvCell(log.after())))
+                            csvCell(Masks.json(log.before(), 500)),
+                            csvCell(Masks.json(log.after(), 500))))
                     .append('\n');
         });
         byte[] bytes = csv.toString().getBytes(StandardCharsets.UTF_8);

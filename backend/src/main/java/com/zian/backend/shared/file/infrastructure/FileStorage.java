@@ -88,6 +88,21 @@ public class FileStorage implements FileContentStore {
         return Files.isRegularFile(resolve(relative));
     }
 
+    /**
+     * 删除文件内容；文件缺失视为清理成功（幂等）。
+     *
+     * @param relative 相对路径
+     * @return 实际删除了文件时为 true
+     */
+    public boolean delete(String relative) {
+        try {
+            return Files.deleteIfExists(resolve(relative));
+        } catch (IOException e) {
+            log.warn("文件删除失败：{}", relative, e);
+            return false;
+        }
+    }
+
     private Path resolve(String relative) {
         Path target = root.resolve(relative).normalize();
         if (!target.startsWith(root)) {

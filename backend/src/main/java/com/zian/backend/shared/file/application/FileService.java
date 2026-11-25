@@ -208,6 +208,30 @@ public class FileService {
     }
 
     /**
+     * 删除一批宽限证据文件：先删物理内容，再把元数据标记为已删除（审计仍可追溯）。
+     *
+     * <p>只供遗忘级联等系统清理使用；物理文件缺失按「已删除」计入，不抛异常。
+     *
+     * @param fileIds 文件 id 集合
+     * @return 实际删除的物理文件数量
+     */
+    @Transactional
+    public int deleteEvidenceFiles(Collection<Long> fileIds) {
+        List<StoredFile> files = fileRepository.findByIds(fileIds);
+        if (files.isEmpty()) {
+            return 0;
+        }
+        int removed = 0;
+        for (StoredFile file : files) {
+            if (fileStorage.delete(file.storagePath())) {
+                removed++;
+            }
+        }
+        fileRepository.markDeleted(files.stream().map(StoredFile::id).toList());
+        return removed;
+    }
+
+    /**
      * 真实解码校验：仅靠文件头会被 12 字节伪 PNG 绕过；这里要求 ImageIO 能读出
      * 宽高，并校验实际格式与扩展名一致（png / jpeg）。
      */

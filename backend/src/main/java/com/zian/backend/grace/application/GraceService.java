@@ -11,6 +11,7 @@ import com.zian.backend.grace.domain.model.GraceStatus;
 import com.zian.backend.grace.domain.repository.GraceApplicationRepository;
 import com.zian.backend.grace.domain.repository.GraceEvidenceRepository;
 import com.zian.backend.grace.interfaces.dto.GraceDtos;
+import com.zian.backend.iam.application.PrivacyService;
 import com.zian.backend.iam.application.ReaderCreditService;
 import com.zian.backend.iam.application.UserQueryService;
 import com.zian.backend.iam.domain.model.User;
@@ -63,6 +64,7 @@ public class GraceService {
     private final RuleService ruleService;
     private final OutboxAppender outboxAppender;
     private final AuditRecorder auditRecorder;
+    private final PrivacyService privacyService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -93,12 +95,8 @@ public class GraceService {
         }
         List<StoredFile> evidence = fileService.requireOwned(request.evidenceIds(), readerId);
 
-        String scene = request.sceneCode() == null || request.sceneCode().isBlank()
-                ? "NORMAL"
-                : request.sceneCode().trim().toUpperCase();
-        if (!SCENES.contains(scene)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "场景只能是 NORMAL/EXAM/THESIS/GRADUATION");
-        }
+        String scene = normalizeScene(request.sceneCode());
+        requireSceneConsent(readerId, scene);
         int baseDays = ruleService.intValue("BS." + scene, 3);
         int dmax = ruleService.intValue("GRACE.DMAX", 14);
         BigDecimal step = ruleService.decimal("GRACE.ROUND_STEP", "0.5");
@@ -140,7 +138,7 @@ public class GraceService {
         // 仓储只返回主键，回填到聚合后再复用统一的视图转换（含证据附件）
         application.setId(id);
         evidenceRepository.attach(id, evidence.stream().map(StoredFile::id).toList());
-        cacheSnapshot(order.getId(), application, snapshotExpiresAt);
+        cacheSnapshot(order.getId(), readerId, application, snapshotExpiresAt);
         auditRecorder.record(
                 "GRACE_APPLY",
                 "GRACE_APPLICATION",
@@ -153,6 +151,52 @@ public class GraceService {
                         "evidenceCount", evidence.size()));
 
         return view(application, evidence);
+    }
+
+    /**
+     * 预览宽限建议天数：只做确定性计算，不落库、不写快照、不产生审计。
+     *
+     * <p>用于申请页实时展示「预计可延天数」，校验规则与正式申请一致（本人、在借、场景授权）。
+     *
+     * @param request 借阅单、场景与期望天数
+     * @return 建议天数与计算因子
+     */
+    @Transactional(readOnly = true)
+    public GraceDtos.PreviewView preview(GraceDtos.PreviewRequest request) {
+        Long readerId = UserContext.requireId();
+        User reader = userQueryService.requireById(readerId);
+        reader.assertCanBorrow("预览宽限");
+        BorrowOrder order = borrowService.requireOrder(request.orderId());
+        if (!readerId.equals(order.getReaderId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "只能为自己的借阅预览宽限");
+        }
+        if (!order.isActive()) {
+            throw new BusinessException(ErrorCode.RULE_VIOLATION, "该借阅已结束，无法申请宽限");
+        }
+        String scene = normalizeScene(request.sceneCode());
+        requireSceneConsent(readerId, scene);
+
+        int baseDays = ruleService.intValue("BS." + scene, 3);
+        int dmax = ruleService.intValue("GRACE.DMAX", 14);
+        BigDecimal step = ruleService.decimal("GRACE.ROUND_STEP", "0.5");
+        int tier = readerCreditService.ktTier(readerId);
+        BigDecimal kt = ruleService.decimal("KT.TIER_" + tier, "1.00");
+        int queueLen = reservationService.countWaiting(order.getBookId());
+        int level = queueLen == 0 ? 0 : queueLen < 4 ? 1 : 2;
+        BigDecimal kq = ruleService.decimal("KQ.LEVEL_" + level, "1.00");
+        BigDecimal computed = GraceCalculator.compute(BigDecimal.valueOf(baseDays), kt, kq, dmax, step);
+
+        double suggested = computed.doubleValue();
+        Integer requested = request.requestedDays();
+        boolean narrowed = false;
+        if (requested != null && requested > 0 && requested < suggested) {
+            suggested = requested;
+            narrowed = true;
+        }
+        String note = "建议天数 = 场景基准 × 信用系数 × 预约队列系数，单次最多 " + dmax + " 天"
+                + (narrowed ? "；已按期望天数收敛" : "");
+        return new GraceDtos.PreviewView(
+                baseDays, kt.doubleValue(), kq.doubleValue(), dmax, suggested, note);
     }
 
     /**
@@ -321,8 +365,30 @@ public class GraceService {
         return "GA" + now.format(APPLY_NO_DATE) + suffix;
     }
 
+    /** 场景码归一化并校验枚举；空值按 NORMAL。 */
+    private String normalizeScene(String raw) {
+        String scene = raw == null || raw.isBlank() ? "NORMAL" : raw.trim().toUpperCase();
+        if (!SCENES.contains(scene)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "场景只能是 NORMAL/EXAM/THESIS/GRADUATION");
+        }
+        return scene;
+    }
+
+    /** 非 NORMAL 场景必须已开启「场景声明」授权，否则拒绝读取场景化基准。 */
+    private void requireSceneConsent(Long readerId, String scene) {
+        if (!"NORMAL".equals(scene) && !privacyService.sceneConsent(readerId)) {
+            throw new BusinessException(
+                    ErrorCode.RULE_VIOLATION, "已关闭借阅场景授权，无法按场景申请宽限");
+        }
+    }
+
     /** 审批时用快照判断是否超时失效，存成标量 JSON 避免 LocalDateTime 序列化问题。 */
-    private void cacheSnapshot(Long orderId, GraceApplication application, LocalDateTime expiresAt) {
+    private void cacheSnapshot(
+            Long orderId, Long readerId, GraceApplication application, LocalDateTime expiresAt) {
+        // 未授权「计算缓存」时不写快照：审批按无快照路径处理，仍可审批但不复用缓存结果。
+        if (!privacyService.cacheConsent(readerId)) {
+            return;
+        }
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("orderId", orderId);
         snapshot.put("baseDays", application.getBaseDays().toPlainString());

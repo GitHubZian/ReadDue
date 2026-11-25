@@ -36,4 +36,15 @@ public interface UserRepository {
      */
     List<User> findExpiredBlacklist(LocalDateTime now, int limit);
 
+    /**
+     * 读者自助更新姓名/手机/邮箱（null 表示清空，调用方已完成格式校验）。
+     *
+     * @param id    用户 id
+     * @param name  姓名
+     * @param phone 手机号
+     * @param email 邮箱
+     * @return 影响行数
+     */
+    int updateProfile(long id, String name, String phone, String email);
+
 }

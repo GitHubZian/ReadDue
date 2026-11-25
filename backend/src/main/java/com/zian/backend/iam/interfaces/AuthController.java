@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +43,18 @@ public class AuthController {
     @GetMapping("/me")
     public BaseResponse<AuthDtos.SessionUser> me() {
         return ResultUtils.success(authService.me());
+    }
+
+    /**
+     * 修改当前读者资料（姓名/手机/邮箱），返回与 GET /me 相同的结构。
+     *
+     * @param request 修改内容；未传字段保持不变，手机/邮箱传空串清空
+     * @return 更新后的会话用户
+     */
+    @PutMapping("/me")
+    public BaseResponse<AuthDtos.SessionUser> updateMe(
+            @Valid @RequestBody AuthDtos.UpdateProfileRequest request) {
+        return ResultUtils.success(authService.updateMe(request));
     }
 
     /**

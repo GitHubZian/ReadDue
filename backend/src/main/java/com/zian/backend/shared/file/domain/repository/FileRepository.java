@@ -32,4 +32,12 @@ public interface FileRepository {
      * @return 命中的元数据
      */
     List<StoredFile> findByIds(Collection<Long> ids);
+
+    /**
+     * 把一批文件标记为已删除（保留元数据行，下载与证据展示按不存在处理）。
+     *
+     * @param ids 文件 id 集合
+     * @return 影响行数
+     */
+    int markDeleted(Collection<Long> ids);
 }

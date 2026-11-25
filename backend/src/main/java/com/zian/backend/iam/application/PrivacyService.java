@@ -2,6 +2,7 @@ package com.zian.backend.iam.application;
 
 import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.borrow.domain.repository.BorrowOrderRepository;
+import com.zian.backend.grace.domain.repository.GraceEvidenceRepository;
 import com.zian.backend.iam.domain.model.PrivacyState;
 import com.zian.backend.iam.domain.model.User;
 import com.zian.backend.iam.domain.repository.PrivacyRepository;
@@ -10,6 +11,7 @@ import com.zian.backend.iam.interfaces.dto.PrivacyDtos;
 import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.common.Times;
 import com.zian.backend.shared.exception.BusinessException;
+import com.zian.backend.shared.file.application.FileService;
 import com.zian.backend.shared.security.UserContext;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -39,6 +41,8 @@ public class PrivacyService {
     private final UserRepository userRepository;
     private final AuditRecorder auditRecorder;
     private final BorrowOrderRepository borrowOrderRepository;
+    private final GraceEvidenceRepository graceEvidenceRepository;
+    private final FileService fileService;
     private final StringRedisTemplate redisTemplate;
 
     // region 查询
@@ -51,6 +55,26 @@ public class PrivacyService {
     public PrivacyDtos.ConsentsView consents() {
         long userId = UserContext.requireId();
         return view(state(userId));
+    }
+
+    /**
+     * 场景声明授权是否开启（宽限场景、课表读取的前置闸门）。
+     *
+     * @param userId 读者账号
+     * @return 已授权时为 true
+     */
+    public boolean sceneConsent(long userId) {
+        return state(userId).sceneConsent();
+    }
+
+    /**
+     * 宽限计算缓存授权是否开启。
+     *
+     * @param userId 读者账号
+     * @return 已授权时为 true
+     */
+    public boolean cacheConsent(long userId) {
+        return state(userId).cacheConsent();
     }
 
     // endregion
@@ -89,6 +113,10 @@ public class PrivacyService {
                 detail,
                 Map.of("sceneConsent", before.sceneConsent(), "cacheConsent", before.cacheConsent()),
                 Map.of("sceneConsent", scene, "cacheConsent", cache));
+        // 关闭缓存授权立即遗忘：删除该读者全部宽限结果快照，避免继续复用可识别信息。
+        if (before.cacheConsent() && !cache) {
+            evictGraceSnapshots(userId);
+        }
         return view(after);
     }
 
@@ -115,9 +143,15 @@ public class PrivacyService {
         LocalDateTime now = LocalDateTime.now();
         privacyRepository.anonymize(userId, displayName, now);
 
+        // 遗忘级联：先清缓存快照，再删该读者宽限证据文件（元数据逻辑删除 + 物理内容删除）。
+        int removedSnapshots = evictGraceSnapshots(userId);
+        int removedFiles = removeEvidenceFiles(userId);
+
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("displayName", displayName);
         detail.put("forgetRequestedAt", Times.iso(now));
+        detail.put("removedSnapshots", removedSnapshots);
+        detail.put("removedFiles", removedFiles);
         Map<String, Object> beforeDetail = new LinkedHashMap<>();
         beforeDetail.put("hasPhone", user.getPhone() != null && !user.getPhone().isBlank());
         beforeDetail.put("hasEmail", user.getEmail() != null && !user.getEmail().isBlank());
@@ -131,36 +165,71 @@ public class PrivacyService {
                 detail,
                 beforeDetail,
                 Map.of("anonymous", true));
-        evictGraceSnapshots(userId);
         return new PrivacyDtos.ForgetResult(true, displayName, Times.iso(now));
     }
 
     /**
-     * 遗忘后清理该读者借阅单的宽限结果快照，避免缓存残留可识别信息；缓存不可用不影响脱敏结果。
+     * 遗忘/关闭缓存授权后清理该读者借阅单的宽限结果快照，避免缓存残留可识别信息；缓存不可用不影响主流程。
+     *
+     * @return 实际尝试删除的键数量
      */
-    private void evictGraceSnapshots(long userId) {
+    private int evictGraceSnapshots(long userId) {
         List<Long> orderIds;
         try {
             orderIds = borrowOrderRepository.findIdsByReader(userId);
         } catch (Exception e) {
             log.warn("遗忘清理宽限快照失败：读取借阅单异常 userId={}", userId, e);
-            return;
+            return 0;
         }
         if (orderIds == null || orderIds.isEmpty()) {
-            return;
+            return 0;
         }
         List<String> keys = orderIds.stream()
                 .filter(Objects::nonNull)
                 .map(id -> GRACE_SNAPSHOT_PREFIX + id)
                 .toList();
         if (keys.isEmpty()) {
-            return;
+            return 0;
         }
         try {
-            redisTemplate.delete(keys);
+            Long removed = redisTemplate.delete(keys);
+            return removed == null ? 0 : removed.intValue();
         } catch (Exception e) {
             log.warn("遗忘清理宽限快照失败 userId={} keys={}", userId, keys, e);
+            return 0;
         }
+    }
+
+    /**
+     * 遗忘级联删除该读者提交过的宽限证据：元数据逻辑删除、物理文件删除、关联行清理。
+     *
+     * <p>任一步失败只记录告警，不阻断已经完成的账号脱敏（遗忘是读者强诉求，宁可残留文件也不能回滚脱敏）。
+     *
+     * @return 实际删除的物理文件数量
+     */
+    private int removeEvidenceFiles(long userId) {
+        List<Long> fileIds;
+        try {
+            fileIds = graceEvidenceRepository.fileIdsOfReader(userId);
+        } catch (Exception e) {
+            log.warn("遗忘清理证据文件失败：读取证据异常 userId={}", userId, e);
+            return 0;
+        }
+        if (fileIds == null || fileIds.isEmpty()) {
+            return 0;
+        }
+        int removed = 0;
+        try {
+            removed = fileService.deleteEvidenceFiles(fileIds);
+        } catch (Exception e) {
+            log.warn("遗忘清理证据文件失败：删除文件异常 userId={} fileIds={}", userId, fileIds, e);
+        }
+        try {
+            graceEvidenceRepository.deleteByFileIds(fileIds);
+        } catch (Exception e) {
+            log.warn("遗忘清理证据关联失败 userId={} fileIds={}", userId, fileIds, e);
+        }
+        return removed;
     }
 
     // endregion

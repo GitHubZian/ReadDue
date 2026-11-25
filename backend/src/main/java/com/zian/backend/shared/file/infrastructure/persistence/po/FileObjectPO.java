@@ -30,5 +30,8 @@ public class FileObjectPO {
 
     private String storagePath;
 
+    /** 0=有效；1=已随遗忘/清理删除（元数据保留用于审计追溯）。 */
+    private Integer deleted;
+
     private LocalDateTime createdAt;
 }

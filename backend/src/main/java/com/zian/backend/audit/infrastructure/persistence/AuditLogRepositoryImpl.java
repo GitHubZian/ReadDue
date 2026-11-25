@@ -32,4 +32,10 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
         po.setAfterJson(record.after());
         mapper.insert(po);
     }
+
+    @Override
+    public int deleteBefore(java.time.LocalDateTime cutoff) {
+        return mapper.delete(com.baomidou.mybatisplus.core.toolkit.Wrappers.<AuditLogPO>lambdaQuery()
+                .lt(AuditLogPO::getCreatedAt, cutoff));
+    }
 }

@@ -54,4 +54,18 @@ public class GraceEvidenceRepositoryImpl implements GraceEvidenceRepository {
                         .add(po.getFileId()));
         return grouped;
     }
+
+    @Override
+    public List<Long> fileIdsOfReader(long readerId) {
+        return mapper.selectFileIdsByReader(readerId);
+    }
+
+    @Override
+    public int deleteByFileIds(java.util.Collection<Long> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return 0;
+        }
+        return mapper.delete(com.baomidou.mybatisplus.core.toolkit.Wrappers.<GraceEvidencePO>lambdaQuery()
+                .in(GraceEvidencePO::getFileId, fileIds));
+    }
 }

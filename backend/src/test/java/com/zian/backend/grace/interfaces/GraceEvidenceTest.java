@@ -27,6 +27,13 @@ class GraceEvidenceTest extends SecurityTestSupport {
     void uploadThenAttachToGraceAndReadBack() throws Exception {
         String readerNo = newAccount("ev");
         long readerId = createUser(readerNo, "READER", "NORMAL", null);
+        // M5-A：EXAM 场景需要读者已开启场景授权。
+        jdbc.update(
+                """
+                INSERT INTO reader_profile (user_id, scene_consent, cache_consent, created_at, updated_at)
+                VALUES (?, 1, 1, NOW(), NOW())
+                """,
+                readerId);
         Fixture book = createBookWithCopy("ON_LOAN");
         long orderId = createActiveLoan(readerId, book);
         String token = login(readerNo);

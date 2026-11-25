@@ -32,4 +32,12 @@ public interface FileContentStore {
      * @return 存在时为 true
      */
     boolean exists(String relative);
+
+    /**
+     * 删除文件内容（遗忘级联清理证据时使用）。
+     *
+     * @param relative 相对路径
+     * @return 实际删除时为 true；文件已不存在返回 false
+     */
+    boolean delete(String relative);
 }

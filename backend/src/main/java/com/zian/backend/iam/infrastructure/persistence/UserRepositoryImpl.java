@@ -62,6 +62,16 @@ public class UserRepositoryImpl implements UserRepository {
                 .toList();
     }
 
+    @Override
+    public int updateProfile(long id, String name, String phone, String email) {
+        // set(...) 显式赋 null 才能清空手机/邮箱；updateById 会忽略 null 字段。
+        return mapper.update(null, Wrappers.<SysUserPO>lambdaUpdate()
+                .eq(SysUserPO::getId, id)
+                .set(SysUserPO::getName, name)
+                .set(SysUserPO::getPhone, phone)
+                .set(SysUserPO::getEmail, email)
+                .set(SysUserPO::getUpdatedAt, LocalDateTime.now()));
+    }
 
     private User toDomain(SysUserPO po) {
         return new User(

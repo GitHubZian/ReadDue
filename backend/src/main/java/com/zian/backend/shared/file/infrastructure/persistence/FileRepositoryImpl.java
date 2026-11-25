@@ -1,5 +1,6 @@
 package com.zian.backend.shared.file.infrastructure.persistence;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zian.backend.shared.file.domain.model.StoredFile;
 import com.zian.backend.shared.file.domain.repository.FileRepository;
 import com.zian.backend.shared.file.infrastructure.persistence.mapper.FileObjectMapper;
@@ -26,7 +27,10 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public Optional<StoredFile> findById(long id) {
-        return Optional.ofNullable(mapper.selectById(id)).map(FileRepositoryImpl::toDomain);
+        return Optional.ofNullable(mapper.selectOne(Wrappers.<FileObjectPO>lambdaQuery()
+                        .eq(FileObjectPO::getId, id)
+                        .eq(FileObjectPO::getDeleted, 0)))
+                .map(FileRepositoryImpl::toDomain);
     }
 
     @Override
@@ -34,7 +38,22 @@ public class FileRepositoryImpl implements FileRepository {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-        return mapper.selectByIds(ids).stream().map(FileRepositoryImpl::toDomain).toList();
+        return mapper.selectList(Wrappers.<FileObjectPO>lambdaQuery()
+                        .in(FileObjectPO::getId, ids)
+                        .eq(FileObjectPO::getDeleted, 0))
+                .stream()
+                .map(FileRepositoryImpl::toDomain)
+                .toList();
+    }
+
+    @Override
+    public int markDeleted(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return mapper.update(null, Wrappers.<FileObjectPO>lambdaUpdate()
+                .in(FileObjectPO::getId, ids)
+                .set(FileObjectPO::getDeleted, 1));
     }
 
     private static FileObjectPO toPo(StoredFile file) {

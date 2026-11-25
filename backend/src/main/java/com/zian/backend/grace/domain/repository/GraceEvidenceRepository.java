@@ -31,4 +31,20 @@ public interface GraceEvidenceRepository {
      * @return graceId → 文件 id 列表（无附件的申请不出现在 map 中）
      */
     Map<Long, List<Long>> fileIdsOf(List<Long> graceIds);
+
+    /**
+     * 查询某个读者所有宽限申请关联的文件 id（遗忘级联清理用）。
+     *
+     * @param readerId 读者账号
+     * @return 文件 id 列表（去重前）
+     */
+    List<Long> fileIdsOfReader(long readerId);
+
+    /**
+     * 删除一批文件 id 的证据关联（遗忘级联清理用）。
+     *
+     * @param fileIds 文件 id 集合
+     * @return 删除的关联行数
+     */
+    int deleteByFileIds(java.util.Collection<Long> fileIds);
 }

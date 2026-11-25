@@ -41,6 +41,19 @@ public class GraceController {
     }
 
     /**
+     * 预览宽限建议天数：按当前规则实时计算，不落库、不写快照。
+     *
+     * @param request 借阅单、场景与期望天数
+     * @return 基准/信用/队列因子与建议天数
+     */
+    @PostMapping("/preview")
+    @PreAuthorize("hasAuthority('grace:apply')")
+    public BaseResponse<GraceDtos.PreviewView> preview(
+            @Valid @RequestBody GraceDtos.PreviewRequest request) {
+        return ResultUtils.success(graceService.preview(request));
+    }
+
+    /**
      * 查询一次宽限申请（含证据附件）：本人或馆员/管理员。
      *
      * @param id 申请 id
