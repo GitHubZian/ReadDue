@@ -69,7 +69,7 @@ class PrivacyPage extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '关闭授权后仍可检索、借阅与归还，仅不再使用对应数据。',
+          '关闭授权后仍可检索、借阅与归还，不影响借还与提醒。',
           style: AppText.caption.copyWith(color: AppColors.ink3),
         ),
         const SizedBox(height: 20),
@@ -102,13 +102,13 @@ class PrivacyPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                data.forgotten ? '遗忘申请处理中' : '申请遗忘个人信息',
+                data.forgotten ? '遗忘申请已生效' : '申请遗忘个人信息',
                 style: AppText.body.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               Text(
                 data.forgotten
-                    ? '姓名、手机号与院系将在 30 天内清除，借阅事实保留。'
+                    ? '姓名、手机号与院系已清除，借阅事实保留。'
                     : '脱敏姓名、手机号与院系；借阅与归还记录依法保留，不影响毕业离校。',
                 style: AppText.caption.copyWith(color: AppColors.ink3),
               ),
@@ -156,6 +156,15 @@ class PrivacyPage extends ConsumerWidget {
       if (scene != null) await repo.setSceneConsent(scene);
       if (cache != null) await repo.setCacheConsent(cache);
       ref.invalidate(privacyProvider);
+      if (!context.mounted) return;
+      if (scene != null) {
+        showToast(
+          context,
+          scene ? '已开启借阅场景授权' : '已关闭借阅场景授权',
+        );
+      } else if (cache != null) {
+        showToast(context, cache ? '已开启本地缓存授权' : '已关闭本地缓存授权');
+      }
     } catch (_) {
       if (context.mounted) showToast(context, '保存失败，请稍后重试');
     }
@@ -217,7 +226,7 @@ class PrivacyPage extends ConsumerWidget {
     final ok = await showConfirmDialog(
       context,
       title: '申请遗忘个人信息',
-      message: '将清除姓名、手机号与院系，借阅事实保留。此操作不可撤销。',
+      message: '立即生效：姓名、手机号、院系等将立即清除，借阅事实保留',
       confirmLabel: '确认申请',
       danger: true,
     );
@@ -225,7 +234,7 @@ class PrivacyPage extends ConsumerWidget {
     try {
       await ref.read(privacyRepositoryProvider).forget();
       ref.invalidate(privacyProvider);
-      if (context.mounted) showToast(context, '已提交遗忘申请，30 天内完成');
+      if (context.mounted) showToast(context, '已提交遗忘申请，已立即生效');
     } catch (_) {
       if (context.mounted) showToast(context, '提交失败，请稍后重试');
     }

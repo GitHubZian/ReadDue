@@ -1,12 +1,14 @@
 import '../models/models.dart';
+import '../utils/app_date.dart';
 import '../utils/app_text.dart';
 
 export '../utils/app_text.dart' show coverLabelOf;
 
 /// 后端 JSON → 客户端模型。字段缺失时给中性值，不猜业务结论。
 ///
-/// 带时区的时间统一换算到北京时间（UTC+8）再展示，避免模拟器/海外设备
-/// 因本地时区不同显示成另一个时刻；纯日期（yyyy-MM-dd）按字面保留。
+/// 接口时间均为带时区的 ISO-8601：`DateTime.parse` 已把偏移量归一为 UTC，
+/// 这里再 `toLocal()` 一次转成设备本地时间。页面层只格式化，不再二次换算，
+/// 避免出现「未来时间」。纯日期（yyyy-MM-dd）没有时区，按字面保留。
 DateTime? parseTime(dynamic value) {
   final text = value?.toString();
   if (text == null || text.isEmpty || text == 'null') return null;
@@ -14,8 +16,17 @@ DateTime? parseTime(dynamic value) {
   if (parsed == null) return null;
   final hasZone =
       text.endsWith('Z') || RegExp(r'[+-]\d{2}:\d{2}$').hasMatch(text);
-  if (!hasZone) return parsed;
-  return parsed.toUtc().add(const Duration(hours: 8));
+  return hasZone ? parsed.toLocal() : parsed;
+}
+
+/// 宽限天数：effectiveDueAt 与原始 dueAt 的自然日差；没有延后则为 0。
+int graceDaysBetween(DateTime dueAt, DateTime? effectiveDueAt) {
+  if (effectiveDueAt == null) return 0;
+  final original = DateTime(dueAt.year, dueAt.month, dueAt.day);
+  final extended =
+      DateTime(effectiveDueAt.year, effectiveDueAt.month, effectiveDueAt.day);
+  final days = extended.difference(original).inDays;
+  return days > 0 ? days : 0;
 }
 
 int _daysLeft(DateTime dueAt, DateTime now) {
@@ -31,11 +42,14 @@ BorrowItem borrowItemFromJson(
   Map<String, dynamic> json, {
   DateTime? now,
 }) {
-  final dueAt = parseTime(json['dueAt']) ?? DateTime.now();
+  final originalDueAt = parseTime(json['dueAt']) ?? DateTime.now();
+  final effectiveDueAt = parseTime(json['effectiveDueAt']);
+  // 展示与逾期倒计时统一按「宽限后应还日」计算，原到期日只用于回显。
+  final settledDueAt = effectiveDueAt ?? originalDueAt;
   final status = (json['status'] ?? 'BORROWED').toString();
   final overdueDays = int.tryParse((json['overdueDays'] ?? 0).toString()) ?? 0;
   final overdue = isOverdue(status, overdueDays);
-  final daysLeft = _daysLeft(dueAt, now ?? DateTime.now());
+  final daysLeft = _daysLeft(settledDueAt, now ?? DateTime.now());
   final renewCount = int.tryParse((json['renewCount'] ?? 0).toString()) ?? 0;
   final title = (json['bookTitle'] ?? '').toString();
   return BorrowItem(
@@ -45,9 +59,9 @@ BorrowItem borrowItemFromJson(
     author: (json['bookAuthor'] ?? '').toString(),
     coverLabel: coverLabelOf(title),
     coverTone: overdue ? 'amber' : 'mint',
-    borrowedAt: parseTime(json['borrowedAt']) ?? dueAt,
-    dueAt: dueAt,
-    effectiveDueAt: parseTime(json['effectiveDueAt']),
+    borrowedAt: parseTime(json['borrowedAt']) ?? originalDueAt,
+    dueAt: originalDueAt,
+    effectiveDueAt: effectiveDueAt,
     overdueDays: overdueDays,
     daysLeft: daysLeft,
     renewCount: renewCount,
@@ -65,6 +79,8 @@ OrderDetail orderDetailFromJson(
 }) {
   final item = borrowItemFromJson(json);
   final overdue = item.overdueDays > 0 || item.status == 'OVERDUE';
+  final graceDays = graceDaysBetween(item.dueAt, item.effectiveDueAt);
+  final settledDueAt = item.effectiveDueAt ?? item.dueAt;
   final timeline = <TimelineEvent>[
     TimelineEvent(
       id: 'borrowed',
@@ -73,19 +89,32 @@ OrderDetail orderDetailFromJson(
       subtitle: '馆员办理 · 已确认',
       state: 'done',
     ),
+    if (graceDays > 0)
+      TimelineEvent(
+        id: 'grace',
+        time: item.dueAt,
+        title: '原应还日 · 宽限已通过',
+        subtitle:
+            '宽限 +$graceDays 天 · 已延至 ${AppDate.monthDayNumeric(settledDueAt)}',
+        state: 'done',
+      ),
     TimelineEvent(
       id: 'due',
-      time: item.dueAt,
-      title: overdue ? '已过应还日' : '应还日',
-      subtitle: overdue ? '可申请宽限或归还结清' : '到期前会收到提醒',
+      time: settledDueAt,
+      title: overdue
+          ? '已过应还日'
+          : (graceDays > 0 ? '宽限后应还日' : '应还日'),
+      subtitle: overdue
+          ? (graceDays > 0 ? '宽限已生效，请尽快归还' : '可申请宽限或归还结清')
+          : '到期前会收到提醒',
       state: overdue && item.overdueDays > 0 ? 'done' : 'current',
     ),
     if (overdue && item.overdueDays > 0)
       TimelineEvent(
         id: 'overdue',
-        time: item.dueAt.add(const Duration(days: 1)),
+        time: settledDueAt.add(const Duration(days: 1)),
         title: '进入逾期',
-        subtitle: '逾期 ${item.overdueDays} 天',
+        subtitle: '已逾期 ${item.overdueDays} 天',
         state: 'current',
       ),
   ];
@@ -104,7 +133,7 @@ OrderDetail orderDetailFromJson(
     borrowedAt: item.borrowedAt,
     dueAt: item.dueAt,
     effectiveDueAt: item.effectiveDueAt,
-    graceDays: 0,
+    graceDays: graceDays,
     feePerDay: '按天计费',
     feeEstimate: overdue ? '以归还结算为准' : null,
     gracePending: gracePending,

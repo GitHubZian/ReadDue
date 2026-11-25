@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../core/models/models.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -81,6 +83,44 @@ class DioGraceRepository implements GraceRepository {
       hasPending: history.any((item) => item.status == 'PENDING'),
     );
   }
+
+  @override
+  Future<GraceDetail> fetchDetail(String id) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      Endpoints.graceDetail(id),
+      decode: (data) => (data as Map<String, dynamic>?) ?? const {},
+    );
+    final scene = (json['scene'] ?? '').toString();
+    return GraceDetail(
+      id: (json['id'] ?? id).toString(),
+      applyNo: (json['code'] ?? '').toString(),
+      borrowId: (json['borrowOrderId'] ?? '').toString(),
+      sceneCode: scene,
+      sceneLabel: _labels[scene] ?? scene,
+      status: (json['status'] ?? 'PENDING').toString(),
+      requestedDays:
+          int.tryParse((json['requestedDays'] ?? '').toString()) ?? 0,
+      approvedDays: int.tryParse((json['approvedDays'] ?? '').toString()),
+      createdAt: parseTime(json['createdAt']) ?? DateTime.now(),
+      snapshotExpiresAt: parseTime(json['snapshotExpiresAt']),
+      evidence: ((json['evidence'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (evidence) => GraceEvidence(
+              id: (evidence['id'] ?? '').toString(),
+              name: (evidence['name'] ?? '').toString(),
+              contentType: (evidence['contentType'] ?? '').toString(),
+              size: int.tryParse((evidence['size'] ?? '0').toString()) ?? 0,
+            ),
+          )
+          .where((evidence) => evidence.id.isNotEmpty)
+          .toList(),
+    );
+  }
+
+  @override
+  Future<Uint8List> downloadEvidence(String evidenceId) =>
+      _client.getBytes(Endpoints.file(evidenceId));
 
   @override
   Future<GraceSubmitResult> submit(GraceSubmitRequest request) async {

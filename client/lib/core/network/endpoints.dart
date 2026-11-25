@@ -15,6 +15,9 @@ abstract final class Endpoints {
 
   static const graces = '/v1/graces';
   static const myGraces = '/v1/graces/self';
+  static String graceDetail(String id) => '/v1/graces/$id';
+
+  static String file(String id) => '/v1/files/$id';
 
   static const appeals = '/v1/appeals';
   static const myAppeals = '/v1/appeals/self';

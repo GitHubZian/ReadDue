@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import '../models/grace_detail.dart';
 import '../models/models.dart';
 import '../network/api_exception.dart';
 
@@ -620,6 +624,65 @@ class MockBackend {
       applyNo: applyNo,
       slaDueAt: now.add(const Duration(hours: 2)),
     );
+  }
+
+  /// 1×1 透明 PNG，供证据预览走通真实图片解码路径。
+  static const _tinyPngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA'
+      'hKmMIQAAAABJRU5ErkJggg==';
+
+  Future<GraceDetail> fetchGraceDetail(String id) async {
+    await _delay();
+    GraceApplication? application;
+    for (final item in _graceHistory) {
+      if (item.id == id) {
+        application = item;
+        break;
+      }
+    }
+    if (application == null) {
+      throw const ApiException(
+        code: 'NOT_FOUND',
+        message: '宽限申请不存在',
+        statusCode: 404,
+      );
+    }
+    final hasEvidence = application.status != 'PENDING' ||
+        application.attachments.isNotEmpty;
+    return GraceDetail(
+      id: application.id,
+      applyNo: application.applyNo,
+      borrowId: '',
+      sceneCode: application.sceneCode,
+      sceneLabel: application.sceneLabel,
+      status: application.status,
+      requestedDays: application.grantedDays ?? 3,
+      approvedDays: application.grantedDays,
+      createdAt: application.submittedAt,
+      snapshotExpiresAt: application.submittedAt.add(const Duration(days: 1)),
+      evidence: hasEvidence
+          ? const [
+              GraceEvidence(
+                id: '6900000000000000101',
+                name: 'evidence.png',
+                contentType: 'image/png',
+                size: 70,
+              ),
+            ]
+          : const [],
+    );
+  }
+
+  Future<Uint8List> downloadGraceEvidence(String evidenceId) async {
+    await _delay();
+    if (evidenceId.isEmpty || evidenceId == 'missing') {
+      throw const ApiException(
+        code: 'FILE_MISSING',
+        message: '文件内容缺失，请联系管理员',
+        statusCode: 500,
+      );
+    }
+    return base64Decode(_tinyPngBase64);
   }
 
   // ---------- 检索 ----------

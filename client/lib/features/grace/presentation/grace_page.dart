@@ -18,6 +18,7 @@ import '../../../core/widgets/segmented.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../borrow/presentation/borrow_providers.dart';
+import '../domain/grace_repository.dart';
 import 'grace_providers.dart';
 
 /// C3 宽限申请：场景 + 说明 + 材料 + 历史 + 规则提示。
@@ -319,7 +320,10 @@ class _GracePageState extends ConsumerState<GracePage> {
           for (final item in data.history)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _HistoryRow(item: item),
+              child: _HistoryRow(
+                item: item,
+                onTap: () => _openDetail(item),
+              ),
             ),
         ],
         if (_error != null) ...[
@@ -330,6 +334,18 @@ class _GracePageState extends ConsumerState<GracePage> {
           ),
         ],
       ],
+    );
+  }
+
+  Future<void> _openDetail(GraceApplication item) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) => _GraceDetailSheet(application: item),
     );
   }
 
@@ -480,47 +496,356 @@ class _AddAttachment extends StatelessWidget {
 }
 
 class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.item});
+  const _HistoryRow({required this.item, required this.onTap});
 
   final GraceApplication item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final approved = item.status == 'APPROVED';
     final pending = item.status == 'PENDING';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: AppColors.card,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        side: const BorderSide(color: AppColors.line),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${item.sceneLabel} · ${item.applyNo}',
-                  style: AppText.bodySm.copyWith(fontWeight: FontWeight.w600),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item.sceneLabel} · ${item.applyNo}',
+                      style:
+                          AppText.bodySm.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${AppDate.date(item.submittedAt)} 提交'
+                      '${item.grantedDays != null ? ' · 批准 ${item.grantedDays} 天' : ''}',
+                      style: AppText.caption.copyWith(color: AppColors.ink3),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${AppDate.date(item.submittedAt)} 提交'
-                  '${item.grantedDays != null ? ' · 批准 ${item.grantedDays} 天' : ''}',
-                  style: AppText.caption.copyWith(color: AppColors.ink3),
+              ),
+              const SizedBox(width: 8),
+              StatusPill(
+                label: graceStatusLabel(item.status),
+                tone: pending
+                    ? PillTone.amber
+                    : (approved ? PillTone.mint : PillTone.slate),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.ink3),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GraceDetailSheet extends ConsumerStatefulWidget {
+  const _GraceDetailSheet({required this.application});
+
+  final GraceApplication application;
+
+  @override
+  ConsumerState<_GraceDetailSheet> createState() => _GraceDetailSheetState();
+}
+
+class _GraceDetailSheetState extends ConsumerState<_GraceDetailSheet> {
+  GraceDetail? _detail;
+  Object? _error;
+  String? _downloading;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final detail = await ref
+          .read(graceRepositoryProvider)
+          .fetchDetail(widget.application.id);
+      if (mounted) setState(() => _detail = detail);
+    } catch (error) {
+      if (mounted) setState(() => _error = error);
+    }
+  }
+
+  Future<void> _download(GraceEvidence evidence) async {
+    if (_downloading != null) return;
+    setState(() => _downloading = evidence.id);
+    try {
+      final bytes = await ref
+          .read(graceRepositoryProvider)
+          .downloadEvidence(evidence.id);
+      if (!mounted) return;
+      if (evidence.isImage) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => Dialog(
+            backgroundColor: AppColors.card,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 420, maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 4, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            evidence.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.bodySm
+                                .copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(Icons.close, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: InteractiveViewer(
+                      child: Image.memory(
+                        bytes,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            '证据已失效',
+                            style: AppText.caption
+                                .copyWith(color: AppColors.ink3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        );
+      } else if (mounted) {
+        showToast(context, '已下载 ${evidence.name}');
+      }
+    } catch (_) {
+      if (mounted) showToast(context, '证据已失效');
+    } finally {
+      if (mounted) setState(() => _downloading = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = _detail;
+    final status = detail?.status ?? widget.application.status;
+    final pending = status == 'PENDING';
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('宽限详情', style: AppText.h3.copyWith(fontSize: 18)),
+                const Spacer(),
+                StatusPill(
+                  label: graceStatusLabel(status),
+                  tone: pending
+                      ? PillTone.amber
+                      : (status == 'APPROVED'
+                          ? PillTone.mint
+                          : PillTone.slate),
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            if (_error != null) ...[
+              Text(
+                '详情加载失败',
+                style: AppText.bodySm.copyWith(color: AppColors.red),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(onPressed: _load, child: const Text('重试')),
+            ] else if (detail == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              _DetailRow(label: '申请编号', value: detail.applyNo),
+              _DetailRow(
+                label: '关联借阅',
+                value: detail.borrowId.isEmpty ? '—' : detail.borrowId,
+              ),
+              _DetailRow(label: '申请场景', value: detail.sceneLabel),
+              _DetailRow(label: '申请天数', value: '${detail.requestedDays} 天'),
+              _DetailRow(
+                label: '批准天数',
+                value:
+                    detail.approvedDays == null ? '待审批' : '${detail.approvedDays} 天',
+              ),
+              _DetailRow(
+                label: '创建时间',
+                value: AppDate.dateTime(detail.createdAt),
+              ),
+              _DetailRow(
+                label: '快照有效期',
+                value: detail.snapshotExpiresAt == null
+                    ? '—'
+                    : '${AppDate.dateTime(detail.snapshotExpiresAt!)}'
+                        '${detail.snapshotExpired ? '（已过期）' : ''}',
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '证据材料',
+                style: AppText.bodySm.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              if (detail.evidence.isEmpty)
+                Text(
+                  '未上传证据材料',
+                  style: AppText.caption.copyWith(color: AppColors.ink3),
+                )
+              else
+                for (final evidence in detail.evidence)
+                  _EvidenceRow(
+                    evidence: evidence,
+                    loading: _downloading == evidence.id,
+                    onTap: () => _download(evidence),
+                  ),
+              const SizedBox(height: 10),
+              Text(
+                detail.approvedDays == null
+                    ? '审批结果与批准天数以馆员最终裁定为准。'
+                    : '宽限已生效：应还日期已按批准天数顺延。',
+                style: AppText.caption.copyWith(color: AppColors.ink3),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 86,
+            child: Text(
+              label,
+              style: AppText.caption.copyWith(color: AppColors.ink3),
+            ),
           ),
-          StatusPill(
-            label: pending ? '审核中' : (approved ? '已通过' : '已驳回'),
-            tone: pending
-                ? PillTone.amber
-                : (approved ? PillTone.mint : PillTone.slate),
+          Expanded(
+            child: Text(
+              value,
+              style: AppText.caption.copyWith(color: AppColors.ink),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EvidenceRow extends StatelessWidget {
+  const _EvidenceRow({
+    required this.evidence,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final GraceEvidence evidence;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: AppColors.wash,
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          onTap: loading ? null : onTap,
+          borderRadius: BorderRadius.circular(9),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            child: Row(
+              children: [
+                Icon(
+                  evidence.isImage
+                      ? Icons.image_outlined
+                      : Icons.description_outlined,
+                  size: 17,
+                  color: AppColors.ink2,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    evidence.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.copyWith(color: AppColors.ink2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  evidence.sizeLabel,
+                  style: AppText.caption.copyWith(color: AppColors.ink3),
+                ),
+                const SizedBox(width: 6),
+                if (loading)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  const Icon(
+                    Icons.download_outlined,
+                    size: 16,
+                    color: AppColors.ink3,
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

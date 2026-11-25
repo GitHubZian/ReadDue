@@ -9,6 +9,7 @@ import '../../../core/theme/motion.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/grace_due.dart';
 import '../../../core/widgets/async_body.dart';
 import '../../../core/widgets/dialogs.dart';
 import '../../../core/widgets/enter_fade.dart';
@@ -414,11 +415,18 @@ class _BorrowSheetTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '应还 ${AppDate.monthDay(item.dueAt)} · ${item.dueLabel}',
+                  item.dueSummary,
                   style: AppText.caption.copyWith(
                     color: overdue ? AppColors.amber : AppColors.ink3,
                   ),
                 ),
+                if (item.hasAppliedGrace) ...[
+                  const SizedBox(height: 6),
+                  const StatusPill(
+                    label: '宽限已通过',
+                    tone: PillTone.mint,
+                  ),
+                ],
               ],
             ),
           ),
@@ -474,15 +482,24 @@ class _DueCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  overdue
-                      ? item.overdueDays > 0
-                          ? '应还 ${AppDate.monthDay(item.dueAt)} · 已逾期 ${item.overdueDays} 天'
-                          : '应还 ${AppDate.monthDay(item.dueAt)} · 已逾期'
-                      : item.shelfCode.isEmpty
-                          ? '应还 ${AppDate.monthDay(item.dueAt)}'
-                          : '应还 ${AppDate.monthDay(item.dueAt)} · 馆藏 ${item.shelfCode}',
+                  item.hasAppliedGrace
+                      ? '${item.graceDueLabel} · ${item.dueLabel}'
+                      : overdue
+                          ? item.overdueDays > 0
+                              ? '应还 ${AppDate.monthDay(item.settledDueAt)} · 已逾期 ${item.overdueDays} 天'
+                              : '应还 ${AppDate.monthDay(item.settledDueAt)} · 已逾期'
+                          : item.shelfCode.isEmpty
+                              ? '应还 ${AppDate.monthDay(item.settledDueAt)}'
+                              : '应还 ${AppDate.monthDay(item.settledDueAt)} · 馆藏 ${item.shelfCode}',
                   style: AppText.caption.copyWith(color: AppColors.ink3),
                 ),
+                if (item.hasAppliedGrace) ...[
+                  const SizedBox(height: 6),
+                  StatusPill(
+                    label: '宽限 +${item.appliedGraceDays} 天已通过',
+                    tone: PillTone.mint,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 AnimatedSwitcher(
                   duration: Motion.base,

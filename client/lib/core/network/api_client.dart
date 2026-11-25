@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 
@@ -114,6 +116,49 @@ class ApiClient {
           continue;
         }
         if (method == 'GET' && attempt < 1 && _isRetryable(error)) {
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+          continue;
+        }
+        break;
+      }
+    }
+    throw _mapError(lastError, traceId);
+  }
+
+  /// 下载二进制文件（如宽限证据）。响应体不是 envelope，不能走 `_unwrap`。
+  Future<Uint8List> getBytes(String path) async {
+    final traceId = _uuid.v4();
+    final headers = <String, dynamic>{
+      'X-Trace-Id': traceId,
+      'Accept': '*/*',
+    };
+    final token = _kv.token;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    Object? lastError;
+    var refreshed = false;
+    for (var attempt = 0;; attempt++) {
+      try {
+        final response = await _dio.get<List<int>>(
+          path,
+          options: Options(
+            responseType: ResponseType.bytes,
+            headers: headers,
+          ),
+        );
+        return Uint8List.fromList(response.data ?? const <int>[]);
+      } catch (error) {
+        lastError = error;
+        if (!refreshed && _isUnauthorized(error)) {
+          refreshed = true;
+          final newToken = await _refreshToken();
+          if (newToken == null) break;
+          headers['Authorization'] = 'Bearer $newToken';
+          continue;
+        }
+        if (attempt < 1 && _isRetryable(error)) {
           await Future<void>.delayed(const Duration(milliseconds: 300));
           continue;
         }

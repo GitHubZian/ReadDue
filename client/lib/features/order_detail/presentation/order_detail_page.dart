@@ -7,6 +7,7 @@ import '../../../core/network/reader_mappers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/grace_due.dart';
 import '../../../core/widgets/async_body.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/dialogs.dart';
@@ -141,6 +142,11 @@ class _Content extends StatelessWidget {
                                 : '已逾期',
                             tone: PillTone.amber,
                           ),
+                        if (detail.hasAppliedGrace)
+                          StatusPill(
+                            label: '宽限 +${detail.appliedGraceDays} 天已通过',
+                            tone: PillTone.mint,
+                          ),
                         if (detail.gracePending)
                           const StatusPill(
                             label: '宽限申请审核中',
@@ -175,8 +181,8 @@ class _Content extends StatelessWidget {
                   ),
                   Expanded(
                     child: _Fact(
-                      label: '原应还日期',
-                      value: AppDate.monthDay(detail.dueAt),
+                      label: '应还日期',
+                      value: AppDate.monthDay(detail.settledDueAt),
                       emphasis: overdue,
                     ),
                   ),
@@ -189,7 +195,9 @@ class _Content extends StatelessWidget {
                   Expanded(
                     child: _Fact(
                       label: '宽限期',
-                      value: '${detail.graceDays} 天',
+                      value: detail.appliedGraceDays == 0
+                          ? '0 天'
+                          : '${detail.appliedGraceDays} 天 · 已通过',
                     ),
                   ),
                   Expanded(
@@ -201,6 +209,37 @@ class _Content extends StatelessWidget {
                   ),
                 ],
               ),
+              if (detail.hasAppliedGrace) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.mintSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.event_available,
+                        size: 16,
+                        color: AppColors.mintDeep,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '宽限审核已通过：${detail.graceDueLabel}，'
+                          '原应还 ${AppDate.monthDay(detail.dueAt)}。',
+                          style: AppText.caption
+                              .copyWith(color: AppColors.mintDeep),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

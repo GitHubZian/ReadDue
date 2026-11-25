@@ -17,4 +17,12 @@ abstract final class AppDate {
     final local = value.toLocal();
     return '${local.month} 月 ${local.day} 日';
   }
+
+  /// 宽限回显用的紧凑日期「11-15」。
+  static String monthDayNumeric(DateTime value) {
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$month-$day';
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:client/core/mock/mock_backend.dart';
 import 'package:client/core/models/models.dart';
 import 'package:client/core/network/api_exception.dart';
@@ -21,6 +23,16 @@ class _FailingGraceRepository implements GraceRepository {
 
   @override
   Future<GraceSubmitResult> submit(GraceSubmitRequest request) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GraceDetail> fetchDetail(String id) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Uint8List> downloadEvidence(String evidenceId) async {
     throw UnimplementedError();
   }
 }
@@ -47,6 +59,40 @@ void main() {
       const Offset(0, -300),
     );
     expect(find.textContaining('2 小时内答复'), findsWidgets);
+  });
+
+  testWidgets('C3 宽限历史可点开详情并查看证据', (tester) async {
+    await pumpPage(tester, const GracePage(orderId: orderId));
+
+    await tester.dragUntilVisible(
+      find.textContaining('G-2026-0318'),
+      find.byType(Scrollable).first,
+      const Offset(0, -300),
+    );
+    await tester.tap(find.textContaining('G-2026-0318'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('宽限详情'), findsOneWidget);
+    expect(find.text('申请编号'), findsOneWidget);
+    expect(find.text('申请场景'), findsOneWidget);
+    expect(find.text('申请天数'), findsOneWidget);
+    expect(find.text('批准天数'), findsOneWidget);
+    expect(find.text('快照有效期'), findsOneWidget);
+    expect(find.text('evidence.png'), findsOneWidget);
+
+    await tester.tap(find.text('evidence.png'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('evidence.png'), findsWidgets);
+    expect(find.byType(Image), findsWidgets);
+  });
+
+  test('C3 证据缺失时下载失败', () async {
+    await expectLater(
+      MockBackend.instance.downloadGraceEvidence('missing'),
+      throwsA(isA<ApiException>()),
+    );
   });
 
   testWidgets('C3 错误态可重试', (tester) async {
