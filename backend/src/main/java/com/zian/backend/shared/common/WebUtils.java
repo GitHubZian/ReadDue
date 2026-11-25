@@ -24,9 +24,8 @@ public class WebUtils {
             return null;
         }
         String remoteAddr = request.getRemoteAddr();
-        boolean trustedProxy = "127.0.0.1".equals(remoteAddr)
-                || "0:0:0:0:0:0:0:1".equals(remoteAddr)
-                || "::1".equals(remoteAddr);
+        // 只信任本机/内网反向代理（docker 网关常是 172.x），公网直连时转发头一律忽略。
+        boolean trustedProxy = isPrivateOrLoopback(remoteAddr);
         String ip = null;
         if (trustedProxy) {
             ip = request.getHeader("X-Forwarded-For");
@@ -42,6 +41,31 @@ public class WebUtils {
             ip = ip.split(",")[0].trim();
         }
         return StrUtil.isBlank(ip) || UNKNOWN.equalsIgnoreCase(ip) ? null : ip;
+    }
+
+    /** 回环或 RFC1918 私网地址。 */
+    private static boolean isPrivateOrLoopback(String address) {
+        if (address == null) {
+            return false;
+        }
+        if ("127.0.0.1".equals(address) || "0:0:0:0:0:0:0:1".equals(address) || "::1".equals(address)) {
+            return true;
+        }
+        if (address.startsWith("10.") || address.startsWith("192.168.") || address.startsWith("127.")) {
+            return true;
+        }
+        if (address.startsWith("172.")) {
+            String[] parts = address.split("\\.");
+            if (parts.length > 1) {
+                try {
+                    int second = Integer.parseInt(parts[1]);
+                    return second >= 16 && second <= 31;
+                } catch (NumberFormatException ignored) {
+                    return false;
+                }
+            }
+        }
+        return address.startsWith("fc") || address.startsWith("fd") || address.startsWith("fe80:");
     }
 
     /**

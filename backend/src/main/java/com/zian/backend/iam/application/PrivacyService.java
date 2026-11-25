@@ -12,6 +12,7 @@ import com.zian.backend.shared.common.ErrorCode;
 import com.zian.backend.shared.common.Times;
 import com.zian.backend.shared.exception.BusinessException;
 import com.zian.backend.shared.file.application.FileService;
+import com.zian.backend.shared.security.JwtService;
 import com.zian.backend.shared.security.UserContext;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -44,6 +45,7 @@ public class PrivacyService {
     private final GraceEvidenceRepository graceEvidenceRepository;
     private final FileService fileService;
     private final StringRedisTemplate redisTemplate;
+    private final JwtService jwtService;
 
     // region 查询
 
@@ -166,12 +168,15 @@ public class PrivacyService {
         // 遗忘级联：先清缓存快照，再删该读者宽限证据文件（元数据逻辑删除 + 物理内容删除）。
         int removedSnapshots = evictGraceSnapshots(userId);
         int removedFiles = removeEvidenceFiles(userId);
+        // 注销即终止登录态：删除该用户全部 jti 绑定，旧 token 立即失效。
+        int revokedTokens = jwtService.revokeAllFor(userId);
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("displayName", displayName);
         detail.put("forgetRequestedAt", Times.iso(now));
         detail.put("removedSnapshots", removedSnapshots);
         detail.put("removedFiles", removedFiles);
+        detail.put("revokedTokens", revokedTokens);
         Map<String, Object> beforeDetail = new LinkedHashMap<>();
         beforeDetail.put("hasPhone", user.getPhone() != null && !user.getPhone().isBlank());
         beforeDetail.put("hasEmail", user.getEmail() != null && !user.getEmail().isBlank());

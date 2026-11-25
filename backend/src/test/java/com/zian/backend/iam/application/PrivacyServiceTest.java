@@ -50,6 +50,8 @@ class PrivacyServiceTest {
     private BorrowOrderRepository borrowOrderRepository;
     @Mock
     private StringRedisTemplate redisTemplate;
+    @Mock
+    private com.zian.backend.shared.security.JwtService jwtService;
 
     @InjectMocks
     private PrivacyService privacyService;

@@ -3,6 +3,7 @@ package com.zian.backend.iam.application;
 import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.iam.domain.model.User;
 import com.zian.backend.iam.domain.model.UserRole;
+import com.zian.backend.iam.domain.model.UserStatus;
 import com.zian.backend.iam.domain.repository.PermissionRepository;
 import com.zian.backend.iam.domain.repository.ReaderSelfRepository;
 import com.zian.backend.iam.domain.repository.UserRepository;
@@ -12,12 +13,14 @@ import com.zian.backend.shared.exception.BusinessException;
 import com.zian.backend.shared.security.JwtService;
 import com.zian.backend.shared.security.LoginUser;
 import com.zian.backend.shared.security.UserContext;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,22 +38,42 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuditRecorder auditRecorder;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String LOGIN_FAIL_PREFIX = "readdue:auth:fail:";
+    private static final String LOGIN_LOCK_PREFIX = "readdue:auth:lock:";
+    private static final int FAIL_WINDOW_SECONDS = 60;
+    private static final int LOCK_SECONDS = 900;
+    private static final int MINUTE_FAIL_LIMIT = 5;
+    private static final int LOCK_FAIL_THRESHOLD = 10;
 
     /**
      * 登录：校验密码、记录登录时间、签发令牌并返回权限码。
      *
      * @param request 账号与密码
+     * @param clientIp 客户端 IP（用于失败限流）
      * @return 登录结果
      */
-    @Transactional
-    public AuthDtos.LoginResult login(AuthDtos.LoginRequest request) {
+    @Transactional(noRollbackFor = BusinessException.class)
+    public AuthDtos.LoginResult login(AuthDtos.LoginRequest request, String clientIp) {
         String userNo = request.userNo().trim();
-        User user = userRepository
-                .findByUserNo(userNo)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号或密码错误"));
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        String ip = clientIp == null || clientIp.isBlank() ? "unknown" : clientIp;
+        if (locked(ip, userNo)) {
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUEST, "尝试过于频繁，请稍后再试");
+        }
+        User user = userRepository.findByUserNo(userNo).orElse(null);
+        if (user == null) {
+            recordFailure(0, userNo, ip);
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号或密码错误");
         }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号已注销");
+        }
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            recordFailure(user.getId(), userNo, ip);
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号或密码错误");
+        }
+        clearFailures(ip, userNo);
         user.touchLogin(LocalDateTime.now());
         userRepository.update(user);
 
@@ -60,6 +83,59 @@ public class AuthService {
         JwtService.IssuedToken issued = jwtService.issue(principal);
         auditRecorder.recordAs(principal, "AUTH_LOGIN", "USER", user.getId(), "登录系统", Map.of());
         return new AuthDtos.LoginResult(issued.token(), issued.expiresIn(), toView(user, permissions));
+    }
+
+    private boolean locked(String ip, String userNo) {
+        return count(LOGIN_LOCK_PREFIX + "ip:" + ip) >= LOCK_FAIL_THRESHOLD
+                || count(LOGIN_LOCK_PREFIX + "user:" + userNo) >= LOCK_FAIL_THRESHOLD;
+    }
+
+    /** 失败计数 + 审计；达到阈值时抛出 429（审计先落库，事务不因异常回滚）。 */
+    private void recordFailure(long userId, String userNo, String ip) {
+        long ipMinute = increment(LOGIN_FAIL_PREFIX + "ip:" + ip, Duration.ofSeconds(FAIL_WINDOW_SECONDS));
+        long userMinute = increment(LOGIN_FAIL_PREFIX + "user:" + userNo, Duration.ofSeconds(FAIL_WINDOW_SECONDS));
+        long ipLock = increment(LOGIN_LOCK_PREFIX + "ip:" + ip, Duration.ofSeconds(LOCK_SECONDS));
+        long userLock = increment(LOGIN_LOCK_PREFIX + "user:" + userNo, Duration.ofSeconds(LOCK_SECONDS));
+        auditRecorder.record(
+                "AUTH_LOGIN_FAIL",
+                "USER",
+                userId,
+                "登录失败",
+                Map.of("userNo", userNo, "ip", ip));
+        if (ipMinute > MINUTE_FAIL_LIMIT
+                || userMinute > MINUTE_FAIL_LIMIT
+                || ipLock >= LOCK_FAIL_THRESHOLD
+                || userLock >= LOCK_FAIL_THRESHOLD) {
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUEST, "尝试过于频繁，请稍后再试");
+        }
+    }
+
+    private long increment(String key, Duration ttl) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1L) {
+            redisTemplate.expire(key, ttl);
+        }
+        return value == null ? 0 : value;
+    }
+
+    private long count(String key) {
+        String value = redisTemplate.opsForValue().get(key);
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void clearFailures(String ip, String userNo) {
+        redisTemplate.delete(List.of(
+                LOGIN_FAIL_PREFIX + "ip:" + ip,
+                LOGIN_FAIL_PREFIX + "user:" + userNo,
+                LOGIN_LOCK_PREFIX + "ip:" + ip,
+                LOGIN_LOCK_PREFIX + "user:" + userNo));
     }
 
     /**
@@ -73,6 +149,9 @@ public class AuthService {
         User user = userRepository
                 .findById(current.id())
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号已注销");
+        }
         return toView(user, effectivePermissions(user.getRole()));
     }
 
@@ -90,6 +169,9 @@ public class AuthService {
         User user = userRepository
                 .findById(current.id())
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号已注销");
+        }
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "缺少修改内容");
         }
@@ -177,6 +259,9 @@ public class AuthService {
         User user = userRepository
                 .findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号不存在或已注销"));
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "账号已注销");
+        }
         return new LoginUser(
                 user.getId(),
                 user.getUserNo(),

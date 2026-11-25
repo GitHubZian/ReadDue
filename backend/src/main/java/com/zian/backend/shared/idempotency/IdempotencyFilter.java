@@ -59,7 +59,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        String cacheKey = KEY_PREFIX + user.id() + ":" + key;
+        // 绑定方法与路径：同一个 key 不能跨端点回放另一个接口的响应。
+        String cacheKey = KEY_PREFIX + user.id() + ":" + request.getMethod() + ":" + request.getRequestURI() + ":" + key;
         CachedResponse cached = read(cacheKey);
         if (cached != null) {
             writeJson(response, cached.status(), cached.body());

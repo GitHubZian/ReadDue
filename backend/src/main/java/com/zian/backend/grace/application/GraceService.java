@@ -81,7 +81,7 @@ public class GraceService {
         reader.assertCanBorrow("申请宽限");
         BorrowOrder order = borrowService.requireOrder(request.borrowOrderId());
         if (!readerId.equals(order.getReaderId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "只能为自己的借阅申请宽限");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "宽限申请不存在");
         }
         if (!order.isActive()) {
             throw new BusinessException(ErrorCode.RULE_VIOLATION, "该借阅已结束，无法申请宽限");
@@ -265,6 +265,12 @@ public class GraceService {
         Long operatorId = UserContext.requireId();
         LocalDateTime now = LocalDateTime.now();
         GraceApplication application = require(id);
+        // 快照 TTL 到期后不再接受审批，除非运维显式放开开关；避免用过期材料决策。
+        if (application.getSnapshotExpiresAt() != null
+                && application.getSnapshotExpiresAt().isBefore(now)
+                && ruleService.intValue("GRACE.ALLOW_EXPIRED_APPROVAL", 0) == 0) {
+            throw new BusinessException(ErrorCode.CONFLICT_ERROR, "申请快照已过期，请读者重新提交");
+        }
         Map<String, Object> before = new LinkedHashMap<>();
         before.put("status", application.getStatus().name());
         before.put("grantedDays", application.getGrantedDays() == null ? 0 : application.getGrantedDays());

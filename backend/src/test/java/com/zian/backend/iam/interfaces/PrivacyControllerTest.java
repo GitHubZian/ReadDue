@@ -126,9 +126,9 @@ class PrivacyControllerTest extends SecurityTestSupport {
                 "SELECT action FROM audit_log WHERE object_id = ? ORDER BY id DESC LIMIT 1", String.class, userId);
         assertThat(actions).containsExactly("USER_FORGET");
 
+        // 注销后该 token 已被吊销：重复调用只会得到 401，而不是 409（账号已不可用）。
         mockMvc.perform(post("/v1/me/forget").header(HttpHeaders.AUTHORIZATION, bearer(token)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value(40900));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

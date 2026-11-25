@@ -71,6 +71,7 @@ public class DeletionRequestRepositoryImpl implements DeletionRequestRepository 
     public int updateStatus(long id, String status, String note, Long handledBy, LocalDateTime handledAt) {
         return mapper.update(null, Wrappers.<DeletionRequestPO>lambdaUpdate()
                 .eq(DeletionRequestPO::getId, id)
+                .eq(DeletionRequestPO::getStatus, "PENDING")
                 .set(DeletionRequestPO::getStatus, status)
                 .set(DeletionRequestPO::getNote, note)
                 .set(DeletionRequestPO::getHandledBy, handledBy)

@@ -4,6 +4,8 @@ import com.zian.backend.iam.application.AuthService;
 import com.zian.backend.iam.interfaces.dto.AuthDtos;
 import com.zian.backend.shared.common.BaseResponse;
 import com.zian.backend.shared.common.ResultUtils;
+import com.zian.backend.shared.common.WebUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,8 +33,9 @@ public class AuthController {
      * @return token、有效期与用户信息
      */
     @PostMapping("/auth/login")
-    public BaseResponse<AuthDtos.LoginResult> login(@RequestBody @Valid AuthDtos.LoginRequest request) {
-        return ResultUtils.success(authService.login(request));
+    public BaseResponse<AuthDtos.LoginResult> login(
+            @RequestBody @Valid AuthDtos.LoginRequest request, HttpServletRequest httpRequest) {
+        return ResultUtils.success(authService.login(request, WebUtils.getClientIp(httpRequest)));
     }
 
     /**

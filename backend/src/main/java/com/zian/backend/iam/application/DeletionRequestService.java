@@ -47,8 +47,14 @@ public class DeletionRequestService {
             throw new BusinessException(ErrorCode.CONFLICT_ERROR, "已有待处理的注销申请");
         }
         String reason = request == null ? null : trimToNull(request.reason());
-        long id = repository.insert(new DeletionRequest(
-                null, userId, "PENDING", reason, null, LocalDateTime.now(), null, null));
+        long id;
+        try {
+            id = repository.insert(new DeletionRequest(
+                    null, userId, "PENDING", reason, null, LocalDateTime.now(), null, null));
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // 并发提交时由 V19 生成列唯一索引兜底。
+            throw new BusinessException(ErrorCode.CONFLICT_ERROR, "已有待处理的注销申请");
+        }
         auditRecorder.record(
                 "DELETION_REQUEST_CREATE",
                 "DELETION_REQUEST",

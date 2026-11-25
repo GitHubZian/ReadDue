@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +48,12 @@ public class JwtService {
                       @Value("${app.jwt.ttl-seconds:7200}") long ttlSeconds,
                       StringRedisTemplate redis,
                       Environment environment) {
-        if (DEV_SECRET.equals(secret)) {
+        if (isWeakSecret(secret)) {
             if (!Arrays.asList(environment.getActiveProfiles()).contains("local")) {
                 throw new IllegalStateException(
-                        "APP_JWT_SECRET 未设置：非 local 环境禁止使用内置默认密钥，请在环境变量中提供 ≥32 字节随机密钥");
+                        "APP_JWT_SECRET 强度不足：非 local 环境禁止使用示例/弱密钥，请在环境变量中提供 ≥32 字节随机密钥");
             }
-            log.warn("正在使用内置默认 JWT 密钥，仅限本地演示；部署前必须设置 APP_JWT_SECRET");
+            log.warn("正在使用示例或弱 JWT 密钥，仅限本地演示；部署前必须设置 APP_JWT_SECRET");
         }
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("APP_JWT_SECRET 长度不足 32 字节，HMAC-SHA256 需要更长密钥");
@@ -61,6 +62,53 @@ public class JwtService {
         this.issuer = issuer;
         this.ttlSeconds = ttlSeconds;
         this.redis = redis;
+    }
+
+    /** 示例值、全同字符或字符种类过少都视为弱密钥。 */
+    private static boolean isWeakSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            return true;
+        }
+        if (DEV_SECRET.equals(secret)) {
+            return true;
+        }
+        String lower = secret.toLowerCase();
+        if (lower.equals("change-me") || lower.equals("readdue-dev-secret") || lower.equals("secret")) {
+            return true;
+        }
+        if (secret.chars().distinct().count() < 10) {
+            return true;
+        }
+        return secret.chars().allMatch(c -> c == secret.charAt(0));
+    }
+
+    /**
+     * 吊销某用户的全部登录态（注销/遗忘时调用）。
+     *
+     * <p>ponytail: 直接 KEYS 扫描，登录态量级很小；若 token 数上万再改为按用户维护 jti 索引。
+     *
+     * @param userId 用户 ID
+     * @return 实际删除的 token 数
+     */
+    public int revokeAllFor(long userId) {
+        try {
+            Set<String> keys = redis.keys(KEY_PREFIX + "*");
+            if (keys == null || keys.isEmpty()) {
+                return 0;
+            }
+            String expected = String.valueOf(userId);
+            List<String> owned = keys.stream()
+                    .filter(key -> expected.equals(redis.opsForValue().get(key)))
+                    .toList();
+            if (owned.isEmpty()) {
+                return 0;
+            }
+            Long removed = redis.delete(owned);
+            return removed == null ? 0 : removed.intValue();
+        } catch (Exception e) {
+            log.warn("批量吊销用户令牌失败 userId={}", userId, e);
+            return 0;
+        }
     }
 
     /**

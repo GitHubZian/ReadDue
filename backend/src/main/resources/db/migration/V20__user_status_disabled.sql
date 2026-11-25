@@ -1,0 +1,4 @@
+-- 注销后账号进入 DISABLED：不可登录、既有令牌失效。
+ALTER TABLE sys_user
+    MODIFY COLUMN status ENUM('NORMAL', 'BLACKLISTED', 'DISABLED') NOT NULL DEFAULT 'NORMAL'
+        COMMENT '账号状态：NORMAL 正常 / BLACKLISTED 拉黑 / DISABLED 已注销';

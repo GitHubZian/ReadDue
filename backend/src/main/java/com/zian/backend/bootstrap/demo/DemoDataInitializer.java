@@ -24,7 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Component
 @Profile("local")
-@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.demo.enabled", havingValue = "true", matchIfMissing = false)
 public class DemoDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);

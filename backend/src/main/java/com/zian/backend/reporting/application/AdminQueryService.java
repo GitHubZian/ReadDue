@@ -46,6 +46,7 @@ import com.zian.backend.reporting.interfaces.dto.AdminViews.TrendPoint;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.TrendSummary;
 import com.zian.backend.rule.application.RuleService;
 import com.zian.backend.shared.common.ErrorCode;
+import com.zian.backend.shared.common.Masks;
 import com.zian.backend.shared.common.PageQuery;
 import com.zian.backend.shared.common.PageResult;
 import com.zian.backend.shared.exception.BusinessException;
@@ -569,7 +570,7 @@ public class AdminQueryService {
         List<AdminUserView> items = readRepository
                 .users(role, mappedStatus, keyword, page.size(), page.offset())
                 .stream()
-                .map(row -> userView(row, rate))
+                .map(row -> userView(row, rate, true))
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
     }
@@ -592,12 +593,14 @@ public class AdminQueryService {
                 id,
                 "管理员查看用户敏感详情",
                 Map.of("targetType", "USER", "targetId", id));
-        return userView(row, ruleService.decimal("FINE.PER_DAY", "0.50"));
+        return userView(row, ruleService.decimal("FINE.PER_DAY", "0.50"), false);
     }
 
-    private AdminUserView userView(UserRow row, BigDecimal rate) {
+    private AdminUserView userView(UserRow row, BigDecimal rate, boolean maskPii) {
         int overdueDays = row.overdueDays().intValue();
         String statusView = "BLACKLISTED".equals(row.status()) ? "BLACKLISTED" : "ACTIVE";
+        String phone = maskPii && row.phone() != null ? Masks.phone(row.phone()) : valueOr(row.phone());
+        String email = maskPii && row.email() != null ? Masks.email(row.email()) : valueOr(row.email());
         return new AdminUserView(
                 String.valueOf(row.id()),
                 row.name(),
@@ -605,8 +608,8 @@ public class AdminQueryService {
                 row.role(),
                 statusView,
                 valueOr(row.department()),
-                valueOr(row.phone()),
-                valueOr(row.email()),
+                phone,
+                email,
                 row.borrowCount().intValue(),
                 rate.multiply(BigDecimal.valueOf(overdueDays))
                         .setScale(2, RoundingMode.HALF_UP)

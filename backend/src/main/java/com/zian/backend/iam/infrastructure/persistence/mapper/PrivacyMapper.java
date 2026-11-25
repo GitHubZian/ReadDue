@@ -51,8 +51,8 @@ public interface PrivacyMapper {
      * @param userId 读者账号
      * @param displayName 脱敏后的展示名
      */
-    @Update("UPDATE sys_user SET name = #{displayName}, phone = NULL, email = NULL, updated_at = NOW() "
-            + "WHERE id = #{userId} AND deleted = 0")
+    @Update("UPDATE sys_user SET name = #{displayName}, phone = NULL, email = NULL, status = 'DISABLED', "
+            + "updated_at = NOW() WHERE id = #{userId} AND deleted = 0")
     void anonymizeUser(@Param("userId") long userId, @Param("displayName") String displayName);
 
     /**

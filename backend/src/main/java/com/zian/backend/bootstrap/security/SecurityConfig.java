@@ -29,6 +29,7 @@ public class SecurityConfig {
     /** 无需登录即可访问的路径 */
     private static final String[] PUBLIC_PATHS = {
             "/v1/auth/login",
+            "/v1/auth/refresh",
             "/v1/system/health",
             "/error",
             "/actuator/health",

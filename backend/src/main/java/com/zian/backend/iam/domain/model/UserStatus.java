@@ -7,5 +7,7 @@ package com.zian.backend.iam.domain.model;
  */
 public enum UserStatus {
     NORMAL,
-    BLACKLISTED
+    BLACKLISTED,
+    /** 已注销：不可登录，既有令牌立即失效。 */
+    DISABLED
 }
