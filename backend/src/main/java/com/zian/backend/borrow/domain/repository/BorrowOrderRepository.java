@@ -40,6 +40,14 @@ public interface BorrowOrderRepository {
     List<BorrowOrder> findByReader(Long readerId, String status, int offset, int limit);
 
     /**
+     * 查读者名下全部借阅单 ID（遗忘脱敏后清理缓存用）。
+     *
+     * @param readerId 读者用户 ID
+     * @return 借阅单 ID 列表
+     */
+    List<Long> findIdsByReader(Long readerId);
+
+    /**
      * 统计读者借阅单数。
      */
 

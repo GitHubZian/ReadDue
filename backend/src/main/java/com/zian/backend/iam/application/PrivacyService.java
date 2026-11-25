@@ -1,6 +1,7 @@
 package com.zian.backend.iam.application;
 
 import com.zian.backend.audit.application.AuditRecorder;
+import com.zian.backend.borrow.domain.repository.BorrowOrderRepository;
 import com.zian.backend.iam.domain.model.PrivacyState;
 import com.zian.backend.iam.domain.model.User;
 import com.zian.backend.iam.domain.repository.PrivacyRepository;
@@ -12,8 +13,13 @@ import com.zian.backend.shared.exception.BusinessException;
 import com.zian.backend.shared.security.UserContext;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +32,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PrivacyService {
 
+    private static final Logger log = LoggerFactory.getLogger(PrivacyService.class);
+    private static final String GRACE_SNAPSHOT_PREFIX = "readdue:grace:snap:";
+
     private final PrivacyRepository privacyRepository;
     private final UserRepository userRepository;
     private final AuditRecorder auditRecorder;
+    private final BorrowOrderRepository borrowOrderRepository;
+    private final StringRedisTemplate redisTemplate;
 
     // region 查询
 
@@ -120,7 +131,36 @@ public class PrivacyService {
                 detail,
                 beforeDetail,
                 Map.of("anonymous", true));
+        evictGraceSnapshots(userId);
         return new PrivacyDtos.ForgetResult(true, displayName, Times.iso(now));
+    }
+
+    /**
+     * 遗忘后清理该读者借阅单的宽限结果快照，避免缓存残留可识别信息；缓存不可用不影响脱敏结果。
+     */
+    private void evictGraceSnapshots(long userId) {
+        List<Long> orderIds;
+        try {
+            orderIds = borrowOrderRepository.findIdsByReader(userId);
+        } catch (Exception e) {
+            log.warn("遗忘清理宽限快照失败：读取借阅单异常 userId={}", userId, e);
+            return;
+        }
+        if (orderIds == null || orderIds.isEmpty()) {
+            return;
+        }
+        List<String> keys = orderIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> GRACE_SNAPSHOT_PREFIX + id)
+                .toList();
+        if (keys.isEmpty()) {
+            return;
+        }
+        try {
+            redisTemplate.delete(keys);
+        } catch (Exception e) {
+            log.warn("遗忘清理宽限快照失败 userId={} keys={}", userId, keys, e);
+        }
     }
 
     // endregion

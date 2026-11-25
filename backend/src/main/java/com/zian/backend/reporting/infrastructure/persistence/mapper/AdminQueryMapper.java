@@ -651,8 +651,8 @@ public interface AdminQueryMapper {
     /**
      * 审计日志分页查询。
      *
-     * @param category 动作前缀过滤，ALL/空表示不过滤
-     * @param keyword  操作人、动作或对象关键字
+     * @param category 分类过滤：APPROVAL/RULE/USER/SYSTEM，ALL/空表示不过滤；按动作前缀族映射
+     * @param keyword  操作人、动作、对象类型或对象 ID 关键字
      * @param limit    每页条数
      * @param offset   偏移量
      * @return 审计日志行
@@ -668,12 +668,31 @@ public interface AdminQueryMapper {
               LEFT JOIN sys_user u ON u.id = a.actor_id
              WHERE 1 = 1
             <if test="category != null and category != '' and category != 'ALL'">
-              AND a.action LIKE CONCAT(#{category}, '%')
+              <choose>
+                <when test="category == 'APPROVAL'">
+                  AND (a.action LIKE 'GRACE%' OR a.action LIKE 'APPEAL%' OR a.action LIKE 'RESERVATION%')
+                </when>
+                <when test="category == 'RULE'">
+                  AND (a.action LIKE 'RULE%' OR a.action LIKE 'NOTIFY_TEMPLATE%')
+                </when>
+                <when test="category == 'USER'">
+                  AND (a.action LIKE 'USER%' OR a.action LIKE 'AUTH%')
+                </when>
+                <when test="category == 'SYSTEM'">
+                  AND NOT (a.action LIKE 'GRACE%' OR a.action LIKE 'APPEAL%' OR a.action LIKE 'RESERVATION%'
+                        OR a.action LIKE 'RULE%' OR a.action LIKE 'NOTIFY_TEMPLATE%'
+                        OR a.action LIKE 'USER%' OR a.action LIKE 'AUTH%')
+                </when>
+                <otherwise>
+                  AND a.action LIKE CONCAT(#{category}, '%')
+                </otherwise>
+              </choose>
             </if>
             <if test="keyword != null and keyword != ''">
               AND (u.name LIKE CONCAT('%', #{keyword}, '%')
                 OR a.action LIKE CONCAT('%', #{keyword}, '%')
-                OR a.object_type LIKE CONCAT('%', #{keyword}, '%'))
+                OR a.object_type LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(a.object_id AS CHAR) LIKE CONCAT('%', #{keyword}, '%'))
             </if>
              ORDER BY a.created_at DESC
              LIMIT #{limit} OFFSET #{offset}
@@ -692,12 +711,31 @@ public interface AdminQueryMapper {
               LEFT JOIN sys_user u ON u.id = a.actor_id
              WHERE 1 = 1
             <if test="category != null and category != '' and category != 'ALL'">
-              AND a.action LIKE CONCAT(#{category}, '%')
+              <choose>
+                <when test="category == 'APPROVAL'">
+                  AND (a.action LIKE 'GRACE%' OR a.action LIKE 'APPEAL%' OR a.action LIKE 'RESERVATION%')
+                </when>
+                <when test="category == 'RULE'">
+                  AND (a.action LIKE 'RULE%' OR a.action LIKE 'NOTIFY_TEMPLATE%')
+                </when>
+                <when test="category == 'USER'">
+                  AND (a.action LIKE 'USER%' OR a.action LIKE 'AUTH%')
+                </when>
+                <when test="category == 'SYSTEM'">
+                  AND NOT (a.action LIKE 'GRACE%' OR a.action LIKE 'APPEAL%' OR a.action LIKE 'RESERVATION%'
+                        OR a.action LIKE 'RULE%' OR a.action LIKE 'NOTIFY_TEMPLATE%'
+                        OR a.action LIKE 'USER%' OR a.action LIKE 'AUTH%')
+                </when>
+                <otherwise>
+                  AND a.action LIKE CONCAT(#{category}, '%')
+                </otherwise>
+              </choose>
             </if>
             <if test="keyword != null and keyword != ''">
               AND (u.name LIKE CONCAT('%', #{keyword}, '%')
                 OR a.action LIKE CONCAT('%', #{keyword}, '%')
-                OR a.object_type LIKE CONCAT('%', #{keyword}, '%'))
+                OR a.object_type LIKE CONCAT('%', #{keyword}, '%')
+                OR CAST(a.object_id AS CHAR) LIKE CONCAT('%', #{keyword}, '%'))
             </if>
             </script>
             """)

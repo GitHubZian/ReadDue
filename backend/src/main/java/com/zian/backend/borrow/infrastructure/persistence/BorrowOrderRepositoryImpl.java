@@ -78,6 +78,16 @@ public class BorrowOrderRepositoryImpl implements BorrowOrderRepository {
     }
 
     @Override
+    public List<Long> findIdsByReader(Long readerId) {
+        return mapper.selectList(Wrappers.<BorrowOrderPO>lambdaQuery()
+                        .select(BorrowOrderPO::getId)
+                        .eq(BorrowOrderPO::getReaderId, readerId))
+                .stream()
+                .map(BorrowOrderPO::getId)
+                .toList();
+    }
+
+    @Override
     public long countByReader(Long readerId, String status) {
         return mapper.selectCount(Wrappers.<BorrowOrderPO>lambdaQuery()
                 .eq(BorrowOrderPO::getReaderId, readerId)

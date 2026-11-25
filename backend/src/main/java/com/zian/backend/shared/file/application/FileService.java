@@ -129,7 +129,7 @@ public class FileService {
     public FileDtos.Download download(long id) {
         StoredFile file = requireReadable(id);
         if (!fileStorage.exists(file.storagePath())) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件内容缺失，请联系管理员");
+            throw new BusinessException(ErrorCode.GONE_ERROR, "文件已失效，请重新上传");
         }
         return new FileDtos.Download(file.originalName(), file.contentType(), fileStorage.read(file.storagePath()));
     }

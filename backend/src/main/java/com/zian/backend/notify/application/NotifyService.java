@@ -356,7 +356,8 @@ public class NotifyService {
         }
         ChannelPreferences preferences = channelPrefRepository.load(task.readerId());
         List<String> planned = plannedChannels(task);
-        if (preferences.inbox() && includes(planned, "INBOX")) {
+        // P0 必达主题不受全局渠道开关/旧快照限制，站内信始终落库
+        if (isP0(task) || (preferences.inbox() && includes(planned, "INBOX"))) {
             deliveryRepository.append(task.id(), "INBOX", "SENT", 1, null, null);
         }
         if (preferences.email() && includes(planned, "EMAIL")) {
@@ -366,6 +367,14 @@ public class NotifyService {
                     NotifyCopy.title(task.level()),
                     NotifyCopy.body(task.level(), task.borrowOrderId(), null, null));
         }
+    }
+
+    /**
+     * 任务是否属于 P0 必达主题；老任务无主题编码时按等级回退。
+     */
+    private boolean isP0(NotifyTask task) {
+        String code = task.topicCode() == null ? topicOf(task.level()) : task.topicCode();
+        return topicRepository.findByCode(code).map(NotifyTopic::locked).orElse(false);
     }
 
     /**

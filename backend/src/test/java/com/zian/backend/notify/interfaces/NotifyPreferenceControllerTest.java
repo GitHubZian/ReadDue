@@ -187,7 +187,9 @@ class NotifyPreferenceControllerTest extends SecurityTestSupport {
         List<Long> tasksB = taskIds(orderB);
         assertThat(tasksB).hasSize(2);
 
-        jdbc.update("UPDATE notify_task SET plan_at = NOW() WHERE borrow_order_id IN (?, ?)", orderA, orderB);
+        // 以 1 分钟前的时刻作为到期时间：JVM 与 MySQL 可能存在秒级时钟偏差，
+        // 直接用 NOW() 可能被判为“未来”，导致偶发漏派发。
+        jdbc.update("UPDATE notify_task SET plan_at = DATE_SUB(NOW(), INTERVAL 1 MINUTE) WHERE borrow_order_id IN (?, ?)", orderA, orderB);
         notifyService.dispatchDue();
 
         assertThat(inboxCount(tasksA)).isZero();

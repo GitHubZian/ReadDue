@@ -7,7 +7,7 @@ import lombok.Getter;
  *
  * <p>业务码前两位对应 HTTP 状态族（40x/42x/50x），由 {@link #statusOf(int)} 统一映射，
  * 保证「响应体 code」与「HTTP 状态码」语义一致：
- * 400 参数、401 未登录、403 越权、404 不存在、409 并发冲突、422 规则拒绝、429 限流、500 系统错误。
+ * 400 参数、401 未登录、403 越权、404 不存在、409 并发冲突、410 资源已失效、422 规则拒绝、429 限流、500 系统错误。
  */
 @Getter
 public enum ErrorCode {
@@ -19,6 +19,7 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(40300, "禁止访问"),
     NOT_FOUND_ERROR(40400, "请求数据不存在"),
     CONFLICT_ERROR(40900, "数据已被修改，请刷新后重试"),
+    GONE_ERROR(41000, "文件已失效，请重新上传"),
     RULE_VIOLATION(42200, "业务规则不满足"),
     TOO_MANY_REQUEST(42900, "请求过于频繁"),
     SYSTEM_ERROR(50000, "系统内部异常"),
@@ -52,6 +53,7 @@ public enum ErrorCode {
             case 403 -> 403;
             case 404 -> 404;
             case 409 -> 409;
+            case 410 -> 410;
             case 422 -> 422;
             case 429 -> 429;
             case 500 -> 500;
