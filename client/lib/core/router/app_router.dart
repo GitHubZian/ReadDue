@@ -10,9 +10,11 @@ import '../../features/borrow/presentation/borrow_page.dart';
 import '../../features/grace/presentation/grace_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/order_detail/presentation/order_detail_page.dart';
+import '../../features/profile/presentation/edit_profile_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/reservation/presentation/reservation_page.dart';
 import '../../features/reservation/presentation/reservation_providers.dart';
+import '../../features/timetable/presentation/timetable_page.dart';
 import '../widgets/app_tab_bar.dart';
 import '../widgets/branch_fade.dart';
 import '../../features/search/presentation/search_page.dart';
@@ -85,6 +87,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/me/edit',
+        builder: (context, state) => const EditProfilePage(),
+      ),
+      GoRoute(
+        path: '/me/timetable',
+        builder: (context, state) => const TimetablePage(),
       ),
       GoRoute(
         path: '/orders/:id',

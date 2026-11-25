@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/storage/cache_consent.dart';
+import '../../../core/storage/storage_providers.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
@@ -30,10 +32,50 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool? _emailOverride;
   bool _markingAll = false;
 
+  /// 本地缓存授权为真时，先渲染上次缓存，再后台刷新。
+  NotificationsPageData? _cached;
+  bool _cacheConsent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromCache();
+  }
+
+  Future<void> _hydrateFromCache() async {
+    final consent = await ref.read(cacheConsentProvider.future);
+    if (!mounted) return;
+    if (!consent) {
+      setState(() => _cacheConsent = false);
+      return;
+    }
+    final cached = ref.read(readerCacheProvider).readNotifications();
+    // 授权结果可能晚于首屏请求返回，补写一次当前数据。
+    final fresh = ref.read(notificationsProvider).valueOrNull;
+    if (fresh != null) {
+      ref.read(readerCacheProvider).writeNotifications(fresh);
+    }
+    setState(() {
+      _cacheConsent = true;
+      _cached = cached;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final value = ref.watch(notificationsProvider);
-    final data = value.asData?.value;
+
+    // 请求成功后按授权写回精简 JSON；未授权不写。
+    ref.listen<AsyncValue<NotificationsPageData>>(notificationsProvider,
+        (_, next) {
+      final fresh = next.valueOrNull;
+      if (fresh != null && _cacheConsent) {
+        ref.read(readerCacheProvider).writeNotifications(fresh);
+      }
+    });
+
+    final data = value.asData?.value ?? _cached;
+    final fromCache = !value.hasValue && data != null;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -90,12 +132,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   ref.invalidate(notificationsProvider);
                   await ref.read(notificationsProvider.future);
                 },
-                child: AsyncBody<NotificationsPageData>(
-                  value: value,
-                  onRetry: () => ref.invalidate(notificationsProvider),
-                  skeleton: const SkeletonList(count: 4, itemHeight: 82),
-                  builder: (data) => _body(data),
-                ),
+                child: data != null
+                    ? _body(data, fromCache: fromCache)
+                    : AsyncBody<NotificationsPageData>(
+                        value: value,
+                        onRetry: () => ref.invalidate(notificationsProvider),
+                        skeleton: const SkeletonList(count: 4, itemHeight: 82),
+                        builder: (value) => _body(value),
+                      ),
               ),
             ),
           ],
@@ -104,7 +148,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     );
   }
 
-  Widget _body(NotificationsPageData data) {
+  Widget _body(NotificationsPageData data, {bool fromCache = false}) {
     final items = switch (_tab) {
       1 => data.items.where((item) => item.category == 'borrow').toList(),
       2 => data.items.where((item) => item.category == 'system').toList(),
@@ -117,6 +161,23 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
       children: [
+        if (fromCache) ...[
+          Row(
+            children: [
+              const StatusPill(
+                label: '缓存',
+                tone: PillTone.slate,
+                icon: Icons.history,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '显示的是缓存数据',
+                style: AppText.caption.copyWith(color: AppColors.ink3),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
         if (items.isEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 40),

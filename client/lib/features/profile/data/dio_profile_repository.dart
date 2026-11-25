@@ -75,6 +75,29 @@ class DioProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<ProfileContact> fetchContact() => _client.get<ProfileContact>(
+        Endpoints.me,
+        decode: _decodeContact,
+      );
+
+  @override
+  Future<ProfileContact> updateProfile({
+    required String name,
+    required String phone,
+    required String email,
+  }) =>
+      _client.put<ProfileContact>(
+        Endpoints.me,
+        body: {'name': name, 'phone': phone, 'email': email},
+        decode: (data) => data is Map
+            ? _decodeContact(data)
+            : ProfileContact(name: name, phone: phone, email: email),
+      );
+
+  ProfileContact _decodeContact(dynamic data) =>
+      ProfileContact.fromJson(Map<String, dynamic>.from(data as Map));
+
+  @override
   Future<void> logout() async {
     await _client.post<void>(Endpoints.logout, decode: (_) {});
   }

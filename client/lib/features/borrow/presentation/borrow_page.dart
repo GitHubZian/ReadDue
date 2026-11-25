@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/models.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/reader_mappers.dart';
+import '../../../core/storage/cache_consent.dart';
+import '../../../core/storage/storage_providers.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
@@ -31,10 +33,56 @@ class BorrowPage extends ConsumerStatefulWidget {
 class _BorrowPageState extends ConsumerState<BorrowPage> {
   String? _renewingId;
 
+  /// 本地缓存授权为真时，先渲染上次缓存，再后台刷新。
+  BorrowDashboard? _cached;
+  bool _cacheConsent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromCache();
+  }
+
+  Future<void> _hydrateFromCache() async {
+    final consent = await ref.read(cacheConsentProvider.future);
+    if (!mounted) return;
+    if (!consent) {
+      setState(() => _cacheConsent = false);
+      return;
+    }
+    final cached = ref.read(readerCacheProvider).readBorrow();
+    // 授权结果可能晚于首屏请求返回，补写一次当前数据。
+    final fresh = ref.read(borrowDashboardProvider).valueOrNull;
+    if (fresh != null) {
+      ref.read(readerCacheProvider).writeBorrow(fresh);
+    }
+    setState(() {
+      _cacheConsent = true;
+      _cached = cached;
+    });
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(borrowDashboardProvider);
+    await ref.read(borrowDashboardProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dashboard = ref.watch(borrowDashboardProvider);
     final name = ref.watch(authControllerProvider).session?.name ?? '同学';
+
+    // 请求成功后按授权写回精简 JSON；未授权不写。
+    ref.listen<AsyncValue<BorrowDashboard>>(borrowDashboardProvider,
+        (_, next) {
+      final fresh = next.valueOrNull;
+      if (fresh != null && _cacheConsent) {
+        ref.read(readerCacheProvider).writeBorrow(fresh);
+      }
+    });
+
+    final data = dashboard.valueOrNull ?? _cached;
+    final fromCache = !dashboard.hasValue && data != null;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -42,34 +90,51 @@ class _BorrowPageState extends ConsumerState<BorrowPage> {
         bottom: false,
         child: RefreshIndicator(
           color: AppColors.mintDeep,
-          onRefresh: () async {
-            ref.invalidate(borrowDashboardProvider);
-            await ref.read(borrowDashboardProvider.future);
-          },
-          child: AsyncBody<BorrowDashboard>(
-            value: dashboard,
-            onRetry: () => ref.invalidate(borrowDashboardProvider),
-            skeleton: const SkeletonList(count: 4, itemHeight: 104),
-            isEmpty: (data) => data.dueSoon.isEmpty && data.readyBooks.isEmpty,
-            empty: EmptyState(
-              title: '暂无借阅',
-              message: '去检索一本想读的书，借阅后在这里跟进。',
-              actionLabel: '去检索',
-              onAction: () => context.go('/search'),
-            ),
-            builder: (data) => _content(data, name),
-          ),
+          onRefresh: _refresh,
+          child: data != null
+              ? _content(data, name, fromCache: fromCache)
+              : AsyncBody<BorrowDashboard>(
+                  value: dashboard,
+                  onRetry: () => ref.invalidate(borrowDashboardProvider),
+                  skeleton: const SkeletonList(count: 4, itemHeight: 104),
+                  isEmpty: (value) =>
+                      value.dueSoon.isEmpty && value.readyBooks.isEmpty,
+                  empty: EmptyState(
+                    title: '暂无借阅',
+                    message: '去检索一本想读的书，借阅后在这里跟进。',
+                    actionLabel: '去检索',
+                    onAction: () => context.go('/search'),
+                  ),
+                  builder: (value) => _content(value, name),
+                ),
         ),
       ),
     );
   }
 
-  Widget _content(BorrowDashboard data, String name) {
+  Widget _content(BorrowDashboard data, String name, {bool fromCache = false}) {
     final summary = data.summary;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
+        if (fromCache) ...[
+          Row(
+            children: [
+              const StatusPill(
+                label: '缓存',
+                tone: PillTone.slate,
+                icon: Icons.history,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '显示的是缓存数据',
+                style: AppText.caption.copyWith(color: AppColors.ink3),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

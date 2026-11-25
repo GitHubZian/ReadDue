@@ -42,4 +42,7 @@ abstract final class Endpoints {
   static const meNotifyPreferences = '/v1/me/notify-preferences';
   static const meConsents = '/v1/me/consents';
   static const meForget = '/v1/me/forget';
+
+  static const meTimetable = '/v1/me/timetable';
+  static const meTimetableQuietWindows = '/v1/me/timetable/quiet-windows';
 }

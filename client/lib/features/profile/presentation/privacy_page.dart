@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/storage/storage_providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/async_body.dart';
@@ -71,6 +73,42 @@ class PrivacyPage extends ConsumerWidget {
         Text(
           '关闭授权后仍可检索、借阅与归还，不影响借还与提醒。',
           style: AppText.caption.copyWith(color: AppColors.ink3),
+        ),
+        const SizedBox(height: 20),
+        const _SectionLabel('免打扰'),
+        AppCard(
+          onTap: () => context.push('/me/timetable'),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.event_busy_outlined,
+                size: 20,
+                color: AppColors.mintDeep,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '课表免打扰',
+                      style: AppText.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '按上课时段自动静音，不影响手动免打扰',
+                      style: AppText.caption.copyWith(color: AppColors.ink3),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.ink3,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         const _SectionLabel('提醒偏好'),
@@ -154,7 +192,11 @@ class PrivacyPage extends ConsumerWidget {
     final repo = ref.read(privacyRepositoryProvider);
     try {
       if (scene != null) await repo.setSceneConsent(scene);
-      if (cache != null) await repo.setCacheConsent(cache);
+      if (cache != null) {
+        await repo.setCacheConsent(cache);
+        // 授权由开→关时立即清空本地缓存，避免残留可读数据。
+        if (!cache) await ref.read(cacheBoxProvider).clear();
+      }
       ref.invalidate(privacyProvider);
       if (!context.mounted) return;
       if (scene != null) {

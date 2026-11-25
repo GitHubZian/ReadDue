@@ -20,6 +20,11 @@ final profileProvider = FutureProvider<ProfileData>(
   (ref) => ref.watch(profileRepositoryProvider).fetchProfile(),
 );
 
+/// 资料编辑页的联系方式；保存成功后与 profileProvider 一起失效。
+final contactProvider = FutureProvider<ProfileContact>(
+  (ref) => ref.watch(profileRepositoryProvider).fetchContact(),
+);
+
 final privacyRepositoryProvider = Provider<PrivacyRepository>(
   (ref) => ref.watch(appUseMockProvider)
       ? MockPrivacyRepository()

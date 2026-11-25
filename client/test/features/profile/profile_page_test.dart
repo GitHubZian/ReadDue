@@ -19,6 +19,17 @@ class _FailingProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<ProfileContact> fetchContact() async => const ProfileContact(name: '');
+
+  @override
+  Future<ProfileContact> updateProfile({
+    required String name,
+    required String phone,
+    required String email,
+  }) async =>
+      ProfileContact(name: name, phone: phone, email: email);
+
+  @override
   Future<void> logout() async {}
 }
 
@@ -29,6 +40,17 @@ class _StaticProfileRepository implements ProfileRepository {
 
   @override
   Future<ProfileData> fetchProfile() async => data;
+
+  @override
+  Future<ProfileContact> fetchContact() async => ProfileContact(name: data.name);
+
+  @override
+  Future<ProfileContact> updateProfile({
+    required String name,
+    required String phone,
+    required String email,
+  }) async =>
+      ProfileContact(name: name, phone: phone, email: email);
 
   @override
   Future<void> logout() async {}

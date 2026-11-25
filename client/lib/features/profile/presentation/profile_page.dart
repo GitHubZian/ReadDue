@@ -347,6 +347,14 @@ class ProfilePage extends ConsumerWidget {
               ),
             ),
             _MenuRow(
+              icon: Icons.person_outline,
+              title: '资料编辑',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/me/edit');
+              },
+            ),
+            _MenuRow(
               icon: Icons.shield_outlined,
               title: '隐私与提醒',
               onTap: () async {

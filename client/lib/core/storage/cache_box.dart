@@ -6,6 +6,11 @@ import 'package:hive_flutter/hive_flutter.dart';
 class CacheBox {
   static const _boxName = 'reader_cache';
 
+  /// 测试注入已打开的盒子；生产路径仍走 [init]。
+  CacheBox.withBox(Box<String> box) : _box = box;
+
+  CacheBox();
+
   Box<String>? _box;
 
   Future<void> init() async {
