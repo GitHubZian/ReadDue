@@ -4,6 +4,7 @@ import 'package:client/core/network/api_exception.dart';
 import 'package:client/features/profile/domain/profile_repository.dart';
 import 'package:client/features/profile/presentation/profile_page.dart';
 import 'package:client/features/profile/presentation/profile_providers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/harness.dart';
@@ -124,5 +125,23 @@ void main() {
     expect(find.text('2021001'), findsOneWidget);
     expect(find.text('2021001 · '), findsNothing);
     expect(find.text('0'), findsWidgets);
+  });
+
+  testWidgets('C7 底部隐私政策可点，设置弹层含隐私政策与注销账号', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpPage(tester, const ProfilePage());
+
+    expect(find.text('隐私政策'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('设置'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('隐私政策'), findsNWidgets(2));
+    expect(find.text('注销账号'), findsOneWidget);
+    expect(find.text('清除本地缓存'), findsOneWidget);
   });
 }

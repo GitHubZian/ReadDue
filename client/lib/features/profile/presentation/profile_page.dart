@@ -270,10 +270,25 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 18),
-        Text(
-          '阅有期 ${data.version} · 服务条款 · 隐私政策',
-          textAlign: TextAlign.center,
-          style: AppText.caption.copyWith(color: AppColors.ink3),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              '阅有期 ${data.version} · 服务条款 · ',
+              style: AppText.caption.copyWith(color: AppColors.ink3),
+            ),
+            InkWell(
+              onTap: () => context.push('/me/privacy-policy'),
+              child: Text(
+                '隐私政策',
+                style: AppText.caption.copyWith(
+                  color: AppColors.mintDeep,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -384,6 +399,23 @@ class ProfilePage extends ConsumerWidget {
                 } catch (_) {
                   if (context.mounted) showToast(context, '清理失败，请稍后重试');
                 }
+              },
+            ),
+            _MenuRow(
+              icon: Icons.article_outlined,
+              title: '隐私政策',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/me/privacy-policy');
+              },
+            ),
+            _MenuRow(
+              icon: Icons.person_off_outlined,
+              title: '注销账号',
+              danger: true,
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/me/deletion-request');
               },
             ),
             _MenuRow(

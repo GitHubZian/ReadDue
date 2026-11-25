@@ -10,7 +10,9 @@ import '../../features/borrow/presentation/borrow_page.dart';
 import '../../features/grace/presentation/grace_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/order_detail/presentation/order_detail_page.dart';
+import '../../features/profile/presentation/deletion_request_page.dart';
 import '../../features/profile/presentation/edit_profile_page.dart';
+import '../../features/profile/presentation/privacy_policy_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/reservation/presentation/reservation_page.dart';
 import '../../features/reservation/presentation/reservation_providers.dart';
@@ -95,6 +97,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/me/timetable',
         builder: (context, state) => const TimetablePage(),
+      ),
+      GoRoute(
+        path: '/me/privacy-policy',
+        builder: (context, state) => const PrivacyPolicyPage(),
+      ),
+      GoRoute(
+        path: '/me/deletion-request',
+        builder: (context, state) => const DeletionRequestPage(),
       ),
       GoRoute(
         path: '/orders/:id',
