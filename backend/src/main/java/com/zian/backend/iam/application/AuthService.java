@@ -40,6 +40,10 @@ public class AuthService {
     private final AuditRecorder auditRecorder;
     private final StringRedisTemplate redisTemplate;
 
+    /** 测试/CI 可关闭限流，避免同一 IP 的负向用例把后续登录锁死；生产默认开启。 */
+    @org.springframework.beans.factory.annotation.Value("${app.auth.login-rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     private static final String LOGIN_FAIL_PREFIX = "readdue:auth:fail:";
     private static final String LOGIN_LOCK_PREFIX = "readdue:auth:lock:";
     private static final int FAIL_WINDOW_SECONDS = 60;
@@ -58,7 +62,7 @@ public class AuthService {
     public AuthDtos.LoginResult login(AuthDtos.LoginRequest request, String clientIp) {
         String userNo = request.userNo().trim();
         String ip = clientIp == null || clientIp.isBlank() ? "unknown" : clientIp;
-        if (locked(ip, userNo)) {
+        if (rateLimitEnabled && locked(ip, userNo)) {
             throw new BusinessException(ErrorCode.TOO_MANY_REQUEST, "尝试过于频繁，请稍后再试");
         }
         User user = userRepository.findByUserNo(userNo).orElse(null);
@@ -92,6 +96,9 @@ public class AuthService {
 
     /** 失败计数 + 审计；达到阈值时抛出 429（审计先落库，事务不因异常回滚）。 */
     private void recordFailure(long userId, String userNo, String ip) {
+        if (!rateLimitEnabled) {
+            return;
+        }
         long ipMinute = increment(LOGIN_FAIL_PREFIX + "ip:" + ip, Duration.ofSeconds(FAIL_WINDOW_SECONDS));
         long userMinute = increment(LOGIN_FAIL_PREFIX + "user:" + userNo, Duration.ofSeconds(FAIL_WINDOW_SECONDS));
         long ipLock = increment(LOGIN_LOCK_PREFIX + "ip:" + ip, Duration.ofSeconds(LOCK_SECONDS));
@@ -297,5 +304,6 @@ public class AuthService {
                 user.getEmail());
     }
 }
+
 
 
