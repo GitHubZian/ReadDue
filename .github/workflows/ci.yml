@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "feat/**", "fix/**", "docs/**"]
+    branches: [main, dev, prod, "feat/**", "fix/**", "docs/**"]
   pull_request:
   workflow_dispatch:
 
@@ -104,5 +104,6 @@ jobs:
       - name: flutter test
         working-directory: client
         run: flutter test
+
 
 
