@@ -79,12 +79,12 @@ cd client; flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8125/api
 ## 验证
 
 ```powershell
-cd backend;  mvn test                      # 130 tests：129 passed，1 skipped（SMTP 未配置）
+cd backend;  mvn test                      # 142 tests：141 passed，1 skipped（SMTP 未配置）
 cd frontend; pnpm typecheck; pnpm build    # 13 业务页 / 14 路由
 cd client;   flutter analyze; flutter test # 81 tests，analyze 0 issues
 ```
 
-数据库由 Flyway 管理到 **V18**（35 张表）；新增表/列必须配迁移，不改历史脚本。
+数据库由 Flyway 管理到 **V20**（35 张表）；新增表/列必须配迁移，不改历史脚本。
 
 ## 架构
 
@@ -100,7 +100,7 @@ client/     读者端 Flutter 3.24（Riverpod / go_router / dio / freezed）
 
 ## 进度与限制
 
-- 分支 `feat/m3-progress-sync` 领先 `main` 85 个提交，尚未合并；任务与证据见 [`todolist.md`](todolist.md)。
+- 分支 `feat/m3-progress-sync` 领先 `main` 88 个提交，尚未合并；任务与证据见 [`todolist.md`](todolist.md)。
 - 提醒的 DAILY/WEEKLY 聚合（同夜摘要）尚未实现：偏好与快照已落库，聚合留待下一期。
 - 短信、微信渠道为有意占位（返回 422），当前只承诺站内信与邮件。
 - 读者端为 debug APK（约 110MB），未上架应用商店；本地 HTTP 演示，生产需反代与 TLS。
@@ -111,3 +111,4 @@ client/     读者端 Flutter 3.24（Riverpod / go_router / dio / freezed）
 - 接口契约：[`后端的交互接口文档.md`](后端的交互接口文档.md)
 - 部署说明：[`deploy/README.md`](deploy/README.md)
 - 任务与证据：[`todolist.md`](todolist.md)
+
