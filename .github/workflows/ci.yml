@@ -60,6 +60,7 @@ jobs:
           APP_DEMO_ENABLED: "false"
           APP_JWT_SECRET: "ci-only-0123456789abcdef0123456789abcdef0123456789abcdef"
           APP_AUTH_LOGINRATELIMIT_ENABLED: "false"
+          APP_DEMO_ENABLED: "true"
           SPRING_DATASOURCE_URL: "jdbc:mysql://127.0.0.1:3306/readdue?useUnicode=true&characterEncoding=utf-8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true"
           SPRING_DATASOURCE_USERNAME: "root"
           SPRING_DATASOURCE_PASSWORD: "123456"
@@ -105,6 +106,7 @@ jobs:
       - name: flutter test
         working-directory: client
         run: flutter test
+
 
 
 
