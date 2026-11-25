@@ -11,10 +11,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * 登录失败限流：同一 IP/账号 1 分钟内第 6 次失败即 429；成功登录清零。
  */
+@TestPropertySource(properties = "app.auth.login-rate-limit.enabled=true")
 class LoginRateLimitTest extends SecurityTestSupport {
 
     private static final String IP = "203.0.113.77";
@@ -70,3 +72,4 @@ class LoginRateLimitTest extends SecurityTestSupport {
                 .andExpect(status().isUnauthorized());
     }
 }
+

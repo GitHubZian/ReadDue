@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   backend:
+    env:
+      TZ: Asia/Shanghai
     name: 后端 · 测试
     runs-on: ubuntu-latest
     services:
@@ -105,6 +107,7 @@ jobs:
       - name: flutter test
         working-directory: client
         run: flutter test
+
 
 
 
