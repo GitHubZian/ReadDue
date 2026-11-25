@@ -70,8 +70,10 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - uploads:/data/uploads
-    ports:
-      - "${BACKEND_PORT:-8125}:8125"
+    # 只暴露给容器网络：浏览器统一走管理端 Nginx 的 /api 反向代理，
+    # 不把 8125 直接发布到宿主，避免绕过 Nginx 的安全头与限流边界。
+    expose:
+      - "8125"
     depends_on:
       mysql:
         condition: service_healthy
