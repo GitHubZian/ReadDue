@@ -212,6 +212,14 @@ public class GraceService {
         if (!user.id().equals(application.getReaderId()) && !user.isStaff()) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "宽限申请不存在");
         }
+        if (!user.id().equals(application.getReaderId()) && user.isStaff()) {
+            auditRecorder.record(
+                    "DATA_READ",
+                    "GRACE",
+                    id,
+                    "馆员查看宽限申请敏感详情",
+                    Map.of("targetType", "GRACE", "targetId", id));
+        }
         return view(application, fileService.files(evidenceRepository.fileIdsOf(id)));
     }
 

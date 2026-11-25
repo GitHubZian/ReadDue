@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DataReadRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
 import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
@@ -607,9 +608,12 @@ public interface AdminQueryMapper {
               AND u.status = #{status}
             </if>
             <if test="keyword != null and keyword != ''">
-              AND (u.name LIKE CONCAT('%', #{keyword}, '%')
-                OR u.user_no LIKE CONCAT('%', #{keyword}, '%')
-                OR u.phone LIKE CONCAT('%', #{keyword}, '%'))
+              AND (
+                (#{keyword} REGEXP '^1[0-9]{10}$' AND u.phone = #{keyword})
+                OR (#{keyword} NOT REGEXP '^1[0-9]{10}$'
+                    AND (u.name LIKE CONCAT('%', #{keyword}, '%')
+                      OR u.user_no LIKE CONCAT('%', #{keyword}, '%')))
+              )
             </if>
              ORDER BY u.created_at DESC
              LIMIT #{limit} OFFSET #{offset}
@@ -634,14 +638,37 @@ public interface AdminQueryMapper {
               AND u.status = #{status}
             </if>
             <if test="keyword != null and keyword != ''">
-              AND (u.name LIKE CONCAT('%', #{keyword}, '%')
-                OR u.user_no LIKE CONCAT('%', #{keyword}, '%')
-                OR u.phone LIKE CONCAT('%', #{keyword}, '%'))
+              AND (
+                (#{keyword} REGEXP '^1[0-9]{10}$' AND u.phone = #{keyword})
+                OR (#{keyword} NOT REGEXP '^1[0-9]{10}$'
+                    AND (u.name LIKE CONCAT('%', #{keyword}, '%')
+                      OR u.user_no LIKE CONCAT('%', #{keyword}, '%')))
+              )
             </if>
             </script>
             """)
     long countUsers(
             @Param("role") String role, @Param("status") String status, @Param("keyword") String keyword);
+
+    /**
+     * 按主键查用户详情（管理端敏感读取，需另记 DATA_READ 审计）。
+     *
+     * @param id 用户主键
+     * @return 用户行，不存在时为 null
+     */
+    @Select("""
+            SELECT u.id, u.name, u.user_no AS userNo, u.role, u.status, u.phone, u.email,
+                   u.created_at AS createdAt, u.last_login_at AS lastLoginAt,
+                   u.blacklist_reason AS blacklistReason, rp.department,
+                   (SELECT COUNT(*) FROM borrow_order o WHERE o.reader_id = u.id) AS borrowCount,
+                   (SELECT COALESCE(SUM(GREATEST(DATEDIFF(CURDATE(), o.effective_due_at), 0)), 0)
+                      FROM borrow_order o
+                     WHERE o.reader_id = u.id AND o.status IN ('BORROWED','OVERDUE')) AS overdueDays
+              FROM sys_user u
+              LEFT JOIN reader_profile rp ON rp.user_id = u.id
+             WHERE u.deleted = 0 AND u.id = #{id}
+            """)
+    UserRow user(@Param("id") long id);
 
 // endregion
 
@@ -758,6 +785,36 @@ public interface AdminQueryMapper {
              WHERE a.id = #{id}
             """)
     AuditLogRow auditLog(@Param("id") Long id);
+
+    /**
+     * 敏感数据读取记录（DATA_READ），按目标类型/ID 过滤，时间倒序。
+     *
+     * @param targetType 目标类型 USER/GRACE，空表示不过滤
+     * @param targetId   目标 ID，null 表示不过滤
+     * @param limit      条数上限
+     * @return 读取记录
+     */
+    @Select("""
+            <script>
+            SELECT a.id, a.actor_id AS operatorId, u.name AS operatorName,
+                   a.object_type AS targetType, a.object_id AS targetId, a.created_at AS createdAt
+              FROM audit_log a
+              LEFT JOIN sys_user u ON u.id = a.actor_id
+             WHERE a.action = 'DATA_READ'
+            <if test="targetType != null and targetType != ''">
+              AND a.object_type = #{targetType}
+            </if>
+            <if test="targetId != null">
+              AND a.object_id = #{targetId}
+            </if>
+             ORDER BY a.created_at DESC
+             LIMIT #{limit}
+            </script>
+            """)
+    List<DataReadRow> dataReads(
+            @Param("targetType") String targetType,
+            @Param("targetId") Long targetId,
+            @Param("limit") int limit);
 
 // endregion
 

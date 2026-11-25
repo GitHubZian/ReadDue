@@ -152,6 +152,15 @@ public final class AdminViews {
     public record AuditActor(String name, String role) {
     }
 
+    public record DataReadView(
+            String id,
+            String operatorId,
+            String operatorName,
+            String createdAt,
+            String targetType,
+            String targetId) {
+    }
+
     public record AuditLogView(
             String id,
             String at,

@@ -77,6 +77,16 @@ public class PrivacyService {
         return state(userId).cacheConsent();
     }
 
+    /**
+     * 指定读者是否已完成遗忘。
+     *
+     * @param userId 读者账号
+     * @return 已遗忘时为 true
+     */
+    public boolean forgotten(long userId) {
+        return state(userId).forgotten();
+    }
+
     // endregion
 
     // region 更新授权
@@ -131,7 +141,17 @@ public class PrivacyService {
      */
     @Transactional
     public PrivacyDtos.ForgetResult forget() {
-        long userId = UserContext.requireId();
+        return forgetFor(UserContext.requireId());
+    }
+
+    /**
+     * 代指定读者执行遗忘（管理端批准注销申请时使用；审计操作者仍为当前管理员）。
+     *
+     * @param userId 目标读者
+     * @return 脱敏结果
+     */
+    @Transactional
+    public PrivacyDtos.ForgetResult forgetFor(long userId) {
         PrivacyState before = state(userId);
         if (before.forgotten()) {
             throw new BusinessException(ErrorCode.CONFLICT_ERROR, "已提交过遗忘请求");

@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DataReadRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
 import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
@@ -253,6 +254,23 @@ public interface AdminReadRepository {
      */
     long countUsers(String role, String status, String keyword);
 
+    /**
+     * 按主键查用户详情。
+     *
+     * @param id 用户主键
+     * @return 用户行，不存在时为 null
+     */
+    UserRow user(long id);
+
+    /**
+     * 敏感数据读取记录（DATA_READ）。
+     *
+     * @param targetType 目标类型，空表示不过滤
+     * @param targetId   目标 ID，null 表示不过滤
+     * @param limit      条数上限
+     * @return 读取记录
+     */
+    List<DataReadRow> dataReads(String targetType, Long targetId, int limit);
     /**
      * 审计日志分页查询。
      *

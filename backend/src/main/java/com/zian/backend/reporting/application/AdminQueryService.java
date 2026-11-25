@@ -1,5 +1,6 @@
 package com.zian.backend.reporting.application;
 
+import com.zian.backend.audit.application.AuditRecorder;
 import com.zian.backend.notify.application.NotifyTemplateService;
 import com.zian.backend.notify.interfaces.dto.NotifyDtos;
 import com.zian.backend.reporting.domain.model.AppealEvidenceRow;
@@ -7,6 +8,7 @@ import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DataReadRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
 import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
@@ -29,6 +31,7 @@ import com.zian.backend.reporting.interfaces.dto.AdminViews.CirculationFlowView;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.CirculationTodayView;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.DashboardData;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.DashboardStats;
+import com.zian.backend.reporting.interfaces.dto.AdminViews.DataReadView;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.DueTodayItem;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.Duty;
 import com.zian.backend.reporting.interfaces.dto.AdminViews.GraceRecordView;
@@ -75,6 +78,7 @@ public class AdminQueryService {
     private final AdminReadRepository readRepository;
     private final RuleService ruleService;
     private final NotifyTemplateService templateService;
+    private final AuditRecorder auditRecorder;
 
     /** 值班信息：由部署方按实际排班覆盖，默认只给岗位不编造姓名。 */
     @Value("${app.duty.name:前台值班}")
@@ -221,6 +225,12 @@ public class AdminQueryService {
         if (row == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "宽限申请不存在");
         }
+        auditRecorder.record(
+                "DATA_READ",
+                "GRACE",
+                id,
+                "管理员查看宽限申请敏感详情",
+                Map.of("targetType", "GRACE", "targetId", id));
         return graceView(row, evidenceOf(List.of(id)).getOrDefault(id, List.of()));
     }
 
@@ -559,28 +569,51 @@ public class AdminQueryService {
         List<AdminUserView> items = readRepository
                 .users(role, mappedStatus, keyword, page.size(), page.offset())
                 .stream()
-                .map(row -> {
-                    int overdueDays = row.overdueDays().intValue();
-                    String statusView = "BLACKLISTED".equals(row.status()) ? "BLACKLISTED" : "ACTIVE";
-                    return new AdminUserView(
-                            String.valueOf(row.id()),
-                            row.name(),
-                            row.userNo(),
-                            row.role(),
-                            statusView,
-                            valueOr(row.department()),
-                            valueOr(row.phone()),
-                            valueOr(row.email()),
-                            row.borrowCount().intValue(),
-                            rate.multiply(BigDecimal.valueOf(overdueDays))
-                                    .setScale(2, RoundingMode.HALF_UP)
-                                    .toPlainString(),
-                            iso(row.createdAt()),
-                            iso(row.lastLoginAt()),
-                            row.blacklistReason());
-                })
+                .map(row -> userView(row, rate))
                 .toList();
         return new PageResult<>(items, total, page.page(), page.size());
+    }
+
+    /**
+     * 用户敏感详情：查看时记录 DATA_READ，满足「人看人」留痕。
+     *
+     * @param id 用户主键
+     * @return 用户视图
+     * @throws BusinessException 用户不存在时抛 404
+     */
+    public AdminUserView user(long id) {
+        UserRow row = readRepository.user(id);
+        if (row == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+        auditRecorder.record(
+                "DATA_READ",
+                "USER",
+                id,
+                "管理员查看用户敏感详情",
+                Map.of("targetType", "USER", "targetId", id));
+        return userView(row, ruleService.decimal("FINE.PER_DAY", "0.50"));
+    }
+
+    private AdminUserView userView(UserRow row, BigDecimal rate) {
+        int overdueDays = row.overdueDays().intValue();
+        String statusView = "BLACKLISTED".equals(row.status()) ? "BLACKLISTED" : "ACTIVE";
+        return new AdminUserView(
+                String.valueOf(row.id()),
+                row.name(),
+                row.userNo(),
+                row.role(),
+                statusView,
+                valueOr(row.department()),
+                valueOr(row.phone()),
+                valueOr(row.email()),
+                row.borrowCount().intValue(),
+                rate.multiply(BigDecimal.valueOf(overdueDays))
+                        .setScale(2, RoundingMode.HALF_UP)
+                        .toPlainString(),
+                iso(row.createdAt()),
+                iso(row.lastLoginAt()),
+                row.blacklistReason());
     }
 
 // endregion
@@ -614,6 +647,28 @@ public class AdminQueryService {
     public AuditLogView auditLog(Long id) {
         AuditLogRow row = readRepository.auditLog(id);
         return row == null ? null : auditView(row);
+    }
+
+    /**
+     * 敏感数据读取记录查询（只读，不再二次留痕）。
+     *
+     * @param targetType 目标类型，空表示不过滤
+     * @param targetId   目标 ID，null 表示不过滤
+     * @param limit      条数上限，1-200
+     * @return 读取记录，时间倒序
+     */
+    public List<DataReadView> dataReads(String targetType, Long targetId, int limit) {
+        int size = Math.max(1, Math.min(limit, 200));
+        String type = targetType == null || targetType.isBlank() ? null : targetType.trim().toUpperCase();
+        return readRepository.dataReads(type, targetId, size).stream()
+                .map(row -> new DataReadView(
+                        String.valueOf(row.id()),
+                        row.operatorId() == null ? null : String.valueOf(row.operatorId()),
+                        row.operatorName() == null ? "系统" : row.operatorName(),
+                        iso(row.createdAt()),
+                        row.targetType(),
+                        row.targetId() == null ? null : String.valueOf(row.targetId())))
+                .toList();
     }
 
     private AuditLogView auditView(AuditLogRow row) {

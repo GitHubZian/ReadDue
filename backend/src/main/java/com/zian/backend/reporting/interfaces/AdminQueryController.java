@@ -67,6 +67,18 @@ public class AdminQueryController {
     }
 
     /**
+     * 用户敏感详情（查看时后端自动记录 DATA_READ 审计）。
+     *
+     * @param id 用户主键
+     * @return 用户视图
+     */
+    @GetMapping("/users/{id}")
+    @PreAuthorize("hasAuthority('user:blacklist')")
+    public BaseResponse<AdminViews.AdminUserView> user(@PathVariable long id) {
+        return ResultUtils.success(queryService.user(id));
+    }
+
+    /**
      * 宽限申请列表，含申请场景、计算天数、审批历史与 SLA 截止时间。
      *
      * @param status  审批状态（PENDING/APPROVED/REJECTED/EXPIRED）
@@ -251,6 +263,23 @@ public class AdminQueryController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "审计日志不存在");
         }
         return ResultUtils.success(view);
+    }
+
+    /**
+     * 敏感数据读取记录：谁在何时查看了哪个用户/宽限单。
+     *
+     * @param targetType 目标类型（USER/GRACE），空表示不过滤
+     * @param targetId   目标 ID，null 表示不过滤
+     * @param limit      返回条数，默认 20，最大 200
+     * @return 读取记录，时间倒序
+     */
+    @GetMapping("/data-reads")
+    @PreAuthorize("hasAuthority('audit:read')")
+    public BaseResponse<List<AdminViews.DataReadView>> dataReads(
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) Long targetId,
+            @RequestParam(required = false, defaultValue = "20") Integer limit) {
+        return ResultUtils.success(queryService.dataReads(targetType, targetId, limit));
     }
 
     /**

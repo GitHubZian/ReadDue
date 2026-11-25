@@ -5,6 +5,7 @@ import com.zian.backend.reporting.domain.model.AppealRow;
 import com.zian.backend.reporting.domain.model.AuditLogRow;
 import com.zian.backend.reporting.domain.model.CalendarRow;
 import com.zian.backend.reporting.domain.model.CirculationRow;
+import com.zian.backend.reporting.domain.model.DataReadRow;
 import com.zian.backend.reporting.domain.model.DueTodayRow;
 import com.zian.backend.reporting.domain.model.GraceEvidenceRow;
 import com.zian.backend.reporting.domain.model.GraceRow;
@@ -161,6 +162,16 @@ public class AdminReadRepositoryImpl implements AdminReadRepository {
     @Override
     public long countUsers(String role, String status, String keyword) {
         return mapper.countUsers(role, status, keyword);
+    }
+
+    @Override
+    public UserRow user(long id) {
+        return mapper.user(id);
+    }
+
+    @Override
+    public List<DataReadRow> dataReads(String targetType, Long targetId, int limit) {
+        return mapper.dataReads(targetType, targetId, limit);
     }
 
     @Override
