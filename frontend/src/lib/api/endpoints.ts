@@ -39,8 +39,15 @@ export const endpoints = {
   },
   users: {
     list: "/admin/users",
+    detail: (id: string) => `/admin/users/${id}`,
     blacklist: (id: string) => `/admin/users/${id}/blacklist`,
     restore: (id: string) => `/admin/users/${id}/restore`,
+  },
+  dataReads: "/admin/data-reads",
+  deletionRequests: {
+    list: "/admin/deletion-requests",
+    approve: (id: string) => `/admin/deletion-requests/${id}/approve`,
+    reject: (id: string) => `/admin/deletion-requests/${id}/reject`,
   },
   rules: {
     root: "/admin/rules",

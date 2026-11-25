@@ -16,21 +16,6 @@ export const PERMISSIONS = {
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-/** 角色默认权限，后端 /me 返回 permissions 时以服务端为准。 */
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  ADMIN: Object.values(PERMISSIONS),
-  LIBRARIAN: [
-    PERMISSIONS.workbenchRead,
-    PERMISSIONS.borrowReturn,
-    PERMISSIONS.reservationManage,
-    PERMISSIONS.overdueRead,
-    PERMISSIONS.graceApprove,
-    PERMISSIONS.appealHandle,
-    PERMISSIONS.notifyManage,
-  ],
-  READER: [PERMISSIONS.workbenchRead],
-};
-
 export const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "管理员",
   LIBRARIAN: "馆员",
@@ -39,9 +24,8 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 export function can(user: SessionUser | null | undefined, code: Permission) {
   if (!user) return false;
-  // 后端每次请求都会重查权限，前端以登录返回的 permissions 为准
-  const grants = user.permissions.length ? user.permissions : ROLE_PERMISSIONS[user.role];
-  return grants.includes(code);
+  // 权限完全以服务端 /me 返回为准；服务端为空即无权限，不再按角色回退
+  return user.permissions.includes(code);
 }
 
 export function canAny(user: SessionUser | null | undefined, codes: Permission[]) {
