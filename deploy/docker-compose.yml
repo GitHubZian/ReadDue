@@ -56,6 +56,8 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 管理端对外访问来源（含端口）；prod 默认只放行 http://localhost:8080，改端口/域名部署需同步。
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
       DB_URL: jdbc:mysql://mysql:3306/readdue?useUnicode=true&characterEncoding=utf-8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
       DB_USERNAME: ${DB_USERNAME:-readdue}
       DB_PASSWORD: ${DB_PASSWORD:-readdue}

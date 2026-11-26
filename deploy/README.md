@@ -29,6 +29,7 @@ docker compose --env-file .env up -d --build
 - **密钥**：`APP_JWT_SECRET` 留空时 compose 直接拒绝启动；非 local 环境用示例值或弱密钥会被后端启动校验拒绝。
 - **口令**：DB 与 RabbitMQ 默认口令只用于本地；生产替换后同步更新 `.env`，不要提交 `.env`。
 - **网络**：只发布 8080；3306/6379/5672/8125 都不对宿主发布。若需 TLS，在宿主机或前置反代（Caddy/Traefik/Nginx）终止，不要用本 compose 直接暴露 80。
+- **跨域白名单**：`CORS_ALLOWED_ORIGINS` 必须等于浏览器实际访问地址（含端口，多个用逗号分隔）。后端 prod 默认只放行 `http://localhost:8080`，换端口（如 8124）或换域名后若忘了改，登录等写请求会被 Spring 返回 `403 Invalid CORS request`，页面表现为「请求失败（HTTP 403）」。改完 `.env` 后需 `docker compose up -d backend` 重建容器才生效（`environment` 变更不会热更新）。
 - **响应头**：管理端 Nginx 已加 CSP、`X-Content-Type-Options`、`X-Frame-Options: DENY`、`Referrer-Policy`、`Permissions-Policy`，并关闭 `server_tokens`。
 - **真实 IP**：后端 prod 已开 `server.forward-headers-strategy=framework`，审计日志依赖 Nginx 传入的 `X-Forwarded-For`；**不要**让客户端直连 8125。
 - **权限**：后端容器以非 root 用户运行；数据库账号仅授予 `readdue` 库所需权限，不用 root 连接应用。

@@ -53,6 +53,9 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 管理端对外访问来源（含端口）。浏览器带 Origin 头，prod 默认只放行 http://localhost:8080；
+      # 换端口/换域名部署必须同步这里，否则登录等写请求会被 Spring 以 403 Invalid CORS request 拒绝。
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
       DB_URL: jdbc:mysql://mysql:3306/readdue?useUnicode=true&characterEncoding=utf-8&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
       DB_USERNAME: ${DB_USERNAME:-readdue}
       DB_PASSWORD: ${DB_PASSWORD:-readdue}
