@@ -48,7 +48,7 @@ class SmtpMailGatewayTest {
 
     @Test
     void masksAccountInLogs() {
-        assertThat(Masks.email("2927251542@qq.com")).isEqualTo("2***@qq.com");
+        assertThat(Masks.email("reader@example.com")).isEqualTo("r***@example.com");
         assertThat(Masks.email(null)).isEqualTo("***");
     }
 }

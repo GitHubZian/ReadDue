@@ -96,7 +96,7 @@ app:
 
 ## 4. 本机配置与启动（PowerShell）
 
-现状：`MAIL_USERNAME=2927251542@qq.com` 与 `MAIL_PASSWORD`（QQ 授权码，16 位）都已写入**当前 Windows 用户环境变量**，无需再设、也不要再问、更不要把它们抄进任何文件。新开的终端才继承；当前终端可用 `$env:MAIL_USERNAME` 验证（只打印用户名，不要打印密码）。
+现状：`MAIL_USERNAME=reader@example.com` 与 `MAIL_PASSWORD`（QQ 授权码，16 位）都已写入**当前 Windows 用户环境变量**，无需再设、也不要再问、更不要把它们抄进任何文件。新开的终端才继承；当前终端可用 `$env:MAIL_USERNAME` 验证（只打印用户名，不要打印密码）。
 
 一次性写入用户环境变量（关掉终端重开才生效）：
 

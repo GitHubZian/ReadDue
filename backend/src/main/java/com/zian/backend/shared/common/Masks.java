@@ -9,7 +9,7 @@ public final class Masks {
     }
 
     /**
-     * 邮箱脱敏：保留首字符与域名，例如 {@code 2927251542@qq.com} → {@code 2***@qq.com}。
+     * 邮箱脱敏：保留首字符与域名，例如 {@code reader@example.com} → {@code r***@example.com}。
      *
      * @param address 邮箱地址，可为 null
      * @return 脱敏后的字符串；空值或非法格式返回 {@code ***}
